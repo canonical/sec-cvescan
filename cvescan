@@ -80,13 +80,13 @@ if [[ ! -f $REPORT ||$(($NOW - $(stat -c %Y $REPORT))) -gt $EXPIRE  ]] ; then
 fi
 
 $VERBOSE && echo "Running xsltproc to generate CVE list"
-CVE_LIST=$(xsltproc ${XSL_OPTS} text.xsl $RESULTS)
+CVE_LIST=$(xsltproc ${XSL_OPTS} text.xsl $RESULTS | sed /^$/d)
 
 $VERBOSE && echo "Full HTML report availble in $REPORT"
 $VERBOSE && echo
 
 if [ -z "$CVE" ]  ; then
-	if [[ $(wc -l <<<$CVE_LIST) -gt 0 ]] ; then
+	if [ -n "$CVE_LIST" ] ; then
 		echo "$CVE_LIST"
 		exit 1
 	else
