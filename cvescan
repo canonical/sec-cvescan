@@ -62,7 +62,7 @@ $REMOVE && rm -f $OVAL_FILE $OVAL_ZIP $REPORT $RESULTS $LOG
 
 if [[ ! -f $OVAL_FILE || $(($NOW - $(stat -c %Y $OVAL_FILE))) -gt $EXPIRE ]] ; then
 	$VERBOSE && echo "Downloading ${OVAL_BASE_URL}/${OVAL_ZIP}"
-	wget -s ${OVAL_BASE_URL}/${OVAL_ZIP}
+	wget -q ${OVAL_BASE_URL}/${OVAL_ZIP}
 	$VERBOSE && echo "Unzipping ${OVAL_ZIP}"
 	bunzip2 -f $OVAL_ZIP
 fi

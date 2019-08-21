@@ -16,6 +16,9 @@ In order to accomplish this I needed a reliable way to parse the oscap results X
 * text.xsl - modified version of oscap xslt file to output cve list in text format
 * cvescan - script to download oval and scan your system
 
+## Prereqs
+
+sudo apt-get install -y libopenscap8 xsltproc 
 ## Using cvescan
 
 ./cvescan -? will display complete usage
