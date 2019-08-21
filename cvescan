@@ -94,10 +94,10 @@ if [ -z "$CVE" ]  ; then
 	fi
 else
 	if grep -q "$CVE" <<<$CVE_LIST ; then
-		$SILENT || echo "vulnerable"
+		$SILENT || echo "$CVE vulnerable"
 		exit 1
 	else
-		$SILENT || echo "not vulnerable"
+		$SILENT || echo "$CVE not vulnerable"
 		exit 0
 	fi
 fi
