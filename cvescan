@@ -1,0 +1,98 @@
+#!/bin/bash
+
+usage() {
+	cat <<-EOF
+		Usage $0 [ -a ] [ -c CVE-identifier ] [ -r ] [ -v ]
+		         -a show all CVEs impacting this system
+		            Default is to only show CVEs impacting this system if there is 
+		            an update that fixes them.
+		         -c <cve-identifier> 
+		            Report if this system is vulnerable to a specific CVE
+		         -s script/silent mode
+		            To be used with -c CVE-1984-54321, do not print output
+		            exit 0 if not vulnerable, exit 1 if vulnerable
+		         -r remove zip, oval, xml, and htm files to force redownload/regeneration
+		            Default is use them if they already exist and are less than 1 day old
+		         -v verbose messages
+		            Default is just to print a list of CVEs
+	EOF
+	exit 1
+}
+
+RELEASE=$(lsb_release -c -s)
+OVAL_FILE=com.ubuntu.${RELEASE}.cve.oval.xml
+OVAL_ZIP=${OVAL_FILE}.bz2
+OVAL_BASE_URL='https://people.canonical.com/~ubuntu-security/oval'
+RESULTS=results.xml
+REPORT=report.htm
+LOG=oval.log
+XSL_OPTS=''
+VERBOSE=false
+REMOVE=false
+SILENT=false
+NOW=$(date +%s)
+EXPIRE=86400
+
+while getopts ":ac:rsv" op ; do
+	case "${op}" in
+		a)
+			XSL_OPTS='--stringparam showAll true'
+			;;
+		c)
+			CVE=${OPTARG}
+			;;
+		r)
+			REMOVE=true
+			;;
+		s)
+			SILENT=true
+			;;
+		v)
+			VERBOSE=true
+			;;
+		*)
+			usage
+			;;
+	esac
+done
+shift $((OPTIND-1))
+
+$VERBOSE && $REMOVE && echo "Removing files: $OVAL_FILE $OVAL_ZIP $REPORT $RESULTS $LOG"
+$REMOVE && rm -f $OVAL_FILE $OVAL_ZIP $REPORT $RESULTS $LOG
+
+if [[ ! -f $OVAL_FILE || $(($NOW - $(stat -c %Y $OVAL_FILE))) -gt $EXPIRE ]] ; then
+	$VERBOSE && echo "Downloading ${OVAL_BASE_URL}/${OVAL_ZIP}"
+	wget -s ${OVAL_BASE_URL}/${OVAL_ZIP}
+	$VERBOSE && echo "Unzipping ${OVAL_ZIP}"
+	bunzip2 -f $OVAL_ZIP
+fi
+
+if [[ ! -f $RESULTS || $(($NOW - $(stat -c %Y $RESULTS))) -gt $EXPIRE ]] ; then
+	$VERBOSE && echo "Running oval scan (output logged to $LOG)"
+	oscap oval eval --results $RESULTS $OVAL_FILE >$LOG >&1
+fi
+
+if [[ ! -f $REPORT ||$(($NOW - $(stat -c %Y $REPORT))) -gt $EXPIRE  ]] ; then
+	$VERBOSE && echo "Generating oval report from scan results (output logged to $LOG)"
+	oscap oval generate report --output $REPORT $RESULTS >>$LOG >&1
+fi
+
+$VERBOSE && echo "Running xsltproc to generate CVE list"
+CVE_LIST=$(xsltproc ${XSL_OPTS} text.xsl $RESULTS)
+
+$VERBOSE && echo "Full HTML report availble in $REPORT"
+$VERBOSE && echo
+
+if [ -z "$CVE" ]  ; then
+	echo "$CVE_LIST"
+else
+	if grep -q "$CVE" <<<$CVE_LIST ; then
+		$SILENT || echo "vulnerable"
+		exit 1
+	else
+		$SILENT || echo "not vulnerable"
+		exit 0
+	fi
+fi
+		
+
