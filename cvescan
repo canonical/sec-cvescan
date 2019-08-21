@@ -8,6 +8,7 @@ usage() {
 		            an update that fixes them.
 		         -c <cve-identifier> 
 		            Report if this system is vulnerable to a specific CVE
+		            This enables -a to search all CVEs
 		         -s script/silent mode
 		            To be used with -c CVE-1984-54321, do not print output
 		            exit 0 if not vulnerable, exit 1 if vulnerable
@@ -40,6 +41,7 @@ while getopts ":ac:rsv" op ; do
 			;;
 		c)
 			CVE=${OPTARG}
+			XSL_OPTS='--stringparam showAll true'
 			;;
 		r)
 			REMOVE=true
