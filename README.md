@@ -19,6 +19,7 @@ In order to accomplish this I needed a reliable way to parse the oscap results X
 ## Prereqs
 
 sudo apt-get install -y libopenscap8 xsltproc 
+
 ## Using cvescan
 
 ./cvescan -? will display complete usage

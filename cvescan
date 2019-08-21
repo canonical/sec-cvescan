@@ -86,7 +86,12 @@ $VERBOSE && echo "Full HTML report availble in $REPORT"
 $VERBOSE && echo
 
 if [ -z "$CVE" ]  ; then
-	echo "$CVE_LIST"
+	if [[ $(wc -l <<<$CVE_LIST) -gt 0 ]] ; then
+		echo "$CVE_LIST"
+		exit 1
+	else
+		exit 0
+	fi
 else
 	if grep -q "$CVE" <<<$CVE_LIST ; then
 		$SILENT || echo "vulnerable"
