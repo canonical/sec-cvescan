@@ -2,15 +2,21 @@
 
 usage() {
 	cat <<-EOF
-		Usage $0 [ -a ] [ -c CVE-identifier ] [ -r ] [ -v ]
+		Usage $0 [ -a ] [ -p <critical|high|medium|all> ] [ -c CVE-identifier ] [ -r ] [ -v ]
 		         -a show all CVEs impacting this system
 		            Default is to only show CVEs impacting this system if there is 
 		            an update that fixes them.
+		         -p <critical|high|medium|all>
+		            critical = show only critical CVEs
+		            high     = show critical and high CVEs
+		            medium   = show critical and high and medium CVEs
+			    all      = show all CVES (no filtering based on priority)
 		         -c <cve-identifier> 
 		            Report if this system is vulnerable to a specific CVE
-		            This enables -a to search all CVEs
+		            Specifying this forces '-a' to search all CVEs.
+		            Specifying this forces '-p all' to search all CVEs.
 		         -s enable script/silent mode
-		            To be used with -c CVE-1984-54321, do not print output
+		            To be used with -c CVE-1984-54321, do not print text output
 		            exit 0 if not vulnerable, exit 1 if vulnerable
 		         -n enable nagios mode
 		            Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages with 0-3 exit codes
@@ -38,17 +44,28 @@ REMOVE=false
 SILENT=false
 NAGIOS=false
 ALL=false
+PRIORITY=medium
 NOW=$(date +%s)
 EXPIRE=86400
-ALL_XSL_OPTS='--stringparam showAll true'
 
-while getopts ":ac:rsnv" op ; do
+while getopts ":ac:p:rsnv" op ; do
 	case "${op}" in
 		a)
 			ALL=true
 			;;
 		c)
-			CVE=${OPTARG}
+			if [[ ${OPTARG} =~ ^CVE-[0-9]{4}-[0-9]{1,6}$ ]] ; then
+				CVE=${OPTARG}
+			else
+				usage
+			fi
+			;;
+		p)
+			if [[ ${OPTARG} =~ ^(critical|high|medium|all)$ ]] ; then
+				PRIORITY=${OPTARG}
+			else
+				usage
+			fi
 			;;
 		r)
 			REMOVE=true
@@ -70,6 +87,9 @@ done
 shift $((OPTIND-1))
 
 $VERBOSE && $REMOVE && echo "Removing files: $OVAL_FILE $OVAL_ZIP $REPORT $RESULTS $LOG"
+$VERBOSE && $ALL && echo "Reporting on ALL CVEs, not just those that can be fixed by updates"
+$VERBOSE && $NAGIOS && echo "Running in Nagios Mode"
+$VERBOSE && echo "Priority filter is \"$PRIORITY\""
 $REMOVE && rm -f $OVAL_FILE $OVAL_ZIP $REPORT $RESULTS $LOG
 
 if [[ ! -f $OVAL_FILE || $(($NOW - $(stat -c %Y $OVAL_FILE))) -gt $EXPIRE ]] ; then
@@ -89,39 +109,57 @@ if [[ ! -f $REPORT ||$(($NOW - $(stat -c %Y $REPORT))) -gt $EXPIRE  ]] ; then
 	oscap oval generate report --output $REPORT $RESULTS >>$LOG >&1
 fi
 
-$VERBOSE && echo "Running xsltproc to generate CVE list of ALL CVEs"
-CVE_LIST_ALL=$(xsltproc ${ALL_XSL_OPTS} text.xsl $RESULTS | sed /^$/d)
-CVE_COUNT_ALL=$(wc -l <<<$CVE_LIST_ALL)
-$VERBOSE && echo "$CVE_COUNT_ALL vulnerabilities found:"
-## $VERBOSE && echo $CVE_LIST_ALL
+$VERBOSE && echo "Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority"
+CVE_LIST_ALL_FILTERED=$(xsltproc --stringparam showAll true --stringparam priority $PRIORITY text.xsl $RESULTS | sed /^$/d)
+if [[ -z "$CVE_LIST_ALL_FILTERED" ]] ; then
+	CVE_COUNT_ALL_FILTERED=0
+else
+	CVE_COUNT_ALL_FILTERED=$(wc -l <<<$CVE_LIST_ALL_FILTERED)
+fi
+$VERBOSE && echo "$CVE_COUNT_ALL_FILTERED vulnerabilities found with priority of $PRIORITY or higher:"
+## $VERBOSE && echo "$CVE_LIST_ALL_FILTERED"
 
-
-$VERBOSE && echo "Running xsltproc to generate CVE list of CVEs with package update fixes"
-CVE_LIST_FIXABLE=$(xsltproc text.xsl $RESULTS | sed /^$/d)
-CVE_COUNT_FIXABLE=$(wc -l <<<$CVE_LIST_FIXABLE)
-$VERBOSE && echo "$CVE_COUNT_FIXABLE vulnerabilities found that can be fixed with package updates:"
-## $VERBOSE && echo $CVE_LIST_FIXABLE
+$VERBOSE && echo "Running xsltproc to generate CVE list - fixable and filtered by priority"
+CVE_LIST_FIXABLE_FILTERED=$(xsltproc --stringparam showAll false --stringparam priority $PRIORITY text.xsl $RESULTS | sed /^$/d)
+if [[ -z "$CVE_LIST_FIXABLE_FILTERED" ]] ; then
+	CVE_COUNT_FIXABLE_FILTERED=0
+else
+	CVE_COUNT_FIXABLE_FILTERED=$(wc -l <<<$CVE_LIST_FIXABLE_FILTERED)
+fi
+$VERBOSE && echo "$CVE_COUNT_FIXABLE_FILTERED vulnerabilities found with priority of $PRIORITY or higher that can be fixed with package updates:"
+## $VERBOSE && echo "$CVE_LIST_FIXABLE_FILTERED"
 
 $VERBOSE && echo "Full HTML report availble in $REPORT"
 $VERBOSE && echo
 
 if $NAGIOS  ; then
-	if [[ -z "$CVE_LIST_ALL" && -z "$CVE_LIST_FIXABLE" ]] ; then
-		echo "OK: not vulnerable to any known CVEs"
+	if [[ -z "$CVE_LIST_FIXABLE_FILTERED" ]] ; then
+		echo "OK: not vulnerable to any known $PRIORITY or higher CVEs that can be fixed by updating"
 		exit 0
-	elif [ -n "$CVE_LIST_FIXABLE" ] ; then
-		echo "CRITICAL: $(wc -l <<<$CVE_LIST_FIXABLE) CVEs can be fixed with package updates"
-		echo $CVE_LIST_FIXABLE
+	elif [ -n "$CVE_LIST_FIXABLE_FILTERED" ] ; then
+		echo "CRITICAL: vulnerable to $CVE_COUNT_FIXABLE_FILTERED CVEs with priority $PRIORITY or higher that can be fixed with package updates"
+		echo $CVE_LIST_FIXABLE_FILTERED
 		exit 2
-	elif [ -n "$CVE_LIST_ALL" ] ; then
-		echo "WARNING: $(wc -l <<<$CVE_LIST_ALL) CVEs with no currently avaialble fix"
-		echo $CVE_LIST_ALL
+	elif [ -n "$CVE_LIST_ALL_FILTERED" ] ; then
+		echo "WARNING: vulnerable to $CVE_COUNT_ALL_FILTERED CVEs that can be fixed with package updates"
+		echo $CVE_LIST_ALL_FILTERED
 		exit 1
 	else
 		echo "UNKNOWN: something went wrong with $0"
 		exit 3
 	fi
 elif [ -n "$CVE" ]  ; then
+
+	$VERBOSE && echo "Running xsltproc to generate CVE list - fixable and unfixable, any priority"
+	CVE_LIST_ALL=$(xsltproc --stringparam showAll true --stringparam priority all text.xsl $RESULTS | sed /^$/d)
+	if [[ -z "$CVE_LIST_ALL" ]] ; then
+		CVE_COUNT_ALL=0
+	else
+		CVE_COUNT_ALL=$(wc -l <<<$CVE_LIST_ALL)
+	fi
+	$VERBOSE && echo "$CVE_COUNT_ALL fixable and unfixable vulnerabilities with any priority found:"
+	## $VERBOSE && echo "$CVE_LIST_ALL"
+
 	if grep -q "$CVE" <<<$CVE_LIST_ALL ; then
 		$SILENT || echo "$CVE vulnerable"
 		exit 1
@@ -129,19 +167,21 @@ elif [ -n "$CVE" ]  ; then
 		$SILENT || echo "$CVE not vulnerable"
 		exit 0
 	fi
-elif $ALL ; then
-	if [ -n "$CVE_LIST_ALL" ] ; then
-		echo "$CVE_LIST_ALL"
-		exit 1
-	else
-		exit 0
-	fi
 else
-	if [ -n "$CVE_LIST_FIXABLE" ] ; then
-		echo "$CVE_LIST_FIXABLE"
-		exit 1
+	if $ALL ; then
+		if [ -n "$CVE_LIST_ALL_FILTERED" ] ; then
+			echo "$CVE_LIST_ALL_FILTERED"
+			exit 1
+		else
+			exit 0
+		fi
 	else
-		exit 0
+		if [ -n "$CVE_LIST_FIXABLE_FILTERED" ] ; then
+			echo "$CVE_LIST_FIXABLE_FILTERED"
+			exit 1
+		else
+			exit 0
+		fi
 	fi
 fi
 		

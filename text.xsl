@@ -8,6 +8,7 @@
 	<xsl:output method="text" omit-xml-declaration="yes" indent="no"/>
 	<xsl:key name="definition-index" use="@id" match="//oval-def:oval_definitions/oval-def:definitions/oval-def:definition"/>
 	<xsl:param name="showAll" select="'false'"/>
+	<xsl:param name="priority" select="'all'"/>
 
 	<!-- Gets the top level node -->
 	<xsl:template match="oval-res:oval_results">
@@ -124,13 +125,21 @@
 		<xsl:param name="definitionElm"/>
 		<xsl:variable name="defClass"><xsl:value-of select="key('definition-index', @definition_id)/@class"/></xsl:variable>
 		<xsl:variable name="defResult"><xsl:value-of select="$definitionElm/@result"/></xsl:variable>
-		<xsl:variable name="testComment"><xsl:value-of select="key('definition-index', @definition_id)/oval-def:criteria/oval-def:criterion/@comment"/></xsl:variable>
+		<xsl:variable name="criterionComment"><xsl:value-of select="key('definition-index', @definition_id)/oval-def:criteria/oval-def:criterion/@comment"/></xsl:variable>
+		<xsl:variable name="defTitle"><xsl:value-of select="key('definition-index', @definition_id)/oval-def:metadata/oval-def:title"/></xsl:variable>
 		<!-- if there is a CVE -->
 		<xsl:if test="$defResult='true'">
 			<xsl:for-each select="key('definition-index', @definition_id)/oval-def:metadata/oval-def:reference">
-				<xsl:if test="$showAll='true' or contains($testComment, 'has been fixed')">
-					<xsl:value-of select="@ref_id"/>
-					<xsl:text>&#xa;</xsl:text>
+				<xsl:if test="$showAll='true' or contains($criterionComment, 'has been fixed')">
+					<xsl:if test="$priority='all' or 
+						(contains($defTitle, ' - medium.') and $priority='medium') or
+						(contains($defTitle, ' - high.')      and ($priority='medium' or $priority='high')) or
+						(contains($defTitle, ' - critical.')    and ($priority='critical' or $priority='high' or $priority='medium'))">
+						<xsl:value-of select="@ref_id"/>
+						<!-- <xsl:text> - </xsl:text>
+						<xsl:value-of select="$defTitle"/> -->
+						<xsl:text>&#xa;</xsl:text>
+					</xsl:if>
 				</xsl:if>
 			</xsl:for-each>
 		</xsl:if>
