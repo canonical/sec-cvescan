@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if ! lsb_release -a 2>&1 | grep -q -E '^Distributor ID:\s+Ubuntu$' ; then
+	echo "Not Ubuntu, not running" >&2
+	exit 4
+fi
+
 usage() {
 	cat <<-EOF
 		Usage $0 [ -a ] [ -p <critical|high|medium|all> ] [ -c CVE-identifier ] [ -r ] [ -v ]
@@ -10,7 +15,7 @@ usage() {
 		            critical = show only critical CVEs
 		            high     = show critical and high CVEs
 		            medium   = show critical and high and medium CVEs
-			    all      = show all CVES (no filtering based on priority)
+		            all      = show all CVES (no filtering based on priority)
 		         -c <cve-identifier> 
 		            Report if this system is vulnerable to a specific CVE
 		            Specifying this forces '-a' to search all CVEs.
