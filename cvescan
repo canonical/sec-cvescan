@@ -26,11 +26,11 @@ usage() {
 		         -n enable nagios mode
 		            Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages with 0-3 exit codes
 		            0/OK = not vulnerable to any CVEs
-		            1/WARNING = vulnerable to CVEs for which there is no avaialble fix
-		            2/CRITICAL = vunerable to CVEs that have fixes avaialble in updated packages
+		            1/WARNING = vulnerable to CVEs for which there is no available fix
+		            2/CRITICAL = vulnerable to CVEs that have fixes available in updated packages
 		            3/UNKNOWN = something went wrong with the script, or the scan
 		         -r remove zip, oval, xml, and htm files to force redownload/regeneration
-		            Default is use them if they already exist and are less than 1 day old
+		            Default is to use them if they already exist and are less than 1 day old
 		         -v enable verbose messages
 		            Default is just to print a list of CVEs
 	EOF
