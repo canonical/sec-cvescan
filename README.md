@@ -11,10 +11,12 @@ Specifically, I wanted to see if there was anything vulnerable on my system that
 
 In order to accomplish this I needed a reliable way to parse the oscap results XML into something more easily digestable than the default HTML report output. I fumbled around with some grep/awk/perl/python scripts. Finally I stumbled upon the XSLT file that oscap uses to create the HTML report from the XML results. On my system it gets installed as /usr/share/openscap/xsl/oval-results-report.xsl by the libopenscap8 package. I changed it to output text instead of HTML and started stripping away what I did not need. There might be more that can still be removed from the XSLT or other optimizations that can be made... I make know claims of knowing anything about XML or related tools.
 
+Since the intial creation of the script, functionality has been added to scan Ubuntu Offical Cloud Image manifest files (it scans the manifest instead of the system it is running on). 
+
 ## Contents 
 * README.md - this file
 * text.xsl - modified version of oscap xslt file to output cve list in text format
-* cvescan - script to download oval and scan your system
+* cvescan - script to download oval and scan your system (or an image manifest)
 
 ## Prereqs
 
@@ -30,3 +32,4 @@ Below are some examples:
 ./cvescan -a    # display ALL CVEs affecting this system instead of just CVEs with package fixes
 ./cvescan -c CVE-2019-54321    # output "vulnerable" and exit 1 if vulnerable. Output "not vulnerable" and exit 0 if not vulnerable
 ./cvescan -c CVE-2019-54321 -s # similar to above but no output, only exit values
+./cvescan -m bionic            # scan the OCI manifest for bionic
