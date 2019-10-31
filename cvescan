@@ -1,7 +1,7 @@
 #!/bin/bash
 
 error() {
-	echo "Error: $@" >&2
+	echo "Error: $*" >&2
 	exit 4
 }
 
@@ -99,13 +99,13 @@ $VERBOSE && $REMOVE && echo "Removing files: $OVAL_FILE $OVAL_ZIP $REPORT $RESUL
 $VERBOSE && $ALL && echo "Reporting on ALL CVEs, not just those that can be fixed by updates"
 $VERBOSE && $NAGIOS && echo "Running in Nagios Mode"
 $VERBOSE && echo "Priority filter is \"$PRIORITY\""
-$REMOVE && rm -f $OVAL_FILE $OVAL_ZIP $REPORT $RESULTS $LOG
+$REMOVE && rm -f "$OVAL_FILE" "$OVAL_ZIP" "$REPORT" "$RESULTS" "$LOG"
 
-if [[ ! -f $OVAL_FILE || $(($NOW - $(stat -c %Y $OVAL_FILE))) -gt $EXPIRE ]] ; then
+if [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -gt $EXPIRE ]] ; then
 	$VERBOSE && echo "Downloading ${OVAL_BASE_URL}/${OVAL_ZIP}"
-	if wget -q ${OVAL_BASE_URL}/${OVAL_ZIP} ; then
+	if wget -q "${OVAL_BASE_URL}/${OVAL_ZIP}" ; then
 		$VERBOSE && echo "Unzipping ${OVAL_ZIP}"
-		if ! bunzip2 -f $OVAL_ZIP ; then
+		if ! bunzip2 -f "$OVAL_ZIP" ; then
 			error "Failed to unzip $OVAL_ZIP"
 		fi
 	else
@@ -113,14 +113,14 @@ if [[ ! -f $OVAL_FILE || $(($NOW - $(stat -c %Y $OVAL_FILE))) -gt $EXPIRE ]] ; t
 	fi
 fi
 
-if [[ ! -f $RESULTS || $(($NOW - $(stat -c %Y $RESULTS))) -gt $EXPIRE ]] ; then
+if [[ ! -f $RESULTS || $((NOW - $(stat -c %Y "$RESULTS"))) -gt $EXPIRE ]] ; then
 	$VERBOSE && echo "Running oval scan (output logged to $LOG)"
-	if ! oscap oval eval --results $RESULTS $OVAL_FILE >$LOG >&1 ; then
+	if ! oscap oval eval --results "$RESULTS" "$OVAL_FILE" >$LOG >&1 ; then
 		error "Failed to run oval scan"
 	fi
 fi
 
-if [[ ! -f $REPORT ||$(($NOW - $(stat -c %Y $REPORT))) -gt $EXPIRE  ]] ; then
+if [[ ! -f $REPORT ||$((NOW - $(stat -c %Y "$REPORT"))) -gt $EXPIRE  ]] ; then
 	$VERBOSE && echo "Generating oval report from scan results (output logged to $LOG)"
 	if ! oscap oval generate report --output $REPORT $RESULTS >>$LOG >&1 ; then
 		error "Failed to generate oval report"
@@ -128,21 +128,21 @@ if [[ ! -f $REPORT ||$(($NOW - $(stat -c %Y $REPORT))) -gt $EXPIRE  ]] ; then
 fi
 
 $VERBOSE && echo "Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority"
-CVE_LIST_ALL_FILTERED=$(xsltproc --stringparam showAll true --stringparam priority $PRIORITY text.xsl $RESULTS | sed /^$/d)
+CVE_LIST_ALL_FILTERED=$(xsltproc --stringparam showAll true --stringparam priority "$PRIORITY" text.xsl "$RESULTS" | sed /^$/d)
 if [[ -z "$CVE_LIST_ALL_FILTERED" ]] ; then
 	CVE_COUNT_ALL_FILTERED=0
 else
-	CVE_COUNT_ALL_FILTERED=$(wc -l <<<$CVE_LIST_ALL_FILTERED)
+	CVE_COUNT_ALL_FILTERED=$(wc -l <<<"$CVE_LIST_ALL_FILTERED")
 fi
 $VERBOSE && echo "$CVE_COUNT_ALL_FILTERED vulnerabilities found with priority of $PRIORITY or higher:"
 ## $VERBOSE && echo "$CVE_LIST_ALL_FILTERED"
 
 $VERBOSE && echo "Running xsltproc to generate CVE list - fixable and filtered by priority"
-CVE_LIST_FIXABLE_FILTERED=$(xsltproc --stringparam showAll false --stringparam priority $PRIORITY text.xsl $RESULTS | sed /^$/d)
+CVE_LIST_FIXABLE_FILTERED=$(xsltproc --stringparam showAll false --stringparam priority "$PRIORITY" text.xsl "$RESULTS" | sed /^$/d)
 if [[ -z "$CVE_LIST_FIXABLE_FILTERED" ]] ; then
 	CVE_COUNT_FIXABLE_FILTERED=0
 else
-	CVE_COUNT_FIXABLE_FILTERED=$(wc -l <<<$CVE_LIST_FIXABLE_FILTERED)
+	CVE_COUNT_FIXABLE_FILTERED=$(wc -l <<<"$CVE_LIST_FIXABLE_FILTERED")
 fi
 $VERBOSE && echo "$CVE_COUNT_FIXABLE_FILTERED vulnerabilities found with priority of $PRIORITY or higher that can be fixed with package updates:"
 ## $VERBOSE && echo "$CVE_LIST_FIXABLE_FILTERED"
@@ -156,11 +156,11 @@ if $NAGIOS  ; then
 		exit 0
 	elif [ -n "$CVE_LIST_FIXABLE_FILTERED" ] ; then
 		echo "CRITICAL: vulnerable to $CVE_COUNT_FIXABLE_FILTERED CVEs with priority $PRIORITY or higher that can be fixed with package updates"
-		echo $CVE_LIST_FIXABLE_FILTERED
+		echo "$CVE_LIST_FIXABLE_FILTERED"
 		exit 2
 	elif [ -n "$CVE_LIST_ALL_FILTERED" ] ; then
 		echo "WARNING: vulnerable to $CVE_COUNT_ALL_FILTERED CVEs that can be fixed with package updates"
-		echo $CVE_LIST_ALL_FILTERED
+		echo "$CVE_LIST_ALL_FILTERED"
 		exit 1
 	else
 		echo "UNKNOWN: something went wrong with $0"
@@ -173,12 +173,12 @@ elif [ -n "$CVE" ]  ; then
 	if [[ -z "$CVE_LIST_ALL" ]] ; then
 		CVE_COUNT_ALL=0
 	else
-		CVE_COUNT_ALL=$(wc -l <<<$CVE_LIST_ALL)
+		CVE_COUNT_ALL=$(wc -l <<<"$CVE_LIST_ALL")
 	fi
 	$VERBOSE && echo "$CVE_COUNT_ALL fixable and unfixable vulnerabilities with any priority found:"
 	## $VERBOSE && echo "$CVE_LIST_ALL"
 
-	if grep -q "$CVE" <<<$CVE_LIST_ALL ; then
+	if grep -q "$CVE" <<<"$CVE_LIST_ALL" ; then
 		$SILENT || echo "$CVE vulnerable"
 		exit 1
 	else
