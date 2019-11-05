@@ -20,63 +20,6 @@
 		</xsl:for-each>
 	</xsl:template>
 
-	<xsl:template name="ResultGenerator">
-            <xsl:call-template name="GeneratorResTotals">
-                <xsl:with-param name="resultsElm" select="/oval-res:oval_results/oval-res:results"/>
-            </xsl:call-template>
-	</xsl:template>
-
-	<xsl:template name="DefGenerator">
-		<xsl:param name="generatorElm"/>
-		    <xsl:call-template name="GeneratorDefTotals">
-	            <xsl:with-param name="definitionsElm" select="/oval-res:oval_results/oval-def:oval_definitions"/>
-	        </xsl:call-template>
-	</xsl:template>
-
-	<!-- Add rows to the OVAL Definitions generator to supply aggregate data. -->
-    <xsl:template name="GeneratorDefTotals">
-        <xsl:param name="definitionsElm"/>
-		<xsl:text>GeneratorDefTotals - definitionsElm &#xa;</xsl:text>
-        	<xsl:value-of select="concat(count($definitionsElm/oval-def:definitions/oval-def:definition),' Total')"/>
-		<xsl:text>&#xa;</xsl:text>
-                <xsl:if test="$definitionsElm/oval-def:definitions/oval-def:definition[@class]">
-                       	<xsl:value-of select="count($definitionsElm/oval-def:definitions/oval-def:definition[@class='compliance'])"/>
-			<xsl:text>&#xa;</xsl:text>
-                       	<xsl:value-of select="count($definitionsElm/oval-def:definitions/oval-def:definition[@class='inventory'])"/>
-			<xsl:text>&#xa;</xsl:text>
-                       	<xsl:value-of select="count($definitionsElm/oval-def:definitions/oval-def:definition[@class='miscellaneous'])"/>
-			<xsl:text>&#xa;</xsl:text>
-                       	<xsl:value-of select="count($definitionsElm/oval-def:definitions/oval-def:definition[@class='patch'])"/>
-			<xsl:text>&#xa;</xsl:text>
-                       	<xsl:value-of select="count($definitionsElm/oval-def:definitions/oval-def:definition[@class='vulnerability'])"/>
-			<xsl:text>&#xa;</xsl:text>
-                </xsl:if>
-                <xsl:value-of select="count($definitionsElm/oval-def:tests/*)"/>
-		<xsl:text>&#xa;</xsl:text>
-                <xsl:value-of select="count($definitionsElm/oval-def:objects/*)"/>
-		<xsl:text>&#xa;</xsl:text>
-                <xsl:value-of select="count($definitionsElm/oval-def:states/*)"/>
-		<xsl:text>&#xa;</xsl:text>
-                <xsl:value-of select="count($definitionsElm/oval-def:variables/*)"/>
-		<xsl:text>&#xa;</xsl:text>
-    </xsl:template>
-
-	<!-- Add rows to the OVAL Results generator to supply aggregate data. -->
-    <xsl:template name="GeneratorResTotals">
-        <xsl:param name="resultsElm"/>
-		<xsl:text>GeneratorResTotals - resultsElm &#xa;</xsl:text>
-        	<xsl:value-of select="count($resultsElm/oval-res:system/oval-res:definitions/oval-res:definition[@result='true'][key('definition-index', ./@definition_id)[@class='patch' or @class='vulnerability']]|$resultsElm/oval-res:system/oval-res:definitions/oval-res:definition[@result='false'][key('definition-index', ./@definition_id)[@class='compliance']])"/>
-		<xsl:text>&#xa;</xsl:text>
-        	<xsl:value-of select="count($resultsElm/oval-res:system/oval-res:definitions/oval-res:definition[@result='false'][key('definition-index', ./@definition_id)[@class='patch' or @class='vulnerability']]|$resultsElm/oval-res:system/oval-res:definitions/oval-res:definition[@result='true'][key('definition-index', ./@definition_id)[@class='compliance']])"/>
-		<xsl:text>&#xa;</xsl:text>
-        	<xsl:value-of select="count($resultsElm/oval-res:system/oval-res:definitions/oval-res:definition[@result='error'])"/>
-		<xsl:text>&#xa;</xsl:text>
-        	<xsl:value-of select="count($resultsElm/oval-res:system/oval-res:definitions/oval-res:definition[@result='unknown'])"/>
-		<xsl:text>&#xa;</xsl:text>
-        	<xsl:value-of select="count($resultsElm/oval-res:system/oval-res:definitions/oval-res:definition[@result='not applicable' or @result='not evaluated']|$resultsElm/oval-res:system/oval-res:definitions/oval-res:definition[@result='true' or @result='false'][key('definition-index', ./@definition_id)[@class='inventory' or @class='miscellaneous']])"/>
-		<xsl:text>&#xa;</xsl:text>
-    </xsl:template>
-
 	<!-- Process a system's definition results in the specified order -->
 	<xsl:template name="DefinitionsResults">
 		<xsl:param name="definitionsElm"/>
