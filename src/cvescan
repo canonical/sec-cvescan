@@ -44,6 +44,8 @@ usage() {
 }
 
 if ! lsb_release -a 2>&1 | grep -q -E '^Distributor ID:\s+Ubuntu$' ; then
+	lsb_release -a
+	/usr/bin/lsb_release -a
 	error "Not Ubuntu, not running"
 fi
 
@@ -64,6 +66,8 @@ ALL=false
 PRIORITY=medium
 NOW=$(date +%s)
 EXPIRE=86400
+SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+XSLT_FILE=${SCRIPTDIR}/text.xsl
 
 while getopts ":ac:p:rsnm:v" op ; do
 	case "${op}" in
@@ -115,9 +119,22 @@ while getopts ":ac:p:rsnm:v" op ; do
 done
 shift $((OPTIND-1))
 
+if [[ -n "$SNAP_USER_COMMON" ]] ; then
+	IMASNAP=true
+	$VERBOSE && echo "Running as a snap, changing to '$SNAP_USER_COMMON' directory"
+	cd $SNAP_USER_COMMON
+else
+	IMASNAP=false
+        [[ -x $(which oscap) ]]     || error "Missing oscap command. Run 'sudo apt install libopenscap8'"
+        [[ -x $(which  xsltproc) ]] || error "Missing xsltproc command. Run 'sudo apt install xsltproc'"
+
+fi
+
+[[ -f "$XSLT_FILE" ]] || error "Missing text.xsl file at '$XSLT_FILE'"
+
 $VERBOSE && $ALL && echo "Reporting on ALL CVEs, not just those that can be fixed by updates"
 $VERBOSE && $NAGIOS && echo "Running in Nagios Mode"
-$VERBOSE && echo "Priority filter is \"$PRIORITY\""
+$VERBOSE && echo "Priority filter is '$PRIORITY'"
 if [[ -f "$MANIFEST_FILE" && ! $($REMOVE) && ! $($MANIFEST) ]] ; then
 	$VERBOSE && echo "$MANIFEST_FILE found when not in manifest mode, enabling -r option"
 	REMOVE=true
@@ -161,7 +178,7 @@ if [[ ! -f $REPORT ||$((NOW - $(stat -c %Y "$REPORT"))) -gt $EXPIRE  ]] ; then
 fi
 
 $VERBOSE && echo "Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority"
-CVE_LIST_ALL_FILTERED=$(xsltproc --stringparam showAll true --stringparam priority "$PRIORITY" text.xsl "$RESULTS" | sed /^$/d)
+CVE_LIST_ALL_FILTERED=$(xsltproc --stringparam showAll true --stringparam priority "$PRIORITY" "$XSLT_FILE" "$RESULTS" | sed /^$/d)
 if [[ -z "$CVE_LIST_ALL_FILTERED" ]] ; then
 	CVE_COUNT_ALL_FILTERED=0
 else
@@ -171,7 +188,7 @@ $VERBOSE && echo "$CVE_COUNT_ALL_FILTERED vulnerabilities found with priority of
 ## $VERBOSE && echo "$CVE_LIST_ALL_FILTERED"
 
 $VERBOSE && echo "Running xsltproc to generate CVE list - fixable and filtered by priority"
-CVE_LIST_FIXABLE_FILTERED=$(xsltproc --stringparam showAll false --stringparam priority "$PRIORITY" text.xsl "$RESULTS" | sed /^$/d)
+CVE_LIST_FIXABLE_FILTERED=$(xsltproc --stringparam showAll false --stringparam priority "$PRIORITY" "$XSLT_FILE" "$RESULTS" | sed /^$/d)
 if [[ -z "$CVE_LIST_FIXABLE_FILTERED" ]] ; then
 	CVE_COUNT_FIXABLE_FILTERED=0
 else
@@ -202,7 +219,7 @@ if $NAGIOS  ; then
 elif [ -n "$CVE" ]  ; then
 
 	$VERBOSE && echo "Running xsltproc to generate CVE list - fixable and unfixable, any priority"
-	CVE_LIST_ALL=$(xsltproc --stringparam showAll true --stringparam priority all text.xsl $RESULTS | sed /^$/d)
+	CVE_LIST_ALL=$(xsltproc --stringparam showAll true --stringparam priority all "$XSLT_FILE" $RESULTS | sed /^$/d)
 	if [[ -z "$CVE_LIST_ALL" ]] ; then
 		CVE_COUNT_ALL=0
 	else

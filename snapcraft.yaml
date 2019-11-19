@@ -1,0 +1,52 @@
+name: cvescan # you probably want to 'snapcraft register <name>'
+base: core18 # the base snap is the execution environment for this snap
+version: '0.1' # just for humans, typically '1.2+git' or '1.3.2'
+summary: Security/CVE vulnerability monitoring for Ubuntu
+description: |
+  Bash script and XSLT file that work with OpenSCAP to provide plain text
+  list of CVE vulnerabilities that exist for a given Ubuntu system or for
+  an image (using a package manifest file).
+
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: devmode # use 'strict' once you have the right plugs and slots
+parts:
+  cvescan:
+    source: src
+    plugin: dump
+    stage-packages:
+      - grep
+      - lsb-release
+      - dpkg
+      - libopenscap8
+      - debianutils
+      - xsltproc
+      - coreutils
+      - wget
+      - bzip2
+layout:
+  /usr/lib/x86_64-linux-gnu/openscap:
+    bind: $SNAP/usr/lib/x86_64-linux-gnu/openscap
+  /usr/share/dpkg:
+    bind: $SNAP/usr/share/dpkg
+  /usr/share/openscap:
+    bind: $SNAP/usr/share/openscap
+  /etc/apt/apt.conf.d/00dircache:
+    bind-file: $SNAP/00dircache
+plugs:
+  var-lib-dpkg:
+    interface: system-files
+    read: 
+    - /var/lib/snapd/hostfs/var/lib/dpkg
+    - /var/lib/snapd/hostfs/var/cache/apt
+    - /etc
+apps:
+  cvescan:
+    command: snap/command-chain/snapcraft-runner $SNAP/command-cvescan.wrapper
+    environment:
+      PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
+      SYSTEM_WGETRC: $SNAP/etc/wgetrc
+      DPKG_ADMINDIR: /var/lib/snapd/hostfs/var/lib/dpkg
+    plugs:
+    - home
+    - var-lib-dpkg
+    - network
