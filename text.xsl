@@ -1,0 +1,1 @@
+snapcraft/bin/text.xsl

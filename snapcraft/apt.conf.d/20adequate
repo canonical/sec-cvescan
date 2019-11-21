@@ -1,0 +1,13 @@
+// If you set this to "true", adequate will run on every install, reporting the
+// results via debconf.
+Adequate::Enabled "false";
+
+DPkg::Pre-Install-Pkgs {
+    "adequate --help >/dev/null 2>&1 || exit 0; exec adequate --user nobody --apt-preinst";
+};
+
+DPkg::Post-Invoke {
+    "adequate --help >/dev/null 2>&1 || exit 0; exec adequate --debconf --user nobody --pending";
+};
+
+DPkg::Tools::Options::adequate::Version "2";
