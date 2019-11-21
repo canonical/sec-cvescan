@@ -32,11 +32,20 @@ The `text.xsl` file can be used with the xsltproc command to turn OVAL XML
 results into text. It also allows for filtering the results.
 
 ## Contents 
-* README.md - this file
-* text.xsl - modified version of oscap xslt file to output cve list in text format
-* cvescan - script to download oval and scan your system (or an image manifest)
+* README.md       - this file
+* snapcraft.yaml  - snap packaging metadata, this can work as a snap
+                    or as a bash script
+* snapcraft       - actual code and related files live in here
+* text.xsl        - symlink to modified version of oscap xslt file to output
+                    cve list in text format
+* cvescan         - symlink to script to download oval and scan your system
+                    or an image manifest
 
-## Prereqs
+## Snap usage
+
+TODO: Add something like sudo snap install cvescan when the snap is registered and in the store
+
+## Prereqs id not using the snap
 
 sudo apt-get install -y libopenscap8 xsltproc 
 
