@@ -9,10 +9,50 @@ description: |
 
 grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: devmode # use 'strict' once you have the right plugs and slots
+
+plugs:
+  var-lib-dpkg:
+    interface: system-files
+    read: 
+    - /var/lib/snapd/hostfs/var/lib/dpkg
+  var-cache-apt:
+    interface: system-files
+    read: 
+    - /var/lib/snapd/hostfs/var/cache/apt
+  etc:
+    interface: system-files
+    read: 
+    - /etc
+
+layout:
+  /usr/lib/x86_64-linux-gnu/openscap:
+    bind: $SNAP/usr/lib/x86_64-linux-gnu/openscap
+  /usr/share/dpkg:
+    bind: $SNAP/usr/share/dpkg
+  /usr/share/openscap:
+    bind: $SNAP/usr/share/openscap
+  /etc/apt/apt.conf.d:
+    bind: $SNAP/apt.conf.d
+
+apps:
+  cvescan:
+    command: bash cvescan
+    environment:
+      PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
+      SYSTEM_WGETRC: $SNAP/etc/wgetrc
+      DPKG_ADMINDIR: /var/lib/snapd/hostfs/var/lib/dpkg
+    plugs:
+    - home
+    - network
+    - var-lib-dpkg
+    - var-cache-apt
+    - etc
+
 parts:
   cvescan:
-    source: snapcraft/
     plugin: dump
+    source: snapcraft/
+
     stage-packages:
       - grep
       - lsb-release
@@ -23,30 +63,3 @@ parts:
       - coreutils
       - wget
       - bzip2
-layout:
-  /usr/lib/x86_64-linux-gnu/openscap:
-    bind: $SNAP/usr/lib/x86_64-linux-gnu/openscap
-  /usr/share/dpkg:
-    bind: $SNAP/usr/share/dpkg
-  /usr/share/openscap:
-    bind: $SNAP/usr/share/openscap
-  /etc/apt/apt.conf.d:
-    bind: $SNAP/apt.conf.d
-plugs:
-  var-lib-dpkg:
-    interface: system-files
-    read: 
-    - /var/lib/snapd/hostfs/var/lib/dpkg
-    - /var/lib/snapd/hostfs/var/cache/apt
-    - /etc
-apps:
-  cvescan:
-    command: bash cvescan
-    environment:
-      PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
-      SYSTEM_WGETRC: $SNAP/etc/wgetrc
-      DPKG_ADMINDIR: /var/lib/snapd/hostfs/var/lib/dpkg
-    plugs:
-    - home
-    - var-lib-dpkg
-    - network
