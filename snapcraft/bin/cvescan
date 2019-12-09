@@ -48,7 +48,7 @@ usage() {
 
 if ! lsb_release -a 2>&1 | grep -q -E '^Distributor ID:\s+Ubuntu$' ; then
 	lsb_release -a
-	/usr/bin/lsb_release -a
+	lsb_release -a
 	error "Not Ubuntu, not running"
 fi
 
@@ -71,6 +71,7 @@ NOW=$(date +%s)
 EXPIRE=86400
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 XSLT_FILE=${SCRIPTDIR}/text.xsl
+VERBOSE_OSCAP_OPTIONS=""
 
 while getopts ":ac:p:rsnm:v" op ; do
 	case "${op}" in
@@ -114,6 +115,7 @@ while getopts ":ac:p:rsnm:v" op ; do
 			;;
 		v)
 			VERBOSE=true
+			VERBOSE_OSCAP_OPTIONS="--verbose WARNING --verbose-log-file debug.log"
 			;;
 		*)
 			usage
@@ -167,8 +169,8 @@ if $MANIFEST ; then
 fi
 
 if [[ ! -f $RESULTS || $((NOW - $(stat -c %Y "$RESULTS"))) -gt $EXPIRE ]] ; then
-	$VERBOSE && echo "Running oval scan oscap oval eval --results $RESULTS $OVAL_FILE (output logged to $LOG)"
-	if ! oscap oval eval --results "$RESULTS" "$OVAL_FILE" >$LOG 2>&1 ; then
+	$VERBOSE && echo "Running oval scan oscap oval eval $VERBOSE_OSCAP_OPTIONS --results $RESULTS $OVAL_FILE (output logged to $LOG)"
+	if ! oscap oval eval $VERBOSE_OSCAP_OPTIONS --results "$RESULTS" "$OVAL_FILE" >$LOG 2>&1 ; then
 		error "Failed to run oval scan"
 	fi
 fi
