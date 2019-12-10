@@ -8,7 +8,7 @@ description: |
   an image (using a package manifest file).
 
 grade: devel
-confinement: devmode
+confinement: strict
 
 plugs:
   apt-dpkg-db:
@@ -39,7 +39,6 @@ apps:
     environment:
       PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
       APT_CONFIG: $SNAP/etc/apt.conf
-      SYSTEM_WGETRC: $SNAP/etc/wgetrc
     plugs:
     - home
     - network
@@ -58,5 +57,5 @@ parts:
       - debianutils
       - xsltproc
       - coreutils
-      - wget
+      - curl
       - bzip2

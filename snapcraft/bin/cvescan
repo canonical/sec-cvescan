@@ -48,7 +48,6 @@ usage() {
 
 if ! lsb_release -a 2>&1 | grep -q -E '^Distributor ID:\s+Ubuntu$' ; then
 	lsb_release -a
-	lsb_release -a
 	error "Not Ubuntu, not running"
 fi
 
@@ -149,21 +148,21 @@ $REMOVE && rm -f "$OVAL_FILE" "$OVAL_ZIP" "$REPORT" "$RESULTS" "$LOG" "$MANIFEST
 
 if [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -gt $EXPIRE ]] ; then
 	$VERBOSE && echo "Downloading ${OVAL_BASE_URL}/${OVAL_ZIP}"
-	if wget -q "${OVAL_BASE_URL}/${OVAL_ZIP}" ; then
+	if curl -s "${OVAL_BASE_URL}/${OVAL_ZIP}" -o "${OVAL_ZIP}"; then
 		$VERBOSE && echo "Unzipping ${OVAL_ZIP}"
 		if ! bunzip2 -f "$OVAL_ZIP" ; then
 			error "Failed to unzip $OVAL_ZIP"
 		fi
 	else
-		error "Failed to wget ${OVAL_BASE_URL}/${OVAL_ZIP}"
+		error "Failed to curl ${OVAL_BASE_URL}/${OVAL_ZIP}"
 	fi
 fi
 
 if $MANIFEST ; then
 	if [[ ! -f $MANIFEST_FILE || $((NOW - $(stat -c %Y "$MANIFEST_FILE"))) -gt $EXPIRE ]] ; then
 		$VERBOSE && echo "Downloading ${MANIFEST_URL}"
-		if ! wget -q -O "${MANIFEST_FILE}" "${MANIFEST_URL}" ; then
-			error "Failed to wget ${MANIFEST_FILE} from ${MANIFEST_URL}"
+		if ! curl -s -o "${MANIFEST_FILE}" "${MANIFEST_URL}" ; then
+			error "Failed to curl ${MANIFEST_FILE} from ${MANIFEST_URL}"
 		fi
 	fi
 fi
