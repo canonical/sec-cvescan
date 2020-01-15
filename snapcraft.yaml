@@ -1,6 +1,6 @@
 name: cvescan
 base: core18
-version: '0.3'
+version: '0.4'
 summary: Security/CVE vulnerability monitoring for Ubuntu
 description: |
   Bash script and XSLT file that work with OpenSCAP to provide plain text
@@ -50,7 +50,6 @@ parts:
 
     stage-packages:
       - grep
-      - lsb-release
       - dpkg
       - libopenscap8
       - debianutils

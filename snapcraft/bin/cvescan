@@ -46,12 +46,16 @@ usage() {
 	exit 3
 }
 
-if ! lsb_release -a 2>&1 | grep -q -E '^Distributor ID:\s+Ubuntu$' ; then
-	lsb_release -a
-	error "Not Ubuntu, not running"
+# calls to lsb_release removed and implemented in bash for snap compatibility
+if ! test -f /etc/lsb-release ; then
+	error "No /etc/lsb-release file found, not running"
 fi
 
-RELEASE=$(lsb_release -c -s)
+if ! grep -q -E '^DISTRIB_ID=Ubuntu$' /etc/lsb-release; then
+	error "DISTRIB_ID=Ubuntu not in /etc/lsb-release, not running"
+fi
+
+RELEASE=$(grep -E '^DISTRIB_CODENAME=' /etc/lsb-release | cut -d= -f2)
 OVAL_FILE=com.ubuntu.${RELEASE}.cve.oval.xml
 OVAL_ZIP=${OVAL_FILE}.bz2
 OVAL_BASE_URL='https://people.canonical.com/~ubuntu-security/oval'
