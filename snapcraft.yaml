@@ -7,7 +7,7 @@ description: |
   list of CVE vulnerabilities that exist for a given Ubuntu system or for
   an image (using a package manifest file).
 
-grade: candidate
+grade: stable
 confinement: strict
 
 plugs:
@@ -34,7 +34,7 @@ layout:
 
 apps:
   cvescan:
-    command: bash cvescan
+    command: ./cvescan
     environment:
       PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
       APT_CONFIG: $SNAP/etc/apt.conf
