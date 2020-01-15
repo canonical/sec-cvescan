@@ -7,7 +7,7 @@ description: |
   list of CVE vulnerabilities that exist for a given Ubuntu system or for
   an image (using a package manifest file).
 
-grade: devel
+grade: candidate
 confinement: strict
 
 plugs:
