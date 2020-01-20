@@ -128,11 +128,9 @@ done
 shift $((OPTIND-1))
 
 if [[ -n "$SNAP_USER_COMMON" ]] ; then
-	IMASNAP=true
 	$VERBOSE && echo "Running as a snap, changing to '$SNAP_USER_COMMON' directory"
 	cd $SNAP_USER_COMMON
 else
-	IMASNAP=false
         [[ -x $(which oscap) ]]     || error "Missing oscap command. Run 'sudo apt install libopenscap8'"
         [[ -x $(which  xsltproc) ]] || error "Missing xsltproc command. Run 'sudo apt install xsltproc'"
 
@@ -156,6 +154,9 @@ if [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -gt $EXPIRE ]] ; 
 		$VERBOSE && echo "Unzipping ${OVAL_ZIP}"
 		if ! bunzip2 -f "$OVAL_ZIP" ; then
 			error "Failed to unzip $OVAL_ZIP"
+		fi
+		if [[ -n "$SNAP_USER_COMMON" ]] ; then
+			sed -i ':a;N;$!ba;s#<ind-def:path>/etc</ind-def:path>\s\+<ind-def:filename>lsb-release</ind-def:filename>#<ind-def:filepath>/etc/lsb-release</ind-def:filepath>#' "${OVAL_FILE}"
 		fi
 	else
 		error "Failed to curl ${OVAL_BASE_URL}/${OVAL_ZIP}"
