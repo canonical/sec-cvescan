@@ -31,7 +31,6 @@ usage() {
 		            Do not scan localhost. Instead run a scan against a Ubuntu Official Cloud 
 		            Image package manifest file.
                             The script will use a server manifest file.
-		            This enables the -r option.
 		         -n enable nagios mode
 		            Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages with 0-3 exit codes
 		            0/OK = not vulnerable to any CVEs
@@ -41,7 +40,6 @@ usage() {
 		         -r remove zip, oval, xml, and htm files to force redownload/regeneration
 		            Default is to use them if they already exist and are less than 1 day old
 		         -v enable verbose messages
-		            Default is just to print a list of CVEs
 	EOF
 	exit 3
 }
@@ -75,6 +73,7 @@ EXPIRE=86400
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 XSLT_FILE=${SCRIPTDIR}/text.xsl
 VERBOSE_OSCAP_OPTIONS=""
+CURL_OPTIONS="--fail --silent --show-error"
 
 while getopts ":ac:p:rsnm:v" op ; do
 	case "${op}" in
@@ -103,7 +102,6 @@ while getopts ":ac:p:rsnm:v" op ; do
 			;;
 		m)
 			MANIFEST=true
-			REMOVE=true
 			if [[ ${OPTARG} =~ ^(xenial|bionic|disco|eoan)$ ]] ; then
 				RELEASE=${OPTARG}
 				OVAL_FILE=oci.com.ubuntu.${RELEASE}.cve.oval.xml
@@ -119,6 +117,7 @@ while getopts ":ac:p:rsnm:v" op ; do
 		v)
 			VERBOSE=true
 			VERBOSE_OSCAP_OPTIONS="--verbose WARNING --verbose-log-file debug.log"
+			CURL_OPTIONS="--fail"
 			;;
 		*)
 			usage
@@ -132,31 +131,32 @@ if [[ -n "$SNAP_USER_COMMON" ]] ; then
 	cd $SNAP_USER_COMMON
 else
         [[ -x $(which oscap) ]]     || error "Missing oscap command. Run 'sudo apt install libopenscap8'"
-        [[ -x $(which  xsltproc) ]] || error "Missing xsltproc command. Run 'sudo apt install xsltproc'"
-
+        [[ -x $(which xsltproc) ]] || error "Missing xsltproc command. Run 'sudo apt install xsltproc'"
 fi
 
 [[ -f "$XSLT_FILE" ]] || error "Missing text.xsl file at '$XSLT_FILE'"
 
+if [[ -n "$CVE" ]] ; then
+	ALL=true
+	PRIORITY=all
+fi
+
 $VERBOSE && $ALL && echo "Reporting on ALL CVEs, not just those that can be fixed by updates"
 $VERBOSE && $NAGIOS && echo "Running in Nagios Mode"
 $VERBOSE && echo "Priority filter is '$PRIORITY'"
-if [[ -f "$MANIFEST_FILE" && ! $($REMOVE) && ! $($MANIFEST) ]] ; then
-	$VERBOSE && echo "$MANIFEST_FILE found when not in manifest mode, enabling -r option"
-	REMOVE=true
+if $MANIFEST ; then
+	$VERBOSE && echo "Removing cached manifest, report and results files"
+	rm -f "$MANIFEST_FILE" "$REPORT" "$RESULTS"
 fi
-$VERBOSE && $REMOVE && echo "Removing files: $OVAL_FILE $OVAL_ZIP $REPORT $RESULTS $LOG $MANIFEST_FILE"
-$REMOVE && rm -f "$OVAL_FILE" "$OVAL_ZIP" "$REPORT" "$RESULTS" "$LOG" "$MANIFEST_FILE"
+$VERBOSE && $REMOVE && echo "Removing files: $OVAL_FILE $OVAL_ZIP $REPORT $RESULTS $LOG $MANIFEST_FILE" 
+$REMOVE && rm -f "$OVAL_FILE" "$OVAL_ZIP" "$REPORT" "$RESULTS" "$LOG" "$MANIFEST_FILE" 
 
 if [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -gt $EXPIRE ]] ; then
 	$VERBOSE && echo "Downloading ${OVAL_BASE_URL}/${OVAL_ZIP}"
-	if curl -f -s "${OVAL_BASE_URL}/${OVAL_ZIP}" -o "${OVAL_ZIP}"; then
+	if curl ${CURL_OPTIONS} "${OVAL_BASE_URL}/${OVAL_ZIP}" -o "${OVAL_ZIP}"; then
 		$VERBOSE && echo "Unzipping ${OVAL_ZIP}"
 		if ! bunzip2 -f "$OVAL_ZIP" ; then
 			error "Failed to unzip $OVAL_ZIP"
-		fi
-		if [[ -n "$SNAP_USER_COMMON" ]] ; then
-			sed -i ':a;N;$!ba;s#<ind-def:path>/etc</ind-def:path>\s\+<ind-def:filename>lsb-release</ind-def:filename>#<ind-def:filepath>/etc/lsb-release</ind-def:filepath>#' "${OVAL_FILE}"
 		fi
 	else
 		error "Failed to curl ${OVAL_BASE_URL}/${OVAL_ZIP}"
@@ -166,7 +166,7 @@ fi
 if $MANIFEST ; then
 	if [[ ! -f $MANIFEST_FILE || $((NOW - $(stat -c %Y "$MANIFEST_FILE"))) -gt $EXPIRE ]] ; then
 		$VERBOSE && echo "Downloading ${MANIFEST_URL}"
-		if ! curl -f -s "${MANIFEST_URL}" -o "${MANIFEST_FILE}" ; then
+		if ! curl ${CURL_OPTIONS} "${MANIFEST_URL}" -o "${MANIFEST_FILE}" ; then
 			error "Failed to curl ${MANIFEST_FILE} from ${MANIFEST_URL}"
 		fi
 	fi
@@ -179,7 +179,7 @@ if [[ ! -f $RESULTS || $((NOW - $(stat -c %Y "$RESULTS"))) -gt $EXPIRE ]] ; then
 	fi
 fi
 
-if [[ ! -f $REPORT ||$((NOW - $(stat -c %Y "$REPORT"))) -gt $EXPIRE  ]] ; then
+if [[ -n "$SNAP_USER_COMMON" && ( ! -f $REPORT || $((NOW - $(stat -c %Y "$REPORT"))) -gt $EXPIRE ) ]] ; then
 	$VERBOSE && echo "Generating oval report from scan results (output logged to $LOG)"
 	if ! oscap oval generate report --output $REPORT $RESULTS >>$LOG 2>&1 ; then
 		error "Failed to generate oval report"
@@ -194,7 +194,6 @@ else
 	CVE_COUNT_ALL_FILTERED=$(wc -l <<<"$CVE_LIST_ALL_FILTERED")
 fi
 $VERBOSE && echo "$CVE_COUNT_ALL_FILTERED vulnerabilities found with priority of $PRIORITY or higher:"
-## $VERBOSE && echo "$CVE_LIST_ALL_FILTERED"
 
 $VERBOSE && echo "Running xsltproc to generate CVE list - fixable and filtered by priority"
 CVE_LIST_FIXABLE_FILTERED=$(xsltproc --stringparam showAll false --stringparam priority "$PRIORITY" "$XSLT_FILE" "$RESULTS" | sed /^$/d)
@@ -203,22 +202,21 @@ if [[ -z "$CVE_LIST_FIXABLE_FILTERED" ]] ; then
 else
 	CVE_COUNT_FIXABLE_FILTERED=$(wc -l <<<"$CVE_LIST_FIXABLE_FILTERED")
 fi
-$VERBOSE && echo "$CVE_COUNT_FIXABLE_FILTERED vulnerabilities found with priority of $PRIORITY or higher that can be fixed with package updates:"
-## $VERBOSE && echo "$CVE_LIST_FIXABLE_FILTERED"
+$VERBOSE && echo "$CVE_COUNT_FIXABLE_FILTERED CVEs found with priority of $PRIORITY or higher that can be fixed with package updates:"
 
-$VERBOSE && echo "Full HTML report availble in $REPORT"
+$VERBOSE && [[ -n "$SNAP_USER_COMMON" ]] && echo "Full HTML report availble in $REPORT"
 $VERBOSE && echo
 
 if $NAGIOS  ; then
 	if [[ -z "$CVE_LIST_FIXABLE_FILTERED" ]] ; then
-		echo "OK: not vulnerable to any known $PRIORITY or higher CVEs that can be fixed by updating"
+		echo "OK: no known $PRIORITY or higher CVEs that can be fixed by updating"
 		exit 0
 	elif [ -n "$CVE_LIST_FIXABLE_FILTERED" ] ; then
-		echo "CRITICAL: vulnerable to $CVE_COUNT_FIXABLE_FILTERED CVEs with priority $PRIORITY or higher that can be fixed with package updates"
+		echo "CRITICAL: $CVE_COUNT_FIXABLE_FILTERED CVEs with priority $PRIORITY or higher that can be fixed with package updates"
 		echo "$CVE_LIST_FIXABLE_FILTERED"
 		exit 2
 	elif [ -n "$CVE_LIST_ALL_FILTERED" ] ; then
-		echo "WARNING: vulnerable to $CVE_COUNT_ALL_FILTERED CVEs that can be fixed with package updates"
+		echo "WARNING: $CVE_COUNT_ALL_FILTERED CVEs that can be fixed with package updates"
 		echo "$CVE_LIST_ALL_FILTERED"
 		exit 1
 	else
@@ -226,22 +224,14 @@ if $NAGIOS  ; then
 		exit 3
 	fi
 elif [ -n "$CVE" ]  ; then
-
-	$VERBOSE && echo "Running xsltproc to generate CVE list - fixable and unfixable, any priority"
-	CVE_LIST_ALL=$(xsltproc --stringparam showAll true --stringparam priority all "$XSLT_FILE" $RESULTS | sed /^$/d)
-	if [[ -z "$CVE_LIST_ALL" ]] ; then
-		CVE_COUNT_ALL=0
-	else
-		CVE_COUNT_ALL=$(wc -l <<<"$CVE_LIST_ALL")
-	fi
-	$VERBOSE && echo "$CVE_COUNT_ALL fixable and unfixable vulnerabilities with any priority found:"
-	## $VERBOSE && echo "$CVE_LIST_ALL"
-
-	if grep -q "$CVE" <<<"$CVE_LIST_ALL" ; then
-		$SILENT || echo "$CVE vulnerable"
+	if   grep -q "$CVE" <<<"$CVE_LIST_FIXABLE_FILTERED" ; then
+		$SILENT || echo "$CVE patch available to install"
+		exit 1
+	elif grep -q "$CVE" <<<"$CVE_LIST_ALL_FILTERED" ; then
+		$SILENT || echo "$CVE patch not available"
 		exit 1
 	else
-		$SILENT || echo "$CVE not vulnerable"
+		$SILENT || echo "$CVE patch applied or system not known to be affected"
 		exit 0
 	fi
 else
