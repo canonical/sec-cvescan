@@ -4,8 +4,17 @@ version: '1.0.1'
 summary: Security/CVE vulnerability monitoring for Ubuntu
 description: |
   Bash script and XSLT file that work with OpenSCAP to provide plain text
-  list of CVE vulnerabilities that exist for a given Ubuntu system or for
-  an image (using a package manifest file).
+  list of CVE vulnerabilities that exist for a currently supported Ubuntu
+  system or for an image (using a package manifest file).
+
+  https://github.com/canonical/sec-cvescan
+
+  Installation:
+    sudo snap install cvescan
+  Basic Usage:
+    cvescan
+  More Information:
+    cvescan -h
 
 grade: stable
 confinement: strict
