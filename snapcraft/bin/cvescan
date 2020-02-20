@@ -51,7 +51,7 @@ else
 	. /etc/lsb-release
 fi
 
-if [[ $DISTRIB_ID =~ ^Ubuntu$ ]] ; then
+if [[ ! $DISTRIB_ID =~ ^Ubuntu$ ]] ; then
 	error "DISTRIB_ID=${DISTRIB_ID} in /etc/lsb-release is not Ubuntu, not running"
 fi
 
