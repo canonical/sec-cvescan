@@ -16,7 +16,7 @@ usage() {
 		            an update that fixes them.
 		         -p <critical|high|medium|all>
 		            critical = show only critical CVEs
-		            high     = show critical and high CVEs
+			    high     = show critical and high CVEs (default)
 		            medium   = show critical and high and medium CVEs
 		            all      = show all CVES (no filtering based on priority)
 		         -c <cve-identifier> 
@@ -33,10 +33,10 @@ usage() {
                             The script will use a server manifest file.
 		         -n enable nagios mode
 		            Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages with 0-3 exit codes
-		            0/OK = not vulnerable to any CVEs
-		            1/WARNING = vulnerable to CVEs for which there is no available fix
-		            2/CRITICAL = vulnerable to CVEs that have fixes available in updated packages
-		            3/UNKNOWN = something went wrong with the script, or the scan
+		            0/OK = not vulnerable to any known and patchable CVEs of the specified priority or higher
+		            1/WARNING = vulnerable to at least one known CVE of the specified priority or higher for which there is no available update
+		            2/CRITICAL = vulnerable to at least one known and patchable CVE of the specified priority or higher 
+		            3/UNKNOWN = something went wrong with the script, or the oscap oval scan
 		         -r remove zip, oval, xml, and htm files to force redownload/regeneration
 		            Default is to use them if they already exist and are less than 1 day old
 		         -v enable verbose messages
@@ -47,13 +47,19 @@ usage() {
 # calls to lsb_release removed and implemented in bash for snap compatibility
 if ! test -f /etc/lsb-release ; then
 	error "No /etc/lsb-release file found, not running"
+else
+	. /etc/lsb-release
 fi
 
-if ! grep -q -E '^DISTRIB_ID=Ubuntu$' /etc/lsb-release; then
-	error "DISTRIB_ID=Ubuntu not in /etc/lsb-release, not running"
+if [[ $DISTRIB_ID =~ ^Ubuntu$ ]] ; then
+	error "DISTRIB_ID=${DISTRIB_ID} in /etc/lsb-release is not Ubuntu, not running"
 fi
 
-RELEASE=$(grep -E '^DISTRIB_CODENAME=' /etc/lsb-release | cut -d= -f2)
+if [[ ! $DISTRIB_CODENAME =~ trusty|xenial|bionic|eoan ]] ; then
+	error "DISTRIB_CODENAME=${DISTRIB_CODENAME} in /etc/lsb-release is not trusty|xenial|bionic|eoan, not running"
+fi
+
+RELEASE=$DISTRIB_CODENAME
 OVAL_FILE=com.ubuntu.${RELEASE}.cve.oval.xml
 OVAL_ZIP=${OVAL_FILE}.bz2
 OVAL_BASE_URL='https://people.canonical.com/~ubuntu-security/oval'
@@ -67,7 +73,7 @@ NAGIOS=false
 MANIFEST=false
 MANIFEST_FILE=manifest
 ALL=false
-PRIORITY=medium
+PRIORITY=high
 NOW=$(date +%s)
 EXPIRE=86400
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -205,7 +211,7 @@ else
 fi
 $VERBOSE && echo "$CVE_COUNT_FIXABLE_FILTERED CVEs found with priority of $PRIORITY or higher that can be fixed with package updates:"
 
-$VERBOSE && [[ -n "$SNAP_USER_COMMON" ]] && echo "Full HTML report availble in ${CWD}/${REPORT}"
+$VERBOSE && [[ -n "$SNAP_USER_COMMON" ]] && echo "Full HTML report available in ${CWD}/${REPORT}"
 $VERBOSE && echo
 
 if $NAGIOS  ; then

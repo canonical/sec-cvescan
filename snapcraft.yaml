@@ -1,19 +1,19 @@
 name: cvescan
 base: core18
-version: '1.0.1'
+version: '1.0.2'
 summary: Security/CVE vulnerability monitoring for Ubuntu
 description: |
-  Bash script and XSLT file that work with OpenSCAP to provide plain text
-  list of CVE vulnerabilities that exist for a currently supported Ubuntu
-  system or for an image (using a package manifest file).
+  Bash script and XSLT file that work with OpenSCAP to provide a plain text
+  list of known CVE vulnerabilities that exist for a currently supported
+  Ubuntu system or for an image (using a package manifest file).
 
-  https://github.com/canonical/sec-cvescan
-
+  Homepage: 
+    https://github.com/canonical/sec-cvescan
   Installation:
     sudo snap install cvescan
   Basic Usage:
     cvescan
-  More Information:
+  More Usage Information:
     cvescan -h
 
 grade: stable
