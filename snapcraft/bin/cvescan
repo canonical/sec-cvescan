@@ -180,14 +180,14 @@ if $MANIFEST ; then
 fi
 
 if [[ ! -f $RESULTS || $((NOW - $(stat -c %Y "$RESULTS"))) -gt $EXPIRE ]] ; then
-	$VERBOSE && echo "Running oval scan oscap oval eval $VERBOSE_OSCAP_OPTIONS --results $RESULTS $OVAL_FILE (output logged to ${CWD}/${LOG})"
+	$VERBOSE && echo "Running oval scan oscap oval eval $VERBOSE_OSCAP_OPTIONS --results $RESULTS $OVAL_FILE (output logged to ${PWD}/${LOG})"
 	if ! oscap oval eval $VERBOSE_OSCAP_OPTIONS --results "$RESULTS" "$OVAL_FILE" >$LOG 2>&1 ; then
 		error "Failed to run oval scan"
 	fi
 fi
 
 if [[ -n "$SNAP_USER_COMMON" && ( ! -f $REPORT || $((NOW - $(stat -c %Y "$REPORT"))) -gt $EXPIRE ) ]] ; then
-	$VERBOSE && echo "Generating oval report from scan results (output logged to ${CWD}/${LOG})"
+	$VERBOSE && echo "Generating oval report from scan results (output logged to ${PWD}/${LOG})"
 	if ! oscap oval generate report --output $REPORT $RESULTS >>$LOG 2>&1 ; then
 		error "Failed to generate oval report"
 	fi
@@ -211,7 +211,7 @@ else
 fi
 $VERBOSE && echo "$CVE_COUNT_FIXABLE_FILTERED CVEs found with priority of $PRIORITY or higher that can be fixed with package updates:"
 
-$VERBOSE && [[ -n "$SNAP_USER_COMMON" ]] && echo "Full HTML report available in ${CWD}/${REPORT}"
+$VERBOSE && [[ -n "$SNAP_USER_COMMON" ]] && echo "Full HTML report available in ${PWD}/${REPORT}"
 $VERBOSE && echo
 
 if $NAGIOS  ; then
