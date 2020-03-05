@@ -2,6 +2,7 @@ oval.log
 cvescan_*_amd64.snap
 squashfs-root/
 *com.ubuntu.*.cve.oval.xml*
+!com.ubuntu.test.cve.oval.xml
 debug.log
 manifest
 results.xml
