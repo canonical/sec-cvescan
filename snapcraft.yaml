@@ -2,6 +2,7 @@ name: cvescan
 base: core18
 version: '1.0.3'
 summary: Security/CVE vulnerability monitoring for Ubuntu
+license: GPL-3.0
 description: |
   Bash script and XSLT file that work with OpenSCAP to provide a plain text
   list of known CVE vulnerabilities that exist for a currently supported
