@@ -211,7 +211,7 @@ if $MANIFEST ; then
 fi
 
 if $EXPERIMENTAL ; then
-	OVAL_BASE_URL=${OVAL_BASE}/alpha
+	OVAL_BASE_URL=${OVAL_BASE_URL}/alpha
 	$VERBOSE && echo "Running in experimental mode, using 'alpha' OVAL files from ${OVAL_BASE_URL}"
 fi
 
