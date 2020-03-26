@@ -38,11 +38,16 @@ usage() {
 		            2/CRITICAL = vulnerable to at least one known and patchable CVE of the specified priority or higher 
 		            3/UNKNOWN = something went wrong with the script, or the oscap oval scan
 		         -r remove zip, oval, xml, and htm files to force redownload/regeneration
-		            Default is to use them if they already exist and are less than 1 day old
+		            Default is to use cached OVAL files if they already exist and are less than 1 day old
+		            And to use cached results.xml files if it is newer than /var/log/dpkg.log
 		         -t Test mode, use test OVAL data to validate that cvescan and oscap are working as expected
 		            In test mode files are not downloaded
 		            In test mode the remove and verbose options are enabled automatically
 		         -v enable verbose messages
+		         -x eXperimental mode
+		            Use experimental (also called "alpha") OVAL data files
+		            The alpha OVAL files include information about package updates available for users of Ubuntu Advantage
+		            running systems with ESM enabled
 	EOF
 	exit 3
 }
@@ -81,8 +86,9 @@ VERBOSE_OSCAP_OPTIONS=""
 CURL_OPTIONS="--fail --silent --show-error"
 TESTMODE=false
 TESTCANARYFILE=cvescan.test
+EXPERIMENTAL=false
 
-while getopts ":ac:p:rsnm:tv" op ; do
+while getopts ":ac:p:rsnm:tvx" op ; do
 	case "${op}" in
 		a)
 			ALL=true
@@ -127,6 +133,9 @@ while getopts ":ac:p:rsnm:tv" op ; do
 		v)
 			VERBOSE=true
 			;;
+		x)
+			EXPERIMENTAL=true
+			;;
 		*)
 			usage
 			;;
@@ -162,10 +171,17 @@ fi
 
 if $TESTMODE ; then
 	VERBOSE=true
+	echo "Running in test mode"
 	MANIFEST=false
+	echo "Disabling manifest mode (test mode uses test OVAL files distributed with cvescan)"
 	REMOVE=true
+	echo "Disabling experimental mode (test mode uses test OVAL files distributed with cvescan)"
+	EXPERIMENTAL=false
+	echo "Setting flag to remove all cache files"
 	PRIORITY=all
+	echo "Setting priority filter to 'all'"
 	OVAL_FILE=${SCRIPTDIR}/com.ubuntu.test.cve.oval.xml
+	echo "Setting OVAL file to ${OVALFILE}"
 	[[ -f "$OVAL_FILE" ]] || error "Missing test OVAL file at '$OVAL_FILE', this file should have installed with cvescan"
 elif [[ -f "$TESTCANARYFILE" ]] ; then
 	$VERBOSE && echo "Detected previous run in test mode, cleaning up"
@@ -188,9 +204,15 @@ $VERBOSE && $TESTMODE && echo "Running in TEST MODE"
 $VERBOSE && $ALL && echo "Reporting on ALL CVEs, not just those that can be fixed by updates"
 $VERBOSE && $NAGIOS && echo "Running in Nagios Mode"
 $VERBOSE && echo "Priority filter is '$PRIORITY'"
+
 if $MANIFEST ; then
 	$VERBOSE && echo "Removing cached manifest, report and results files"
 	rm -f "$MANIFEST_FILE" "$REPORT" "$RESULTS"
+fi
+
+if $EXPERIMENTAL ; then
+	OVAL_BASE_URL=${OVAL_BASE}/alpha
+	$VERBOSE && echo "Running in experimental mode, using 'alpha' OVAL files from ${OVAL_BASE_URL}"
 fi
 
 $VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $REPORT $RESULTS $LOG $MANIFEST_FILE" 
@@ -227,9 +249,9 @@ if [[ ! -f $RESULTS || $((NOW - $(stat -c %Y "$RESULTS"))) -gt $EXPIRE ]] ; then
 	fi
 fi
 
-# TODO: why is snap_user_common checked here? remove the check?
-if [[ -n "$SNAP_USER_COMMON" && ( ! -f $REPORT || $((NOW - $(stat -c %Y "$REPORT"))) -gt $EXPIRE ) ]] ; then
-	$VERBOSE && echo "Generating oval report from scan results (output logged to ${PWD}/${LOG})"
+if [[ ! -f $REPORT || $((NOW - $(stat -c %Y "$REPORT"))) -gt $EXPIRE ]] ; then
+	$VERBOSE && echo "Generating html report ${PWD}/${REPORT} from results xml ${PWD}/${RESULTS} (output logged to ${PWD}/${LOG})"
+	$VERBOSE && echo "Open ${PWD}/${REPORT} in a browser to see complete and unfiltered scan results"
 	if ! oscap oval generate report --output $REPORT $RESULTS >>$LOG 2>&1 ; then
 		error "Failed to generate oval report"
 	fi
