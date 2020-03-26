@@ -117,7 +117,7 @@ while getopts ":ac:p:rsnm:tvx" op ; do
 			MANIFEST=true
 			if [[ ${OPTARG} =~ ^(xenial|bionic|disco|eoan)$ ]] ; then
 				RELEASE=${OPTARG}
-				OVAL_FILE=oci.com.ubuntu.${RELEASE}.cve.oval.xml
+				OVAL_FILE=oci.${OVAL_FILE}
 				OVAL_ZIP=${OVAL_FILE}.bz2
 				MANIFEST_URL="https://cloud-images.ubuntu.com/${RELEASE}/current/${RELEASE}-server-cloudimg-amd64.manifest"
 			else
@@ -212,7 +212,9 @@ fi
 
 if $EXPERIMENTAL ; then
 	OVAL_BASE_URL=${OVAL_BASE_URL}/alpha
-	$VERBOSE && echo "Running in experimental mode, using 'alpha' OVAL files from ${OVAL_BASE_URL}"
+	OVAL_FILE=alpha.${OVAL_FILE}
+	OVAL_ZIP=${OVAL_FILE}.bz2
+	$VERBOSE && echo "Running in experimental mode, using 'alpha' OVAL file from ${OVAL_BASE_URL}/${OVAL_ZIP}"
 fi
 
 $VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $REPORT $RESULTS $LOG $MANIFEST_FILE" 
