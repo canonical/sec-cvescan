@@ -37,9 +37,9 @@ usage() {
 		            1/WARNING = vulnerable to at least one known CVE of the specified priority or higher for which there is no available update
 		            2/CRITICAL = vulnerable to at least one known and patchable CVE of the specified priority or higher 
 		            3/UNKNOWN = something went wrong with the script, or the oscap oval scan
-		         -r remove zip, oval, xml, and htm files to force redownload/regeneration
-		            Default is to use cached OVAL files if they already exist and are less than 1 day old
-		            And to use cached results.xml files if it is newer than /var/log/dpkg.log
+		         -r re-use zip, oval, xml, and htm files from cached versions if possible
+		            Default is to redownload and regenerate everything every time cvescan is run
+		            This option may not always behave correctly and is mostly useful for testing/development.
 		         -t Test mode, use test OVAL data to validate that cvescan and oscap are working as expected
 		            In test mode files are not downloaded
 		            In test mode the remove and verbose options are enabled automatically
@@ -71,7 +71,7 @@ RESULTS=results.xml
 REPORT=report.htm
 LOG=oval.log
 VERBOSE=false
-REMOVE=false
+REMOVE=true
 SILENT=false
 NAGIOS=false
 MANIFEST=false
@@ -108,7 +108,7 @@ while getopts ":ac:p:rsnm:tvx" op ; do
 			fi
 			;;
 		r)
-			REMOVE=true
+			REMOVE=false
 			;;
 		s)
 			SILENT=true
@@ -172,17 +172,28 @@ fi
 if $TESTMODE ; then
 	VERBOSE=true
 	echo "Running in test mode"
+
 	MANIFEST=false
 	echo "Disabling manifest mode (test mode uses test OVAL files distributed with cvescan)"
+
 	REMOVE=true
-	echo "Disabling experimental mode (test mode uses test OVAL files distributed with cvescan)"
-	EXPERIMENTAL=false
 	echo "Setting flag to remove all cache files"
+
+	EXPERIMENTAL=false
+	echo "Disabling experimental mode (test mode uses test OVAL files distributed with cvescan)"
+
 	PRIORITY=all
 	echo "Setting priority filter to 'all'"
+
 	OVAL_FILE=${SCRIPTDIR}/com.ubuntu.test.cve.oval.xml
 	echo "Setting OVAL file to ${OVALFILE}"
-	[[ -f "$OVAL_FILE" ]] || error "Missing test OVAL file at '$OVAL_FILE', this file should have installed with cvescan"
+
+	if [[ -f "$OVAL_FILE" ]] ; then
+		echo "Using OVAL file ${OVAL_FILE} to test oscap"
+	else
+		error "Missing test OVAL file at '$OVAL_FILE', this file should have installed with cvescan"
+	fi
+
 elif [[ -f "$TESTCANARYFILE" ]] ; then
 	$VERBOSE && echo "Detected previous run in test mode, cleaning up"
 	$VERBOSE && echo "Removing file: '$TESTCANARYFILE'"
@@ -217,11 +228,8 @@ if $EXPERIMENTAL ; then
 	$VERBOSE && echo "Running in experimental mode, using 'alpha' OVAL file from ${OVAL_BASE_URL}/${OVAL_ZIP}"
 fi
 
-$VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $REPORT $RESULTS $LOG $MANIFEST_FILE" 
-$REMOVE && rm -f "$OVAL_ZIP" "$REPORT" "$RESULTS" "$LOG" "$MANIFEST_FILE" 
-
-$VERBOSE && $TESTMODE && echo "Removing file: $OVAL_FILE"
-$REMOVE && ! $TESTMODE && rm -f "$OVAL_FILE"
+$VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $OVAL_FILE $REPORT $RESULTS $LOG $MANIFEST_FILE debug.log" 
+$REMOVE && rm -f "$OVAL_ZIP" "$OVAL_FILE" "$REPORT" "$RESULTS" "$LOG" "$MANIFEST_FILE" debug.log
 
 if ! $TESTMODE && [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -gt $EXPIRE ]] ; then
 	rm -f ${RESULTS} ${REPORT} ${LOG} debug.log
@@ -237,6 +245,7 @@ if ! $TESTMODE && [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -g
 fi
 
 if $MANIFEST ; then
+	rm -f ${RESULTS} ${REPORT} ${LOG} debug.log
 	if [[ ! -f $MANIFEST_FILE || $((NOW - $(stat -c %Y "$MANIFEST_FILE"))) -gt $EXPIRE ]] ; then
 		$VERBOSE && echo "Downloading ${MANIFEST_URL}"
 		if ! curl ${CURL_OPTIONS} "${MANIFEST_URL}" -o "${MANIFEST_FILE}" ; then
@@ -283,7 +292,8 @@ $VERBOSE && echo "$CVE_LIST_FIXABLE_FILTERED"
 $VERBOSE && [[ -n "$SNAP_USER_COMMON" ]] && echo "Full HTML report available in ${PWD}/${REPORT}"
 
 if $TESTMODE ; then
-	touch "$TESTCANARYFILE"
+	echo "Writing test canary file ${PWD}/${TESTCANARYFILE}"
+	touch $TESTCANARYFILE
 	if [[ 		$CVE_COUNT_ALL_FILTERED -eq 2 &&
 			$CVE_LIST_ALL_FILTERED =~ CVE-1970-0300 &&
 			$CVE_LIST_ALL_FILTERED =~ CVE-1970-0400 &&
