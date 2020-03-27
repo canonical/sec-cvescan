@@ -224,7 +224,7 @@ $VERBOSE && $TESTMODE && echo "Removing file: $OVAL_FILE"
 $REMOVE && ! $TESTMODE && rm -f "$OVAL_FILE"
 
 if ! $TESTMODE && [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -gt $EXPIRE ]] ; then
-	rm -f ${RESULTS} ${REPORT} ${LOG}
+	rm -f ${RESULTS} ${REPORT} ${LOG} debug.log
 	$VERBOSE && echo "Downloading ${OVAL_BASE_URL}/${OVAL_ZIP}"
 	if curl ${CURL_OPTIONS} "${OVAL_BASE_URL}/${OVAL_ZIP}" -o "${OVAL_ZIP}"; then
 		$VERBOSE && echo "Unzipping ${OVAL_ZIP}"
