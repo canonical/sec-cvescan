@@ -151,11 +151,11 @@ fi
 if [[ -n "$SNAP_USER_COMMON" ]] ; then
 	$VERBOSE && echo "Running as a snap, changing to '$SNAP_USER_COMMON' directory"
 	$VERBOSE && echo "Downloaded files, log files and temporary reports will be in '$SNAP_USER_COMMON'"
-	cd $SNAP_USER_COMMON
+	cd "$SNAP_USER_COMMON" || error "failed to cd to $SNAP_USER_COMMON"
 else
-        [[ -x $(which oscap) ]]    || error "Missing oscap command. Run 'sudo apt install libopenscap8 xsltproc curl'"
-        [[ -x $(which xsltproc) ]] || error "Missing xsltproc command. Run 'sudo apt install libopenscap8 xsltproc curl'"
-        [[ -x $(which curl) ]]     || error "Missing curl command. Run 'sudo apt install libopenscap8 xsltproc curl'"
+        [[ -x $(command -v oscap) ]]    || error "Missing oscap command. Run 'sudo apt install libopenscap8 xsltproc curl'"
+        [[ -x $(command -v xsltproc) ]] || error "Missing xsltproc command. Run 'sudo apt install libopenscap8 xsltproc curl'"
+        [[ -x $(command -v curl) ]]     || error "Missing curl command. Run 'sudo apt install libopenscap8 xsltproc curl'"
 fi
 
 [[ -f "$XSLT_FILE" ]] || error "Missing text.xsl file at '$XSLT_FILE', this file should have installed with cvescan"
@@ -186,7 +186,7 @@ if $TESTMODE ; then
 	echo "Setting priority filter to 'all'"
 
 	OVAL_FILE=${SCRIPTDIR}/com.ubuntu.test.cve.oval.xml
-	echo "Setting OVAL file to ${OVALFILE}"
+	echo "Setting OVAL file to ${OVAL_FILE}"
 
 	if [[ -f "$OVAL_FILE" ]] ; then
 		echo "Using OVAL file ${OVAL_FILE} to test oscap"
@@ -256,6 +256,7 @@ fi
 
 if [[ ! -f $RESULTS || $((NOW - $(stat -c %Y "$RESULTS"))) -gt $EXPIRE ]] ; then
 	$VERBOSE && echo "Running oval scan oscap oval eval $VERBOSE_OSCAP_OPTIONS --results $RESULTS $OVAL_FILE (output logged to ${PWD}/${LOG})"
+	# shellcheck disable=SC2086
 	if ! oscap oval eval $VERBOSE_OSCAP_OPTIONS --results "$RESULTS" "$OVAL_FILE" >$LOG 2>&1 ; then
 		error "Failed to run oval scan"
 	fi
