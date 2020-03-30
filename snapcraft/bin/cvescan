@@ -228,8 +228,10 @@ if $EXPERIMENTAL ; then
 	$VERBOSE && echo "Running in experimental mode, using 'alpha' OVAL file from ${OVAL_BASE_URL}/${OVAL_ZIP}"
 fi
 
-$VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $OVAL_FILE $REPORT $RESULTS $LOG $MANIFEST_FILE debug.log" 
-$REMOVE && rm -f "$OVAL_ZIP" "$OVAL_FILE" "$REPORT" "$RESULTS" "$LOG" "$MANIFEST_FILE" debug.log
+$VERBOSE && $REMOVE && ! $TESTMODE &&  echo "Removing file: $OVAL_FILE"
+$REMOVE && ! $TESTMODE &&  rm -f "$OVAL_FILE"
+$VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $REPORT $RESULTS $LOG $MANIFEST_FILE debug.log" 
+$REMOVE && rm -f "$OVAL_ZIP" "$REPORT" "$RESULTS" "$LOG" "$MANIFEST_FILE" debug.log
 
 if ! $TESTMODE && [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -gt $EXPIRE ]] ; then
 	rm -f ${RESULTS} ${REPORT} ${LOG} debug.log
