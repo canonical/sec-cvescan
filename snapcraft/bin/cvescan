@@ -86,6 +86,7 @@ CURL_OPTIONS="--fail --silent --show-error"
 TESTMODE=false
 TESTCANARYFILE=cvescan.test
 EXPERIMENTAL=false
+INSTALLED_PACKAGE_COUNT=$(dpkg -l | grep -E -c '^ii')
 
 while getopts ":c:p:rsnm:tuvx" op ; do
 	case "${op}" in
@@ -145,10 +146,6 @@ shift $((OPTIND-1))
 
 if ! $TESTMODE && [[ ! $DISTRIB_CODENAME =~ trusty|xenial|bionic|eoan ]] ; then
 	error "DISTRIB_CODENAME=${DISTRIB_CODENAME} in /etc/lsb-release is not trusty|xenial|bionic|eoan, not running"
-fi
-
-if [ $SILENT != "true" ] ; then
-	echo "Inspecting `dpkg -l | wc -l` packages for vulnerabilities" 
 fi
 
 if [[ -n "$SNAP_USER_COMMON" ]] ; then
@@ -217,7 +214,8 @@ fi
 $VERBOSE && $TESTMODE && echo "Running in TEST MODE"
 $VERBOSE && $ALL && echo "Reporting on ALL CVEs, not just those that can be fixed by updates"
 $VERBOSE && $NAGIOS && echo "Running in Nagios Mode"
-$VERBOSE && echo "Priority filter is '$PRIORITY'"
+$VERBOSE && echo "CVE Priority filter is '$PRIORITY'"
+$VERBOSE && echo "Installed package count is $INSTALLED_PACKAGE_COUNT"
 
 if $MANIFEST ; then
 	$VERBOSE && echo "Removing cached manifest, report and results files"
@@ -349,7 +347,7 @@ elif [ -n "$CVE" ]  ; then
 	fi
 else
 	if $ALL ; then
-		$SILENT || echo "Found `echo $CVE_LIST_ALL_FILTERED | wc -w ` CVEs " 
+		$SILENT || echo "Inspected $INSTALLED_PACKAGE_COUNT packages. Found $CVE_COUNT_ALL_FILTERED CVEs" 
 		if [ -n "$CVE_LIST_ALL_FILTERED" ] ; then
 			echo "$CVE_LIST_ALL_FILTERED"
 			exit 1
@@ -357,7 +355,7 @@ else
 			exit 0
 		fi
 	else
-		echo "Found `echo $CVE_LIST_FIXABLE_FILTERED | wc  -w ` CVEs " 
+		$SILENT || echo "Inspected $INSTALLED_PACKAGE_COUNT packages. Found $CVE_COUNT_FIXABLE_FILTERED CVEs" 
 		if [ -n "$CVE_LIST_FIXABLE_FILTERED" ] ; then
 			echo "$CVE_LIST_FIXABLE_FILTERED"
 			exit 1
