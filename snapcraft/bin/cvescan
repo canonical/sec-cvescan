@@ -10,43 +10,51 @@ error() {
 
 usage() {
 	cat <<-EOF
-		Usage $0   
-		         -c <cve-identifier> 
+		Usage $0
+		         -c <cve-identifier>
 		            Report if this system is vulnerable to a specific CVE
-		            Specifying '-c' disables '-u'
-		            Specifying '-c' forces '-p all' to search all CVEs.
 		         -p <critical|high|medium|all>
 		            critical = show only critical CVEs
-			    high     = show critical and high CVEs (default)
+		            high     = show critical and high CVEs (default)
 		            medium   = show critical and high and medium CVEs
 		            all      = show all CVES (no filtering based on priority)
 		         -s enable script/silent mode
-		            To be used with -c CVE-1984-54321, do not print text output
+		            To be used with '-c <cve-identifier>', do not print text output
 		            exit 0 if not vulnerable, exit 1 if vulnerable
 		         -m <xenial|bionic|disco|eoan>
 		            Enable manifest mode
-		            Do not scan localhost. Instead run a scan against a Ubuntu Official Cloud 
-		            Image package manifest file.
-                            The script will use a server manifest file.
-		         -n enable nagios mode
-		            Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages with 0-3 exit codes
-		            0/OK = not vulnerable to any known and patchable CVEs of the specified priority or higher
-		            1/WARNING = vulnerable to at least one known CVE of the specified priority or higher for which there is no available update
-		            2/CRITICAL = vulnerable to at least one known and patchable CVE of the specified priority or higher 
-		            3/UNKNOWN = something went wrong with the script, or the oscap oval scan
-		         -r re-use zip, oval, xml, and htm files from cached versions if possible
-		            Default is to redownload and regenerate everything every time cvescan is run
-		            This option may not always behave correctly and is mostly useful for testing/development.
-		         -t Test mode, use test OVAL data to validate that cvescan and oscap are working as expected
+		            Do not scan localhost. Instead run a scan against a Ubuntu Official
+		              Cloud Image package manifest file.
+		            The script will use a server manifest file.
+		         -n enable nagios mode for use with nrpe
+		            Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages
+		              and exit codes of 0, 1, 2, or 3
+		            0/OK = not vulnerable to any known and patchable CVEs of the
+		              specified priority or higher
+		            1/WARNING = vulnerable to at least one known CVE of the specified
+		              priority or higher for which there is no available update
+		            2/CRITICAL = vulnerable to at least one known and patchable CVE of
+                  the specified priority or higher
+		            3/UNKNOWN = something went wrong with the script, or oscap
+		         -l Disable links. Show only CVE IDs instead of URLs.
+		            Default is to output URLs linking to the Ubuntu CVE tracker
+		         -r re-use zip, oval, xml, and htm files from cached versions if
+		              possible
+		            Default is to redownload and regenerate everything
+		            Warning: this may produce inaccurate results
+		         -t Test mode, use test OVAL data to validate that cvescan and oscap are
+		              working as expected
 		            In test mode files are not downloaded
-		            In test mode the remove and verbose options are enabled automatically
+		            In test mode the remove and verbose options are enabled
+		              automatically
 		         -u Only show CVEs affecting packages if there is an update available
-		            Default is to only show all CVEs affecting this system or manifest file
+		            Default: show only CVEs affecting this system or manifest file
 		         -v Enable verbose messages
 		         -x Enable eXperimental mode
 		            Use experimental (also called "alpha") OVAL data files
-		            The alpha OVAL files include information about package updates available for users of Ubuntu Advantage
-		            running systems with ESM Apps enabled
+		            The alpha OVAL files include information about package updates
+		              available for users of Ubuntu Advantage running systems with ESM
+		              Apps enabled
 	EOF
 	exit 3
 }
@@ -87,8 +95,9 @@ TESTMODE=false
 TESTCANARYFILE=cvescan.test
 EXPERIMENTAL=false
 INSTALLED_PACKAGE_COUNT=$(dpkg -l | grep -E -c '^ii')
+EXTRA_SED="-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 
-while getopts ":c:p:rsnm:tuvx" op ; do
+while getopts ":c:p:lrsnm:tuvx" op ; do
 	case "${op}" in
 		c)
 			if [[ ${OPTARG} =~ ^CVE-[0-9]{4}-[0-9]{1,6}$ ]] ; then
@@ -103,6 +112,9 @@ while getopts ":c:p:rsnm:tuvx" op ; do
 			else
 				usage
 			fi
+			;;
+		l)
+			EXTRA_SED=""
 			;;
 		r)
 			REMOVE=false
@@ -160,7 +172,7 @@ fi
 
 [[ -f "$XSLT_FILE" ]] || error "Missing text.xsl file at '$XSLT_FILE', this file should have installed with cvescan"
 
-if [[ -f /var/log/dpkg.log && -f $RESULTS ]] ; then 
+if [[ -f /var/log/dpkg.log && -f $RESULTS ]] ; then
 	PACKAGE_CHANGE_TS=$(stat -c %Y /var/log/dpkg.log)
 	RESULTS_TS=$(stat -c %Y $RESULTS)
 	if [[ $PACKAGE_CHANGE_TS -gt $RESULTS_TS ]] ; then
@@ -231,7 +243,7 @@ fi
 
 $VERBOSE && $REMOVE && ! $TESTMODE &&  echo "Removing file: $OVAL_FILE"
 $REMOVE && ! $TESTMODE &&  rm -f "$OVAL_FILE"
-$VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $REPORT $RESULTS $LOG $MANIFEST_FILE debug.log" 
+$VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $REPORT $RESULTS $LOG $MANIFEST_FILE debug.log"
 $REMOVE && rm -f "$OVAL_ZIP" "$REPORT" "$RESULTS" "$LOG" "$MANIFEST_FILE" debug.log
 
 if ! $TESTMODE && [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -gt $EXPIRE ]] ; then
@@ -274,7 +286,7 @@ if [[ ! -f $REPORT || $((NOW - $(stat -c %Y "$REPORT"))) -gt $EXPIRE ]] ; then
 fi
 
 $VERBOSE && echo "Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority"
-CVE_LIST_ALL_FILTERED=$(xsltproc --stringparam showAll true --stringparam priority "$PRIORITY" "$XSLT_FILE" "$RESULTS" | sed /^$/d)
+CVE_LIST_ALL_FILTERED=$(xsltproc --stringparam showAll true --stringparam priority "$PRIORITY" "$XSLT_FILE" "$RESULTS" | sed -e /^$/d $EXTRA_SED)
 if [[ -z "$CVE_LIST_ALL_FILTERED" ]] ; then
 	CVE_COUNT_ALL_FILTERED=0
 else
@@ -284,7 +296,7 @@ $VERBOSE && echo "$CVE_COUNT_ALL_FILTERED vulnerabilities found with priority of
 $VERBOSE && echo "$CVE_LIST_ALL_FILTERED"
 
 $VERBOSE && echo "Running xsltproc to generate CVE list - fixable and filtered by priority"
-CVE_LIST_FIXABLE_FILTERED=$(xsltproc --stringparam showAll false --stringparam priority "$PRIORITY" "$XSLT_FILE" "$RESULTS" | sed /^$/d)
+CVE_LIST_FIXABLE_FILTERED=$(xsltproc --stringparam showAll false --stringparam priority "$PRIORITY" "$XSLT_FILE" "$RESULTS" | sed -e /^$/d $EXTRA_SED)
 if [[ -z "$CVE_LIST_FIXABLE_FILTERED" ]] ; then
 	CVE_COUNT_FIXABLE_FILTERED=0
 else
@@ -347,7 +359,7 @@ elif [ -n "$CVE" ]  ; then
 	fi
 else
 	if $ALL ; then
-		$SILENT || echo "Inspected $INSTALLED_PACKAGE_COUNT packages. Found $CVE_COUNT_ALL_FILTERED CVEs" 
+		$SILENT || echo "Inspected $INSTALLED_PACKAGE_COUNT packages. Found $CVE_COUNT_ALL_FILTERED CVEs"
 		if [ -n "$CVE_LIST_ALL_FILTERED" ] ; then
 			echo "$CVE_LIST_ALL_FILTERED"
 			exit 1
@@ -355,7 +367,7 @@ else
 			exit 0
 		fi
 	else
-		$SILENT || echo "Inspected $INSTALLED_PACKAGE_COUNT packages. Found $CVE_COUNT_FIXABLE_FILTERED CVEs" 
+		$SILENT || echo "Inspected $INSTALLED_PACKAGE_COUNT packages. Found $CVE_COUNT_FIXABLE_FILTERED CVEs"
 		if [ -n "$CVE_LIST_FIXABLE_FILTERED" ] ; then
 			echo "$CVE_LIST_FIXABLE_FILTERED"
 			exit 1
