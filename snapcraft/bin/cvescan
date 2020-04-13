@@ -197,6 +197,9 @@ if $TESTMODE ; then
 	PRIORITY=all
 	echo "Setting priority filter to 'all'"
 
+	EXTRA_SED=""
+	echo "Disabling URLs in output"
+
 	OVAL_FILE=${SCRIPTDIR}/com.ubuntu.test.cve.oval.xml
 	echo "Setting OVAL file to ${OVAL_FILE}"
 
