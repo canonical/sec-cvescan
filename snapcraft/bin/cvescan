@@ -25,7 +25,12 @@ usage() {
 		            Enable manifest mode
 		            Do not scan localhost. Instead run a scan against a Ubuntu Official
 		              Cloud Image package manifest file.
-		            The script will use a server manifest file.
+		            The script will download and scan a OCI server manifest file.
+		         -f <manifestfile>
+		            Used with '-m' option to override the default behavior. Specify
+		            a manifest file to scan instead of downloading an OCI manifest.
+		            The file needs to be readable under snap confinement,
+		            \$HOME will likely work, /tmp will likely not work.
 		         -n enable nagios mode for use with nrpe
 		            Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages
 		              and exit codes of 0, 1, 2, or 3
@@ -94,10 +99,10 @@ CURL_OPTIONS="--fail --silent --show-error"
 TESTMODE=false
 TESTCANARYFILE=cvescan.test
 EXPERIMENTAL=false
-INSTALLED_PACKAGE_COUNT=$(dpkg -l | grep -E -c '^ii')
+PACKAGE_COUNT=$(dpkg -l | grep -E -c '^ii')
 EXTRA_SED="-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 
-while getopts ":c:p:lrsnm:tuvx" op ; do
+while getopts ":c:p:lrsnm:f:tuvx" op ; do
 	case "${op}" in
 		c)
 			if [[ ${OPTARG} =~ ^CVE-[0-9]{4}-[0-9]{1,6}$ ]] ; then
@@ -126,11 +131,23 @@ while getopts ":c:p:lrsnm:tuvx" op ; do
 			MANIFEST=true
 			if [[ ${OPTARG} =~ ^(xenial|bionic|disco|eoan)$ ]] ; then
 				RELEASE=${OPTARG}
-				OVAL_FILE=oci.${OVAL_FILE}
+				OVAL_FILE=oci.com.ubuntu.${RELEASE}.cve.oval.xml
 				OVAL_ZIP=${OVAL_FILE}.bz2
 				MANIFEST_URL="https://cloud-images.ubuntu.com/${RELEASE}/current/${RELEASE}-server-cloudimg-amd64.manifest"
 			else
 				usage
+			fi
+			;;
+		f)
+			if [[ -f ${OPTARG} ]] ; then
+				if [[ ${OPTARG} =~ ^/ ]] ; then
+					MANIFEST_FILE=${OPTARG}
+				else
+					MANIFEST_FILE=${PWD}/${OPTARG}
+				fi
+				MANIFEST_URL=""
+			else
+				error "Cannot find manifest file \"${OPTARG}\". Current directory is \"$PWD\"."
 			fi
 			;;
 		n)
@@ -156,7 +173,7 @@ done
 shift $((OPTIND-1))
 
 
-if ! $TESTMODE && [[ ! $DISTRIB_CODENAME =~ trusty|xenial|bionic|eoan ]] ; then
+if ! $TESTMODE && ! $MANIFEST && [[ ! $DISTRIB_CODENAME =~ trusty|xenial||eoan ]] ; then
 	error "DISTRIB_CODENAME=${DISTRIB_CODENAME} in /etc/lsb-release is not trusty|xenial|bionic|eoan, not running"
 fi
 
@@ -230,11 +247,18 @@ $VERBOSE && $TESTMODE && echo "Running in TEST MODE"
 $VERBOSE && $ALL && echo "Reporting on ALL CVEs, not just those that can be fixed by updates"
 $VERBOSE && $NAGIOS && echo "Running in Nagios Mode"
 $VERBOSE && echo "CVE Priority filter is '$PRIORITY'"
-$VERBOSE && echo "Installed package count is $INSTALLED_PACKAGE_COUNT"
+$VERBOSE && echo "Installed package count is $PACKAGE_COUNT"
 
 if $MANIFEST ; then
-	$VERBOSE && echo "Removing cached manifest, report and results files"
-	rm -f "$MANIFEST_FILE" "$REPORT" "$RESULTS"
+	$VERBOSE && echo "Removing cached report and results files"
+	rm -f "$REPORT" "$RESULTS"
+	if [[ -n "$MANIFEST_URL" ]] ; then 
+		$VERBOSE && echo "Removing cached manifest file"
+		rm -f "$MANIFEST_FILE"
+	fi
+else
+	$VERBOSE && echo "Removing cached manifest file"
+	rm -f "$MANIFEST_FILE"
 fi
 
 if $EXPERIMENTAL ; then
@@ -246,8 +270,8 @@ fi
 
 $VERBOSE && $REMOVE && ! $TESTMODE &&  echo "Removing file: $OVAL_FILE"
 $REMOVE && ! $TESTMODE &&  rm -f "$OVAL_FILE"
-$VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $REPORT $RESULTS $LOG $MANIFEST_FILE debug.log"
-$REMOVE && rm -f "$OVAL_ZIP" "$REPORT" "$RESULTS" "$LOG" "$MANIFEST_FILE" debug.log
+$VERBOSE && $REMOVE && echo "Removing files: $OVAL_ZIP $REPORT $RESULTS $LOG debug.log"
+$REMOVE && rm -f "$OVAL_ZIP" "$REPORT" "$RESULTS" "$LOG" debug.log
 
 if ! $TESTMODE && [[ ! -f $OVAL_FILE || $((NOW - $(stat -c %Y "$OVAL_FILE"))) -gt $EXPIRE ]] ; then
 	rm -f ${RESULTS} ${REPORT} ${LOG} debug.log
@@ -264,12 +288,18 @@ fi
 
 if $MANIFEST ; then
 	rm -f ${RESULTS} ${REPORT} ${LOG} debug.log
-	if [[ ! -f $MANIFEST_FILE || $((NOW - $(stat -c %Y "$MANIFEST_FILE"))) -gt $EXPIRE ]] ; then
+	if [[ -n $MANIFEST_URL ]] ; then
 		$VERBOSE && echo "Downloading ${MANIFEST_URL}"
 		if ! curl ${CURL_OPTIONS} "${MANIFEST_URL}" -o "${MANIFEST_FILE}" ; then
 			error "Failed to curl ${MANIFEST_FILE} from ${MANIFEST_URL}"
 		fi
+	else
+		$VERBOSE && echo "Using manifest file ${MANIFEST_FILE}"
+		$VERBOSE && echo "cp ${MANIFEST_FILE} manifest (in $PWD)"
+		cp ${MANIFEST_FILE} manifest
 	fi
+	PACKAGE_COUNT=$(wc -l ${MANIFEST_FILE} | cut -f1 -d' ')
+	$VERBOSE && echo "Manifest package count is $PACKAGE_COUNT"
 fi
 
 if [[ ! -f $RESULTS || $((NOW - $(stat -c %Y "$RESULTS"))) -gt $EXPIRE ]] ; then
@@ -362,7 +392,7 @@ elif [ -n "$CVE" ]  ; then
 	fi
 else
 	if $ALL ; then
-		$SILENT || echo "Inspected $INSTALLED_PACKAGE_COUNT packages. Found $CVE_COUNT_ALL_FILTERED CVEs"
+		$SILENT || echo "Inspected $PACKAGE_COUNT packages. Found $CVE_COUNT_ALL_FILTERED CVEs"
 		if [ -n "$CVE_LIST_ALL_FILTERED" ] ; then
 			echo "$CVE_LIST_ALL_FILTERED"
 			exit 1
@@ -370,7 +400,7 @@ else
 			exit 0
 		fi
 	else
-		$SILENT || echo "Inspected $INSTALLED_PACKAGE_COUNT packages. Found $CVE_COUNT_FIXABLE_FILTERED CVEs"
+		$SILENT || echo "Inspected $PACKAGE_COUNT packages. Found $CVE_COUNT_FIXABLE_FILTERED CVEs"
 		if [ -n "$CVE_LIST_FIXABLE_FILTERED" ] ; then
 			echo "$CVE_LIST_FIXABLE_FILTERED"
 			exit 1
