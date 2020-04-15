@@ -8,58 +8,93 @@ error() {
 	exit 4
 }
 
+needs_arg() { [[ -z $OPTARG ]] && error "No argument provided for --${OPT} option" ; }
+no_arg() {    [[ -n $OPTARG ]] && error "No argument allowed for --${OPT} option" ; }
+
 usage() {
 	cat <<-EOF
 		Usage $0
-		         -c <cve-identifier>
-		            Report if this system is vulnerable to a specific CVE
-		         -p <critical|high|medium|all>
-		            critical = show only critical CVEs
-		            high     = show critical and high CVEs (default)
-		            medium   = show critical and high and medium CVEs
-		            all      = show all CVES (no filtering based on priority)
-		         -s enable script/silent mode
-		            To be used with '-c <cve-identifier>', do not print text output
-		            exit 0 if not vulnerable, exit 1 if vulnerable
-		         -m <xenial|bionic|disco|eoan>
-		            Enable manifest mode
-		            Do not scan localhost. Instead run a scan against a Ubuntu Official
-		              Cloud Image package manifest file.
-		            The script will download and scan a OCI server manifest file.
-		         -f <manifestfile>
-		            Used with '-m' option to override the default behavior. Specify
-		            a manifest file to scan instead of downloading an OCI manifest.
-		            The file needs to be readable under snap confinement,
-		            \$HOME will likely work, /tmp will likely not work.
-		         -n enable nagios mode for use with nrpe
-		            Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages
-		              and exit codes of 0, 1, 2, or 3
-		            0/OK = not vulnerable to any known and patchable CVEs of the
-		              specified priority or higher
-		            1/WARNING = vulnerable to at least one known CVE of the specified
-		              priority or higher for which there is no available update
-		            2/CRITICAL = vulnerable to at least one known and patchable CVE of
-                  the specified priority or higher
-		            3/UNKNOWN = something went wrong with the script, or oscap
-		         -l Disable links. Show only CVE IDs instead of URLs.
-		            Default is to output URLs linking to the Ubuntu CVE tracker
-		         -r re-use zip, oval, xml, and htm files from cached versions if
-		              possible
-		            Default is to redownload and regenerate everything
-		            Warning: this may produce inaccurate results
-		         -t Test mode, use test OVAL data to validate that cvescan and oscap are
-		              working as expected
-		            In test mode files are not downloaded
-		            In test mode the remove and verbose options are enabled
-		              automatically
-		         -u Only show CVEs affecting packages if there is an update available
-		            Default: show only CVEs affecting this system or manifest file
-		         -v Enable verbose messages
-		         -x Enable eXperimental mode
-		            Use experimental (also called "alpha") OVAL data files
-		            The alpha OVAL files include information about package updates
-		              available for users of Ubuntu Advantage running systems with ESM
-		              Apps enabled
+		          -c <cve-identifier>
+		         --cve=<cve-identifier>
+		             Report if this system is vulnerable to a specific CVE
+
+		          -p <critical|high|medium|all>
+		         --priority=<critical|high|medium|all>
+		             critical = show only critical CVEs
+		             high     = show critical and high CVEs (default)
+		             medium   = show critical and high and medium CVEs
+		             all      = show all CVES (no filtering based on priority)
+
+		          -s
+		         --silent
+		             Enable script/silent mode
+		             To be used with '-c <cve-identifier>', do not print text output
+		             exit 0 if not vulnerable, exit 1 if vulnerable
+
+		          -m <xenial|bionic|disco|eoan>
+		         --manifest=<xenial|bionic|disco|eoan>
+		             Enable manifest mode
+		             Do not scan localhost. Instead run a scan against a Ubuntu Official
+		                 Cloud Image package manifest file.
+		             The script will download and scan a OCI server manifest file.
+
+		          -f <manifestfile>
+		         --file=<manifestfile>
+		             Used with '-m' option to override the default behavior. Specify
+		             a manifest file to scan instead of downloading an OCI manifest.
+		             The file needs to be readable under snap confinement,
+		             \$HOME will likely work, /tmp will likely not work.
+
+		          -n
+		         --nagios
+		             Enable nagios mode for use with nrpe
+		             Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages
+		                 and exit codes of 0, 1, 2, or 3
+		             0/OK = not vulnerable to any known and patchable CVEs of the
+		                 specified priority or higher
+		             1/WARNING = vulnerable to at least one known CVE of the specified
+		                 priority or higher for which there is no available update
+		             2/CRITICAL = vulnerable to at least one known and patchable CVE of
+		                 the specified priority or higher
+		             3/UNKNOWN = something went wrong with the script, or oscap
+
+		          -l
+		         --list
+		             Disable links. Show only CVE IDs instead of URLs.
+		             Default is to output URLs linking to the Ubuntu CVE tracker
+
+		          -r
+		         --reuse
+		             Re-use zip, oval, xml, and htm files from cached versions if
+		                 possible
+		             Default is to redownload and regenerate everything
+		             Warning: this may produce inaccurate results
+
+		          -t
+		         --test
+		             Test mode, use test OVAL data to validate that cvescan and oscap are
+		                 working as expected
+		             In test mode files are not downloaded
+		             In test mode the remove and verbose options are enabled
+		                 automatically
+
+		          -u
+		         --updates
+		             Only show CVEs affecting packages only if there is an update available
+		             Default: show any CVEs affecting this system or manifest file, even if
+		                 no update is available
+
+		          -v
+		         --verbose
+		             Enable verbose messages
+
+		          -x
+		         --experimental
+		             Enable eXperimental mode
+		             Use experimental (also called "alpha") OVAL data files
+		             The alpha OVAL files include information about package updates
+		                 available for users of Ubuntu Advantage running systems with ESM
+		                 Apps enabled
 	EOF
 	exit 3
 }
@@ -102,32 +137,41 @@ EXPERIMENTAL=false
 PACKAGE_COUNT=$(dpkg -l | grep -E -c '^ii')
 EXTRA_SED="-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 
-while getopts ":c:p:lrsnm:f:tuvx" op ; do
-	case "${op}" in
-		c)
+# idea for using getopts for short and long options comes from https://stackoverflow.com/a/28466267
+while getopts ":c:p:lrsnm:f:tuvx-:" OPT ; do
+	if [ "$OPT" = "-" ]; then
+		OPT="${OPTARG%%=*}"
+		OPTARG="${OPTARG#$OPT}"
+		OPTARG="${OPTARG#=}"
+	fi
+	case "${OPT}" in
+		c | cve )
+			needs_arg
 			if [[ ${OPTARG} =~ ^CVE-[0-9]{4}-[0-9]{1,6}$ ]] ; then
 				CVE=${OPTARG}
 			else
 				usage
 			fi
 			;;
-		p)
+		p | priority )
+			needs_arg
 			if [[ ${OPTARG} =~ ^(critical|high|medium|all)$ ]] ; then
 				PRIORITY=${OPTARG}
 			else
 				usage
 			fi
 			;;
-		l)
+		l | links )
 			EXTRA_SED=""
 			;;
-		r)
+		r | reuse )
 			REMOVE=false
 			;;
-		s)
+		s | silent )
 			SILENT=true
 			;;
-		m)
+		m | manifest )
+			needs_arg
 			MANIFEST=true
 			if [[ ${OPTARG} =~ ^(xenial|bionic|disco|eoan)$ ]] ; then
 				RELEASE=${OPTARG}
@@ -138,7 +182,8 @@ while getopts ":c:p:lrsnm:f:tuvx" op ; do
 				usage
 			fi
 			;;
-		f)
+		f | file )
+			needs_arg
 			if [[ -f ${OPTARG} ]] ; then
 				if [[ ${OPTARG} =~ ^/ ]] ; then
 					MANIFEST_FILE=${OPTARG}
@@ -150,22 +195,22 @@ while getopts ":c:p:lrsnm:f:tuvx" op ; do
 				error "Cannot find manifest file \"${OPTARG}\". Current directory is \"$PWD\"."
 			fi
 			;;
-		n)
+		n | nagios )
 			NAGIOS=true
 			;;
-		t)
+		t | test )
 			TESTMODE=true
 			;;
-		u)
+		u | updates )
 			ALL=false
 			;;
-		v)
+		v | verbose )
 			VERBOSE=true
 			;;
-		x)
+		x | experimental )
 			EXPERIMENTAL=true
 			;;
-		*)
+		??* | \? | * )
 			usage
 			;;
 	esac
