@@ -59,8 +59,8 @@ usage() {
 		             3/UNKNOWN = something went wrong with the script, or oscap
 
 		          -l
-		         --links
-		             Disable links. Show only CVE IDs instead of URLs.
+		         --list
+		             Show only a list of CVE IDs instead of URLs.
 		             Default is to output URLs linking to the Ubuntu CVE tracker
 
 		          -r
@@ -161,7 +161,7 @@ while getopts ":c:p:lrsnm:f:tuvx-:" OPT ; do
 				usage
 			fi
 			;;
-		l | links )
+		l | list )
 			EXTRA_SED=""
 			;;
 		r | reuse )
