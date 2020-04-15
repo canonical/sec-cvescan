@@ -59,7 +59,7 @@ usage() {
 		             3/UNKNOWN = something went wrong with the script, or oscap
 
 		          -l
-		         --list
+		         --links
 		             Disable links. Show only CVE IDs instead of URLs.
 		             Default is to output URLs linking to the Ubuntu CVE tracker
 
