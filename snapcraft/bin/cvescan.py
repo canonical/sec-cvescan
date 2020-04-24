@@ -1,5 +1,4 @@
-#!/usr/bin/python3
-# TODO Insert whatever information needs to be up here.
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -34,18 +33,16 @@ def error_exit(msg, code=4):
    sys.exit(code)
 
 def download(base_url, filename):
-   if base_url[-1] ~= "/":
-      base_url = "%s/" % base_url
    try:
       target_file = open(filename, "wb")
       curl = pycurl.Curl()
-      curl.setopt(pycurl.URL, "%s%s" % (base_url, filename))
+      curl.setopt(pycurl.URL, "%s/%s" % (base_url.rstrip('/'), filename.lstrip('/')))
       curl.setopt(pycurl.WRITEDATA, target_file)
       curl.perform()
       curl.close()
       target_file.close()
    except:
-      error_exit("Downloading %s%s failed.", (base_url, filename))
+      error_exit("Downloading %s/%s failed.", (base_url.rstrip('/'), filename.lstrip('/')))
 
 def bz2decompress(bz2_archive, target):
    try:
@@ -56,6 +53,11 @@ def bz2decompress(bz2_archive, target):
       opened_target.close()
    except:
       error_exit("Decompressing %s to %s failed.", (bz2_archive, target))
+
+def rmfile(filename):
+   if os.path.exists(filename):
+      if os.path.isfile(filename):
+         os.remove(filename)
 
 # Read /etc/lsb-release file for system information.
 lsb_path = "/etc/lsb-release"
@@ -152,14 +154,12 @@ if not os.path.isfile(xslt_file):
    error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % xslt_file)
 
 if os.path.isfile("/var/log/dpkg.log") and os.path.isfile(results):
-   package_change_ts = math.trunc(os.stat("/var/log/dpkg.log"))
-   # Above line's value is transcription of `stat -c %Y /var/log/dpkg.log`.
-   # Below line follows the same idea.
-   results_ts = math.trunc(os.stat(results))
+   package_change_ts = math.trunc(os.path.getmtime("/var/log/dpkg.log"))
+   results_ts = math.trunc(os.path.getmtime(results))
    if package_change_ts > results_ts:
       if verbose:
          print("Removing %s file because it is older than /var/log/dpkg.log" % results)
-      os.remove(results)
+      rmfile(results)
 
 if testmode:
    verbose = True
@@ -179,10 +179,10 @@ if testmode:
       print("Using OVAL file %s to test oscap" % oval_file)
    else:
       error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
-elif os.path.isfile():
+elif os.path.isfile(testcanaryfile):
    if verbose:
       print("Detected previous run in test mode, cleaning up\nRemoving file: '%s'" % testcanaryfile)
-   os.remove(testcanaryfile)
+   rmfile(testcanaryfile)
    remove = True
 
 if verbose:
@@ -197,16 +197,16 @@ if verbose:
 if manifest:
    if verbose:
       print("Removing cached report and results files")
-   os.remove(report)
-   os.remove(results)
+   rmfile(report)
+   rmfile(results)
    if manifest_url != None and len(manifest_url) != 0:
       if verbose:
          print("Removing cached manifest file")
-      os.remove(manifest_file) # Research suggests that this should be equal to `rm -f file`
+      rmfile(manifest_file) # Research suggests that this should be equal to `rm -f file`
 else:
    if verbose:
       print("Removing cached manifest file")
-   os.remove(manifest_file)
+   rmfile(manifest_file)
 
 if experimental:
    oval_base_url = "%s/alpha" % oval_base_url
@@ -218,16 +218,16 @@ if experimental:
 if remove and not testmode:
    if verbose:
       print("Removing file: %s" % oval_file)
-   os.remove(oval_file)
+   rmfile(oval_file)
 if remove:
    if verbose:
       print("Removing files: %s %s %s %s debug.log" % (oval_zip, report, results, log))
    for i in [oval_zip, report, results, log, "debug.log"]:
-      os.remove(i)
+      rmfile(i)
 
-if not testmode and ((not os.path.isfile(oval_file)) or ((now - math.trunc(os.stat(oval_file))) > expire)):
+if not testmode and ((not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > expire)):
    for i in [results, report, log, "debug.log"]:
-      os.remove(i)
+      rmfile(i)
    if verbose:
       print("Downloading %s/%s" % (oval_base_url, oval_zip))
    download(oval_base_url, oval_zip)
@@ -237,7 +237,7 @@ if not testmode and ((not os.path.isfile(oval_file)) or ((now - math.trunc(os.st
 
 if manifest:
    for i in [results, report, log, "debug.log"]:
-      os.remove(i)
+      rmfile(i)
    if manifest_url != None and len(manifest_url) != 0:
       if verbose:
          print("Downloading %s" % manifest_url)
@@ -250,7 +250,7 @@ if manifest:
    if verbose:
       print("Manifest package count is %s" % package_count)
 
-if not os.path.isfile(results) or ((now - math.trunc(os.stat(results))) > expire):
+if not os.path.isfile(results) or ((now - math.trunc(os.path.getmtime(results))) > expire):
    if verbose:
       print("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, results, oval_file, scriptdir, log))
    try:
@@ -258,10 +258,10 @@ if not os.path.isfile(results) or ((now - math.trunc(os.stat(results))) > expire
    except:
       error_exit("Failed to run oval scan")
 
-if not os.path.isfile(report) or ((now - math.trunc(os.stat(report))) > expire):
+if not os.path.isfile(report) or ((now - math.trunc(os.path.getmtime(report))) > expire):
    if verbose:
       print("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, report, scriptdir, results, scriptdir, log))
-      print("Open %s/%s in a browser to see complete and unfiltered scan results" % (pwd, report))
+      print("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), report))
    try:
       os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (report, results, log)) #TODO: less Bash-y?
    except:
@@ -269,28 +269,26 @@ if not os.path.isfile(report) or ((now - math.trunc(os.stat(report))) > expire):
 
 if verbose:
    print("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
-cve_list_all_filtered = str(os.popen("xsltproc --stringparam showAll true --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, results, extra_sed)).read())
-if cve_list_all_filtered == None or len(cve_list_all_filtered) == 0:
-   cve_count_all_filtered = 0
-else:
-   cve_count_all_filtered = int(os.popen("wc -l <<<\"%s\"" % cve_list_all_filtered).read())
+cve_list_all_filtered = os.popen("xsltproc --stringparam showAll true --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, results, extra_sed)).read().split('\n')
+while("" in cve_list_all_filtered):
+   cve_list_all_filtered.remove("")
+cve_count_all_filtered = len(cve_list_all_filtered)
 
 if verbose:
    print("%s vulnerabilities found with priority of %s or higher:\n%s" % (cve_count_all_filtered, priority, cve_list_all_filtered))
    print("Running xsltproc to generate CVE list - fixable and filtered by priority")
 
-cve_list_fixable_filtered = str(os.popen("xsltproc --stringparam showAll false --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, results, extra_sed)).read())
-if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
-   cve_count_fixable_filtered = 0
-else:
-   cve_count_fixable_filtered = int(os.popen("wc -l <<<\"%s\"" % cve_list_fixable_filtered).read())
+cve_list_fixable_filtered = os.popen("xsltproc --stringparam showAll false --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, results, extra_sed)).read().split('\n')
+while("" in cve_list_fixable_filtered):
+   cve_list_fixable_filtered.remove("")
+cve_count_fixable_filtered = len(cve_list_fixable_filtered)
 
 if verbose:
    print("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (cve_count_fixable_filtered, priority, cve_list_fixable_filtered))
    if snap_user_common == None or len(snap_user_common) == 0:
       print("Full HTML report available in %s/%s" % (scriptdir, report))
 
-if testmost:
+if testmode:
    print("Writing test canary file %s/%s" % (scriptdir, testcanaryfile))
    if os.path.exists(testcanaryfile):
       os.utime(testcanaryfile, None)
@@ -302,7 +300,7 @@ if testmost:
    else:
       error_exit("first test failed")
    # SECOND TEST
-   if (cve_count_fixable_filtered == 1) and ("CVE-1970-0400" in cve_count_fixable_filtered):
+   if (cve_count_fixable_filtered == 1) and ("CVE-1970-0400" in cve_list_fixable_filtered):
       print("second test passed")
    else:
       error_exit("second test failed")
@@ -315,10 +313,10 @@ if nagios:
       print("OK: no known %s or higher CVEs that can be fixed by updating" % priority)
       sys.exit(0)
    elif cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-      print("CRITICAL: %s CVEs with priority %s or higher that can be fixed with package updates\n%s" % (cve_count_fixable_filtered, priority, cve_list_fixable_filtered))
+      print("CRITICAL: %s CVEs with priority %s or higher that can be fixed with package updates\n%s" % (cve_count_fixable_filtered, priority, '\n'.join(cve_list_fixable_filtered)))
       sys.exit(2)
    elif cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-      print("WARNING: %s CVEs with priority %s or higher\n%s" % (cve_count_all_filtered, priority, cve_list_all_filtered))
+      print("WARNING: %s CVEs with priority %s or higher\n%s" % (cve_count_all_filtered, priority, '\n'.join(cve_list_all_filtered)))
       sys.exit(1)
    else:
       print("UNKNOWN: something went wrong with %s" % sys.args[0])
@@ -341,7 +339,7 @@ else:
       if not silent:
          print("Inspected %s packages. Found %s CVEs" % (package_count, cve_count_all_filtered))
       if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-         print(cve_list_all_filtered)
+         print('\n'.join(cve_list_all_filtered))
          sys.exit(1)
       else:
          sys.exit(0)
@@ -349,7 +347,7 @@ else:
       if not silent:
          print("Inspected %s packages. Found %s CVEs" % (package_count, cve_count_fixable_filtered))
       if cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-         print(cve_list_fixable_filtered)
+         print('\n'.join(cve_list_fixable_filtered))
          sys.exit(1)
       else:
          sys.exit(0)
