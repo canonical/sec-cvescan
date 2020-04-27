@@ -67,7 +67,8 @@ def get_ubuntu_codename():
     return lsb_config.get("lsb","DISTRIB_CODENAME")
 
 def main():
-    acceptable_codenames = ["xenial","bionic","disco","eoan"]
+    # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
+    acceptable_codenames = ["xenial","bionic","disco","eoan","focal"]
 
     cvescan_ap = ap.ArgumentParser(description="Use this script to use the Ubuntu security OVAL files.", formatter_class=ap.RawTextHelpFormatter)
     cvescan_ap.add_argument("-c", "--cve", metavar="CVE-IDENTIFIER", help="Report if this system is vulnerable to a specific CVE.")
