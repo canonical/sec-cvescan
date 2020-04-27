@@ -131,13 +131,14 @@ extra_sed = "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 if cvescan_args.list == True:
    extra_sed = ""
 
+verboseprint = print if verbose else lambda *args, **kwargs: None
+
 
 ###########
 snap_user_common = None
 try:
    snap_user_common = os.environ["SNAP_USER_COMMON"]
-   if verbose:
-      print("Running as a snap, changing to '%s' directory.\nDownloaded files, log files and temporary reports will be in '%s'" % (snap_user_common, snap_user_common))
+   verboseprint("Running as a snap, changing to '%s' directory.\nDownloaded files, log files and temporary reports will be in '%s'" % (snap_user_common, snap_user_common))
    try:
       os.chdir(snap_user_common)
    except:
@@ -157,8 +158,7 @@ if os.path.isfile("/var/log/dpkg.log") and os.path.isfile(results):
    package_change_ts = math.trunc(os.path.getmtime("/var/log/dpkg.log"))
    results_ts = math.trunc(os.path.getmtime(results))
    if package_change_ts > results_ts:
-      if verbose:
-         print("Removing %s file because it is older than /var/log/dpkg.log" % results)
+      verboseprint("Removing %s file because it is older than /var/log/dpkg.log" % results)
       rmfile(results)
 
 if testmode:
@@ -180,113 +180,95 @@ if testmode:
    else:
       error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
 elif os.path.isfile(testcanaryfile):
-   if verbose:
-      print("Detected previous run in test mode, cleaning up\nRemoving file: '%s'" % testcanaryfile)
+   verboseprint("Detected previous run in test mode, cleaning up\nRemoving file: '%s'" % testcanaryfile)
    rmfile(testcanaryfile)
    remove = True
 
-if verbose:
-   if testmode:
-      print("Running in TEST MODE")
-   if all_cve:
-      print("Reporting on ALL CVEs, not just those that can be fixed by updates")
-   if nagios:
-      print("Running in Nagios Mode")
-   print("CVE Priority filter is '%s'\nInstalled package count is %s" % (priority, package_count))
+if testmode:
+  verboseprint("Running in TEST MODE")
+if all_cve:
+  verboseprint("Reporting on ALL CVEs, not just those that can be fixed by updates")
+if nagios:
+  verboseprint("Running in Nagios Mode")
+verboseprint("CVE Priority filter is '%s'\nInstalled package count is %s" % (priority, package_count))
 
 if manifest:
-   if verbose:
-      print("Removing cached report and results files")
+   verboseprint("Removing cached report and results files")
    rmfile(report)
    rmfile(results)
    if manifest_url != None and len(manifest_url) != 0:
-      if verbose:
-         print("Removing cached manifest file")
+      verboseprint("Removing cached manifest file")
       rmfile(manifest_file) # Research suggests that this should be equal to `rm -f file`
 else:
-   if verbose:
-      print("Removing cached manifest file")
+   verboseprint("Removing cached manifest file")
    rmfile(manifest_file)
 
 if experimental:
    oval_base_url = "%s/alpha" % oval_base_url
    oval_file = "alpha.%s" % oval_file
    oval_zip = "%s.bz2" % oval_file
-   if verbose:
-      print("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
+   verboseprint("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
 
 if remove and not testmode:
-   if verbose:
-      print("Removing file: %s" % oval_file)
+   verboseprint("Removing file: %s" % oval_file)
    rmfile(oval_file)
 if remove:
-   if verbose:
-      print("Removing files: %s %s %s %s debug.log" % (oval_zip, report, results, log))
+   verboseprint("Removing files: %s %s %s %s debug.log" % (oval_zip, report, results, log))
    for i in [oval_zip, report, results, log, "debug.log"]:
       rmfile(i)
 
 if not testmode and ((not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > expire)):
    for i in [results, report, log, "debug.log"]:
       rmfile(i)
-   if verbose:
-      print("Downloading %s/%s" % (oval_base_url, oval_zip))
+   verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
    download(oval_base_url, oval_zip)
-   if verbose:
-      print("Unzipping %s" % oval_zip)
+   verboseprint("Unzipping %s" % oval_zip)
    bz2decompress(oval_zip, oval_file)
 
 if manifest:
    for i in [results, report, log, "debug.log"]:
       rmfile(i)
    if manifest_url != None and len(manifest_url) != 0:
-      if verbose:
-         print("Downloading %s" % manifest_url)
+      verboseprint("Downloading %s" % manifest_url)
       download(manifest_url, manifest_file)
    else:
-      if verbose:
-         print("Using manifest file %s\ncp %s manifest (in %s)" % (manifest_file, manifest_file, scriptdir))
+      verboseprint("Using manifest file %s\ncp %s manifest (in %s)" % (manifest_file, manifest_file, scriptdir))
       copyfile(manifest_file, "%s/manifest" % scriptdir)
    package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
-   if verbose:
-      print("Manifest package count is %s" % package_count)
+   verboseprint("Manifest package count is %s" % package_count)
 
 if not os.path.isfile(results) or ((now - math.trunc(os.path.getmtime(results))) > expire):
-   if verbose:
-      print("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, results, oval_file, scriptdir, log))
+   verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, results, oval_file, scriptdir, log))
    try:
       os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % (verbose_oscap_options, results, oval_file, log)) #TODO: less Bash-y?
    except:
       error_exit("Failed to run oval scan")
 
 if not os.path.isfile(report) or ((now - math.trunc(os.path.getmtime(report))) > expire):
-   if verbose:
-      print("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, report, scriptdir, results, scriptdir, log))
-      print("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), report))
+   verboseprint("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, report, scriptdir, results, scriptdir, log))
+   verboseprint("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), report))
    try:
       os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (report, results, log)) #TODO: less Bash-y?
    except:
       error_exit("Failed to generate oval report")
 
-if verbose:
-   print("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
+verboseprint("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
 cve_list_all_filtered = os.popen("xsltproc --stringparam showAll true --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, results, extra_sed)).read().split('\n')
 while("" in cve_list_all_filtered):
    cve_list_all_filtered.remove("")
 cve_count_all_filtered = len(cve_list_all_filtered)
 
-if verbose:
-   print("%s vulnerabilities found with priority of %s or higher:\n%s" % (cve_count_all_filtered, priority, cve_list_all_filtered))
-   print("Running xsltproc to generate CVE list - fixable and filtered by priority")
+verboseprint("%s vulnerabilities found with priority of %s or higher:\n%s" % (cve_count_all_filtered, priority, cve_list_all_filtered))
+verboseprint("Running xsltproc to generate CVE list - fixable and filtered by priority")
 
 cve_list_fixable_filtered = os.popen("xsltproc --stringparam showAll false --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, results, extra_sed)).read().split('\n')
 while("" in cve_list_fixable_filtered):
    cve_list_fixable_filtered.remove("")
 cve_count_fixable_filtered = len(cve_list_fixable_filtered)
 
-if verbose:
-   print("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (cve_count_fixable_filtered, priority, cve_list_fixable_filtered))
-   if snap_user_common == None or len(snap_user_common) == 0:
-      print("Full HTML report available in %s/%s" % (scriptdir, report))
+verboseprint("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (cve_count_fixable_filtered, priority, cve_list_fixable_filtered))
+if snap_user_common == None or len(snap_user_common) == 0:
+  verboseprint("Full HTML report available in %s/%s" % (scriptdir, report))
 
 if testmode:
    print("Writing test canary file %s/%s" % (scriptdir, testcanaryfile))
@@ -305,8 +287,7 @@ if testmode:
    else:
       error_exit("second test failed")
 
-if verbose:
-   print("Normal non-verbose output will appear below\n")
+verboseprint("Normal non-verbose output will appear below\n")
 
 if nagios:
    if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
