@@ -12,6 +12,7 @@ import pycurl #TODO: Is curl on the system still necessary?
 import bz2
 
 DEBUG_LOG = "debug.log"
+DPKG_LOG = "/var/log/dpkg.log"
 EXPIRE = 86400
 OVAL_LOG = "oval.log"
 REPORT = "report.htm"
@@ -177,11 +178,11 @@ def main():
     if not os.path.isfile(xslt_file):
         error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % xslt_file)
 
-    if os.path.isfile("/var/log/dpkg.log") and os.path.isfile(RESULTS):
-        package_change_ts = math.trunc(os.path.getmtime("/var/log/dpkg.log"))
+    if os.path.isfile(DPKG_LOG) and os.path.isfile(RESULTS):
+        package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
         results_ts = math.trunc(os.path.getmtime(RESULTS))
         if package_change_ts > results_ts:
-            verboseprint("Removing %s file because it is older than /var/log/dpkg.log" % RESULTS)
+            verboseprint("Removing %s file because it is older than %s" % (RESULTS, DPKG_LOG))
             rmfile(RESULTS)
 
     if testmode:
