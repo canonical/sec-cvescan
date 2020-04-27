@@ -66,7 +66,7 @@ def get_ubuntu_codename():
 
     return lsb_config.get("lsb","DISTRIB_CODENAME")
 
-def main():
+def parse_args():
     # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
     acceptable_codenames = ["xenial","bionic","disco","eoan","focal"]
 
@@ -83,8 +83,17 @@ def main():
     cvescan_ap.add_argument("-u", "--updates", action="store_true", default=False, help="Only show CVEs affecting packages if there is an update available.\nDefault: show only CVEs affecting this system or manifest file.")
     cvescan_ap.add_argument("-v", "--verbose", action="store_true", default=False, help="Enable verbose messages.")
     cvescan_ap.add_argument("-x", "--experimental", action="store_true", default=False, help="Enable eXperimental mode.\nUse experimental (also called \"alpha\") OVAL data files.\nThe alpha OVAL files include information about package updates\n available for users of Ubuntu Advantage running systems with ESM\n Apps enabled.")
-    cvescan_args = cvescan_ap.parse_args()
 
+    return cvescan_ap.parse_args()
+
+def raise_on_invalid_args(args):
+    raise_on_invalid_cve(args)
+
+def raise_on_invalid_cve(args):
+    if (args.cve is not None) and (not re.match("^CVE-[0-9]{4}-[0-9]{4,}$", args.cve)):
+        raise ValueError("Invalid CVE ID (%s)" % args.cve)
+
+def main():
     try:
         distrib_codename = get_ubuntu_codename()
     except (FileNotFoundError, PermissionError) as err:
@@ -92,13 +101,14 @@ def main():
     except DistribIDError as di:
         error_exit("Invalid distribution: %s" % di)
 
+    cvescan_args = parse_args()
+    try:
+        raise_on_invalid_args(cvescan_args)
+    except ValueError as ve:
+        error_exit("Invalid option or argument: %s" % ve)
+
     # Block of variables.
-    cve = None
-    if cvescan_args.cve != None:
-        if re.match("^CVE-[0-9]{4}-[0-9]{1,6}$", cvescan_args.cve):
-            cve = cvescan_args.cve
-        else:
-            error_exit("CVE argument not formatted correctly.")
+    cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
     results = "results.xml"
     report = "report.htm"
