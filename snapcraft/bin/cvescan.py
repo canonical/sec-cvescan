@@ -11,6 +11,7 @@ from shutil import which,copyfile
 import pycurl #TODO: Is curl on the system still necessary?
 import bz2
 
+DEBUG_LOG = "debug.log"
 EXPIRE = 86400
 OVAL_LOG = "oval.log"
 REPORT = "report.htm"
@@ -143,7 +144,7 @@ def main():
     now = math.trunc(time.time()) # Transcription of `date +%s`
     scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
     xslt_file = str("%s/text.xsl" % scriptdir)
-    verbose_oscap_options = "" if not cvescan_args.verbose else "--verbose WARNING --verbose-log-file debug.log"
+    verbose_oscap_options = "" if not cvescan_args.verbose else "--verbose WARNING --verbose-log-file %s" % DEBUG_LOG
     curl_options = "--fail --silent --show-error" #TODO: Is this necessary still?
     testmode = cvescan_args.test
     experimental = cvescan_args.experimental
@@ -234,12 +235,12 @@ def main():
         verboseprint("Removing file: %s" % oval_file)
         rmfile(oval_file)
     if remove:
-        verboseprint("Removing files: %s %s %s %s debug.log" % (oval_zip, REPORT, RESULTS, OVAL_LOG))
-        for i in [oval_zip, REPORT, RESULTS, OVAL_LOG, "debug.log"]:
+        verboseprint("Removing files: %s %s %s %s %s" % (oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG))
+        for i in [oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG]:
             rmfile(i)
 
     if not testmode and ((not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE)):
-        for i in [RESULTS, REPORT, OVAL_LOG, "debug.log"]:
+        for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
             rmfile(i)
         verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
         download(oval_base_url, oval_zip)
@@ -247,7 +248,7 @@ def main():
         bz2decompress(oval_zip, oval_file)
 
     if manifest:
-        for i in [RESULTS, REPORT, OVAL_LOG, "debug.log"]:
+        for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
             rmfile(i)
         if manifest_url != None and len(manifest_url) != 0:
             verboseprint("Downloading %s" % manifest_url)
