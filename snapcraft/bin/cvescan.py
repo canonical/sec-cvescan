@@ -11,6 +11,9 @@ from shutil import which,copyfile
 import pycurl #TODO: Is curl on the system still necessary?
 import bz2
 
+class DistribIDError(Exception):
+    pass
+
 def error_exit(msg, code=4):
     print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
@@ -42,6 +45,27 @@ def rmfile(filename):
         if os.path.isfile(filename):
             os.remove(filename)
 
+def get_lsb_release_info():
+    with open("/etc/lsb-release", "rt") as lsb_file:
+        lsb_file_contents = lsb_file.read()
+
+    # ConfigParser needs section headers, so adding a header.
+    lsb_file_contents = "[lsb]\n" + lsb_file_contents
+    lsb_config = configparser.ConfigParser()
+    lsb_config.read_string(lsb_file_contents)
+
+    return lsb_config
+
+def get_ubuntu_codename():
+    lsb_config = get_lsb_release_info()
+    distrib_id = lsb_config.get("lsb","DISTRIB_ID")
+
+    # Compare /etc/lsb-release to acceptable environment.
+    if distrib_id != "Ubuntu":
+        raise DistribIDError("DISTRIB_ID in /etc/lsb-release must be Ubuntu (DISTRIB_ID=%s)" % distrib_id)
+
+    return lsb_config.get("lsb","DISTRIB_CODENAME")
+
 def main():
     acceptable_codenames = ["xenial","bionic","disco","eoan"]
 
@@ -60,26 +84,12 @@ def main():
     cvescan_ap.add_argument("-x", "--experimental", action="store_true", default=False, help="Enable eXperimental mode.\nUse experimental (also called \"alpha\") OVAL data files.\nThe alpha OVAL files include information about package updates\n available for users of Ubuntu Advantage running systems with ESM\n Apps enabled.")
     cvescan_args = cvescan_ap.parse_args()
 
-    # Read /etc/lsb-release file for system information.
-    lsb_path = "/etc/lsb-release"
     try:
-        lsb_file = open(lsb_path)
-    except:
-        error_exit("No /etc/lsb-release file found or bad permissions, not running.")
-    lsb_config = configparser.ConfigParser()
-    # ConfigParser needs section headers, so adding a header.
-    lsb_config.read_string(str("[lsb]\n" + lsb_file.read()))
-    lsb_file.close()
-    distrib_id = lsb_config.get("lsb","DISTRIB_ID")
-    distrib_release = lsb_config.get("lsb","DISTRIB_RELEASE")
-    distrib_codename = lsb_config.get("lsb","DISTRIB_CODENAME")
-    distrib_description = lsb_config.get("lsb","DISTRIB_DESCRIPTION")[1:-1]
-    if distrib_description[0] == "\"" and distrib_description[-1] == "\"":
-        distrib_description = distrib_description[1:-1] # Quote removal without perverting contents.
-
-    # Compare /etc/lsb-release to acceptable environment.
-    if distrib_id != "Ubuntu":
-        error_exit("In /etc/lsb-release, DISTRIB_ID=%s is not Ubuntu; not running." % distrib_id)
+        distrib_codename = get_ubuntu_codename()
+    except (FileNotFoundError, PermissionError) as err:
+        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
+    except DistribIDError as di:
+        error_exit("Invalid distribution: %s" % di)
 
     # Block of variables.
     cve = None
