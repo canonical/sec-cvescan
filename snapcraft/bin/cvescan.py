@@ -141,7 +141,7 @@ def main():
     expire = 86400
     scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
     xslt_file = str("%s/text.xsl" % scriptdir)
-    verbose_oscap_options = ""
+    verbose_oscap_options = "" if not cvescan_args.verbose else "--verbose WARNING --verbose-log-file debug.log"
     curl_options = "--fail --silent --show-error" #TODO: Is this necessary still?
     testmode = cvescan_args.test
     testcanaryfile = "cvescan.test"
