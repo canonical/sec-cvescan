@@ -8,7 +8,7 @@ import math
 import argparse as ap
 import re
 from shutil import which,copyfile
-import pycurl #TODO: Is curl on the system still necessary?
+import pycurl
 import bz2
 
 DEBUG_LOG = "debug.log"
@@ -146,7 +146,6 @@ def main():
     scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
     xslt_file = str("%s/text.xsl" % scriptdir)
     verbose_oscap_options = "" if not cvescan_args.verbose else "--verbose WARNING --verbose-log-file %s" % DEBUG_LOG
-    curl_options = "--fail --silent --show-error" #TODO: Is this necessary still?
     testmode = cvescan_args.test
     experimental = cvescan_args.experimental
     package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())
@@ -171,7 +170,7 @@ def main():
         pass
 
     if snap_user_common == None:
-        for i in [["oscap", "libopenscap8"], ["xsltproc", "xsltproc"], ["curl", "curl"]]:
+        for i in [["oscap", "libopenscap8"], ["xsltproc", "xsltproc"]]:
             if which(i[0]) == None:
                 error_exit("Missing %s command. Run 'sudo apt install %s'" % (i[0], i[1]))
 
