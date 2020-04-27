@@ -11,6 +11,12 @@ from shutil import which,copyfile
 import pycurl #TODO: Is curl on the system still necessary?
 import bz2
 
+EXPIRE = 86400
+OVAL_LOG = "oval.log"
+REPORT = "report.htm"
+RESULTS = "results.xml"
+TEST_CANARY_FILE = "cvescan.test"
+
 class DistribIDError(Exception):
     pass
 
@@ -110,9 +116,6 @@ def main():
     # Block of variables.
     cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
-    results = "results.xml"
-    report = "report.htm"
-    log = "oval.log"
     remove = not cvescan_args.reuse
     silent = cvescan_args.silent
     nagios = cvescan_args.nagios
@@ -138,13 +141,11 @@ def main():
     all_cve = not cvescan_args.updates
     priority = cvescan_args.priority
     now = math.trunc(time.time()) # Transcription of `date +%s`
-    expire = 86400
     scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
     xslt_file = str("%s/text.xsl" % scriptdir)
     verbose_oscap_options = "" if not cvescan_args.verbose else "--verbose WARNING --verbose-log-file debug.log"
     curl_options = "--fail --silent --show-error" #TODO: Is this necessary still?
     testmode = cvescan_args.test
-    testcanaryfile = "cvescan.test"
     experimental = cvescan_args.experimental
     package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())
     # TODO: does extra_sed need updating?
@@ -175,12 +176,12 @@ def main():
     if not os.path.isfile(xslt_file):
         error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % xslt_file)
 
-    if os.path.isfile("/var/log/dpkg.log") and os.path.isfile(results):
+    if os.path.isfile("/var/log/dpkg.log") and os.path.isfile(RESULTS):
         package_change_ts = math.trunc(os.path.getmtime("/var/log/dpkg.log"))
-        results_ts = math.trunc(os.path.getmtime(results))
+        results_ts = math.trunc(os.path.getmtime(RESULTS))
         if package_change_ts > results_ts:
-            verboseprint("Removing %s file because it is older than /var/log/dpkg.log" % results)
-            rmfile(results)
+            verboseprint("Removing %s file because it is older than /var/log/dpkg.log" % RESULTS)
+            rmfile(RESULTS)
 
     if testmode:
         print("Running in test mode.")
@@ -199,9 +200,9 @@ def main():
             print("Using OVAL file %s to test oscap" % oval_file)
         else:
             error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
-    elif os.path.isfile(testcanaryfile):
-        verboseprint("Detected previous run in test mode, cleaning up\nRemoving file: '%s'" % testcanaryfile)
-        rmfile(testcanaryfile)
+    elif os.path.isfile(TEST_CANARY_FILE):
+        verboseprint("Detected previous run in test mode, cleaning up\nRemoving file: '%s'" % TEST_CANARY_FILE)
+        rmfile(TEST_CANARY_FILE)
         remove = True
 
     if testmode:
@@ -214,8 +215,8 @@ def main():
 
     if manifest:
         verboseprint("Removing cached report and results files")
-        rmfile(report)
-        rmfile(results)
+        rmfile(REPORT)
+        rmfile(RESULTS)
         if manifest_url != None and len(manifest_url) != 0:
             verboseprint("Removing cached manifest file")
             rmfile(manifest_file) # Research suggests that this should be equal to `rm -f file`
@@ -233,12 +234,12 @@ def main():
         verboseprint("Removing file: %s" % oval_file)
         rmfile(oval_file)
     if remove:
-        verboseprint("Removing files: %s %s %s %s debug.log" % (oval_zip, report, results, log))
-        for i in [oval_zip, report, results, log, "debug.log"]:
+        verboseprint("Removing files: %s %s %s %s debug.log" % (oval_zip, REPORT, RESULTS, OVAL_LOG))
+        for i in [oval_zip, REPORT, RESULTS, OVAL_LOG, "debug.log"]:
             rmfile(i)
 
-    if not testmode and ((not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > expire)):
-        for i in [results, report, log, "debug.log"]:
+    if not testmode and ((not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE)):
+        for i in [RESULTS, REPORT, OVAL_LOG, "debug.log"]:
             rmfile(i)
         verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
         download(oval_base_url, oval_zip)
@@ -246,10 +247,11 @@ def main():
         bz2decompress(oval_zip, oval_file)
 
     if manifest:
-        for i in [results, report, log, "debug.log"]:
+        for i in [RESULTS, REPORT, OVAL_LOG, "debug.log"]:
             rmfile(i)
         if manifest_url != None and len(manifest_url) != 0:
             verboseprint("Downloading %s" % manifest_url)
+            # TODO: fix this call to download
             download(manifest_url, manifest_file)
         else:
             verboseprint("Using manifest file %s\ncp %s manifest (in %s)" % (manifest_file, manifest_file, scriptdir))
@@ -257,23 +259,23 @@ def main():
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
         verboseprint("Manifest package count is %s" % package_count)
 
-    if not os.path.isfile(results) or ((now - math.trunc(os.path.getmtime(results))) > expire):
-        verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, results, oval_file, scriptdir, log))
+    if not os.path.isfile(RESULTS) or ((now - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
+        verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
         try:
-            os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % (verbose_oscap_options, results, oval_file, log)) #TODO: less Bash-y?
+            os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG)) #TODO: less Bash-y?
         except:
             error_exit("Failed to run oval scan")
 
-    if not os.path.isfile(report) or ((now - math.trunc(os.path.getmtime(report))) > expire):
-        verboseprint("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, report, scriptdir, results, scriptdir, log))
-        verboseprint("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), report))
+    if not os.path.isfile(REPORT) or ((now - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
+        verboseprint("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
+        verboseprint("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), REPORT))
         try:
-            os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (report, results, log)) #TODO: less Bash-y?
+            os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG)) #TODO: less Bash-y?
         except:
             error_exit("Failed to generate oval report")
 
     verboseprint("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
-    cve_list_all_filtered = os.popen("xsltproc --stringparam showAll true --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, results, extra_sed)).read().split('\n')
+    cve_list_all_filtered = os.popen("xsltproc --stringparam showAll true --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, RESULTS, extra_sed)).read().split('\n')
     while("" in cve_list_all_filtered):
         cve_list_all_filtered.remove("")
     cve_count_all_filtered = len(cve_list_all_filtered)
@@ -281,21 +283,21 @@ def main():
     verboseprint("%s vulnerabilities found with priority of %s or higher:\n%s" % (cve_count_all_filtered, priority, cve_list_all_filtered))
     verboseprint("Running xsltproc to generate CVE list - fixable and filtered by priority")
 
-    cve_list_fixable_filtered = os.popen("xsltproc --stringparam showAll false --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, results, extra_sed)).read().split('\n')
+    cve_list_fixable_filtered = os.popen("xsltproc --stringparam showAll false --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, RESULTS, extra_sed)).read().split('\n')
     while("" in cve_list_fixable_filtered):
         cve_list_fixable_filtered.remove("")
     cve_count_fixable_filtered = len(cve_list_fixable_filtered)
 
     verboseprint("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (cve_count_fixable_filtered, priority, cve_list_fixable_filtered))
     if snap_user_common == None or len(snap_user_common) == 0:
-      verboseprint("Full HTML report available in %s/%s" % (scriptdir, report))
+      verboseprint("Full HTML report available in %s/%s" % (scriptdir, REPORT))
 
     if testmode:
-        print("Writing test canary file %s/%s" % (scriptdir, testcanaryfile))
-        if os.path.exists(testcanaryfile):
-            os.utime(testcanaryfile, None)
+        print("Writing test canary file %s/%s" % (scriptdir, TEST_CANARY_FILE))
+        if os.path.exists(TEST_CANARY_FILE):
+            os.utime(TEST_CANARY_FILE, None)
         else:
-            open(testcanaryfile, "a").close()
+            open(TEST_CANARY_FILE, "a").close()
         # FIRST TEST
         if (cve_count_all_filtered == 2) and ("CVE-1970-0300" in cve_list_all_filtered) and ("CVE-1970-0400" in cve_list_all_filtered) and ("CVE-1970-0200" not in cve_list_all_filtered) and ("CVE-1970-0500" not in cve_list_all_filtered):
             print("first test passed")
