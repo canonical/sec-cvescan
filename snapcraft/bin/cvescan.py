@@ -17,7 +17,6 @@ EXPIRE = 86400
 OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
-TEST_CANARY_FILE = "cvescan.test"
 
 verboseprint = lambda *args, **kwargs: None
 
@@ -193,14 +192,12 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
         scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority)
 
-    print("Writing test canary file %s/%s" % (scriptdir, TEST_CANARY_FILE))
-    if os.path.exists(TEST_CANARY_FILE):
-        os.utime(TEST_CANARY_FILE, None)
-    else:
-        open(TEST_CANARY_FILE, "a").close()
-
     success_1 = test_filter_active_cves(cve_list_all_filtered)
     success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
+
+    # TODO: scan_for_cves shouldn't error_exit, otherwise cleanup may not occur
+    # clean up after tests
+    cleanup_files_from_past_run(oval_zip)
 
     if not (success_1 and success_2):
         sys.exit(4)
@@ -315,10 +312,6 @@ def main():
 
     if testmode:
         run_testmode(scriptdir, verbose_oscap_options, now, xslt_file)
-    elif os.path.isfile(TEST_CANARY_FILE):
-        verboseprint("Detected previous run in test mode, cleaning up\nRemoving file: '%s'" % TEST_CANARY_FILE)
-        rmfile(TEST_CANARY_FILE)
-        remove = True
 
     if all_cve:
       verboseprint("Reporting on ALL CVEs, not just those that can be fixed by updates")
