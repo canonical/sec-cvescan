@@ -12,8 +12,10 @@ import pycurl
 import bz2
 
 DEBUG_LOG = "debug.log"
+DEFAULT_MANIFEST_FILE = "manifest"
 DPKG_LOG = "/var/log/dpkg.log"
 EXPIRE = 86400
+MANIFEST_URL_TEMPLATE = "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
 OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
@@ -30,17 +32,17 @@ def error_exit(msg, code=4):
     print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
 
-def download(base_url, filename):
+def download(download_url, filename):
     try:
         target_file = open(filename, "wb")
         curl = pycurl.Curl()
-        curl.setopt(pycurl.URL, "%s/%s" % (base_url.rstrip('/'), filename.lstrip('/')))
+        curl.setopt(pycurl.URL, download_url)
         curl.setopt(pycurl.WRITEDATA, target_file)
         curl.perform()
         curl.close()
         target_file.close()
     except:
-        error_exit("Downloading %s/%s failed.", (base_url.rstrip('/'), filename.lstrip('/')))
+        error_exit("Downloading %s failed." % download_url)
 
 def bz2decompress(bz2_archive, target):
     try:
@@ -168,21 +170,29 @@ def run_xsltproc_fixable(priority, xslt_file, extra_sed):
 
     return cve_list_fixable_filtered
 
-def cleanup_files_from_past_run(oval_zip):
-    verboseprint("Removing files: %s %s %s %s %s" % (oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG))
-    for i in [oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG]:
+def cleanup_all_files_from_past_run(oval_file, oval_zip, manifest_file):
+    cleanup_files([oval_file, oval_zip, manifest_file, REPORT, RESULTS,
+                   OVAL_LOG, DEBUG_LOG])
+
+def cleanup_oscap_files_from_past_run():
+    cleanup_files([REPORT, RESULTS, OVAL_LOG, DEBUG_LOG])
+
+def cleanup_files(files):
+    verboseprint("Removing files: %s" % (" ".join(files)))
+    for i in files:
         rmfile(i)
 
 def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
     print("Running in test mode.")
-    priority = "all"
+    cleanup_oscap_files_from_past_run()
+
     print("Setting priority filter to 'all'")
-    extra_sed = ""
+    priority = "all"
+
     print("Disabling URLs in output")
+    extra_sed = ""
 
     oval_file = "%s/com.ubuntu.test.cve.oval.xml" % scriptdir
-    oval_zip = str("%s.bz2" % oval_file)
-    cleanup_files_from_past_run(oval_zip)
 
     if os.path.isfile(oval_file):
         print("Using OVAL file %s to test oscap" % oval_file)
@@ -197,7 +207,7 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
 
     # TODO: scan_for_cves shouldn't error_exit, otherwise cleanup may not occur
     # clean up after tests
-    cleanup_files_from_past_run(oval_zip)
+    cleanup_oscap_files_from_past_run()
 
     if not (success_1 and success_2):
         sys.exit(4)
@@ -226,21 +236,25 @@ def test_identify_fixable_cves(cve_list_fixable_filtered):
     return False
 
 def main():
-    try:
-        distrib_codename = get_ubuntu_codename()
-    except (FileNotFoundError, PermissionError) as err:
-        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
-    except DistribIDError as di:
-        error_exit("Invalid distribution: %s" % di)
-
     cvescan_args = parse_args()
     try:
         raise_on_invalid_args(cvescan_args)
     except ValueError as ve:
         error_exit("Invalid option or argument: %s" % ve)
 
+    try:
+        if cvescan_args.manifest:
+            distrib_codename = cvescan_args.manifest
+        else:
+            distrib_codename = get_ubuntu_codename()
+    except (FileNotFoundError, PermissionError) as err:
+        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
+    except DistribIDError as di:
+        error_exit("Invalid distribution: %s" % di)
+
     # Block of variables.
     # TODO: raise error if testmode is invoked with anything other than --verbose and --priority
+    # TODO: raise error if --manifest and --reuse are invoked together
     cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
     remove = not cvescan_args.reuse
@@ -250,21 +264,19 @@ def main():
     oval_zip = str("%s.bz2" % oval_file)
     manifest = False
     manifest_url = None
+    manifest_file = cvescan_args.file if cvescan_args.file else DEFAULT_MANIFEST_FILE
+    download_manifest = False if cvescan_args.file else True
     if cvescan_args.manifest != None:
         manifest = True
+        remove = True
         release = cvescan_args.manifest
         oval_file = str("oci.%s" % oval_file)
         oval_zip = str("%s.bz2" % oval_file)
-        manifest_url = str("https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest" % (release, release))
-    manifest_file = "manifest"
-    if cvescan_args.file != None:
-        if os.path.isfile(cvescan_args.file):
-            if cvescan_args.file[0] == "/":
-                manifest_file = cvescan_args.file
-            else:
-                manifest_file = str("%s/%s", (os.path.abspath(os.path.dirname(sys.argv[0])),cvescan_args.file))
-        else:
-            error_exit("Cannot find manifest file \"%s\". Current directory is \"%s\"." % ( cvescan_args.f, os.path.abspath(os.path.dirname(sys.argv[0]))))
+        manifest_url = str(MANIFEST_URL_TEMPLATE % (release, release))
+        manifest_file = os.path.abspath(manifest_file)
+        if cvescan_args.file and not os.path.isfile(manifest_file):
+            # TODO: mention snap confinement in error message
+            error_exit("Cannot find manifest file \"%s\". Current directory is \"%s\"." % (manifest_file, os.getcwd()))
     all_cve = not cvescan_args.updates
     priority = cvescan_args.priority
     now = math.trunc(time.time()) # Transcription of `date +%s`
@@ -319,17 +331,6 @@ def main():
       verboseprint("Running in Nagios Mode")
     verboseprint("CVE Priority filter is '%s'\nInstalled package count is %s" % (priority, package_count))
 
-    if manifest:
-        verboseprint("Removing cached report and results files")
-        rmfile(REPORT)
-        rmfile(RESULTS)
-        if manifest_url != None and len(manifest_url) != 0:
-            verboseprint("Removing cached manifest file")
-            rmfile(manifest_file) # Research suggests that this should be equal to `rm -f file`
-    else:
-        verboseprint("Removing cached manifest file")
-        rmfile(manifest_file)
-
     if experimental:
         oval_base_url = "%s/alpha" % oval_base_url
         oval_file = "alpha.%s" % oval_file
@@ -337,28 +338,24 @@ def main():
         verboseprint("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
 
     if remove:
-        verboseprint("Removing file: %s" % oval_file)
-        rmfile(oval_file)
-        cleanup_files_from_past_run(oval_zip)
+        verboseprint("Removing cached report, results, and manifest files")
+        cleanup_all_files_from_past_run(oval_file, oval_zip, DEFAULT_MANIFEST_FILE)
 
     if (not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE):
         for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
             rmfile(i)
         verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
-        download(oval_base_url, oval_zip)
+        download(os.path.join(oval_base_url, oval_zip), oval_zip)
         verboseprint("Unzipping %s" % oval_zip)
         bz2decompress(oval_zip, oval_file)
 
     if manifest:
-        for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
-            rmfile(i)
-        if manifest_url != None and len(manifest_url) != 0:
+        if download_manifest:
             verboseprint("Downloading %s" % manifest_url)
-            # TODO: fix this call to download
-            download(manifest_url, manifest_file)
+            download(manifest_url, DEFAULT_MANIFEST_FILE)
         else:
-            verboseprint("Using manifest file %s\ncp %s manifest (in %s)" % (manifest_file, manifest_file, scriptdir))
-            copyfile(manifest_file, "%s/manifest" % scriptdir)
+            copyfile(manifest_file, "manifest")
+
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
         verboseprint("Manifest package count is %s" % package_count)
 
