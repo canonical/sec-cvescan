@@ -12,6 +12,7 @@ import pycurl
 import bz2
 
 DEBUG_LOG = "debug.log"
+DEFAULT_MANIFEST_FILE = "manifest"
 DPKG_LOG = "/var/log/dpkg.log"
 EXPIRE = 86400
 MANIFEST_URL_TEMPLATE = "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
@@ -260,6 +261,8 @@ def main():
     oval_zip = str("%s.bz2" % oval_file)
     manifest = False
     manifest_url = None
+    manifest_file = cvescan_args.file if cvescan_args.file else DEFAULT_MANIFEST_FILE
+    download_manifest = False if cvescan_args.file else True
     if cvescan_args.manifest != None:
         manifest = True
         remove = True
@@ -267,10 +270,10 @@ def main():
         oval_file = str("oci.%s" % oval_file)
         oval_zip = str("%s.bz2" % oval_file)
         manifest_url = str(MANIFEST_URL_TEMPLATE % (release, release))
-    manifest_file = cvescan_args.file if cvescan_args.file else "manifest"
-    manifest_file = os.path.abspath(manifest_file)
-    if cvescan_args.file and not os.path.isfile(manifest_file):
-        error_exit("Cannot find manifest file \"%s\". Current directory is \"%s\"." % (manifest_file, os.getcwd()))
+        manifest_file = os.path.abspath(manifest_file)
+        if cvescan_args.file and not os.path.isfile(manifest_file):
+            # TODO: mention snap confinement in error message
+            error_exit("Cannot find manifest file \"%s\". Current directory is \"%s\"." % (manifest_file, os.getcwd()))
     all_cve = not cvescan_args.updates
     priority = cvescan_args.priority
     now = math.trunc(time.time()) # Transcription of `date +%s`
@@ -333,7 +336,7 @@ def main():
 
     if remove:
         verboseprint("Removing cached report, results, and manifest files")
-        cleanup_all_files_from_past_run(oval_file, oval_zip, manifest_file)
+        cleanup_all_files_from_past_run(oval_file, oval_zip, DEFAULT_MANIFEST_FILE)
 
     if (not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE):
         for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
@@ -344,8 +347,11 @@ def main():
         bz2decompress(oval_zip, oval_file)
 
     if manifest:
-        verboseprint("Downloading %s" % manifest_url)
-        download(manifest_url, manifest_file)
+        if download_manifest:
+            verboseprint("Downloading %s" % manifest_url)
+            download(manifest_url, DEFAULT_MANIFEST_FILE)
+        else:
+            copyfile(manifest_file, "manifest")
 
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
         verboseprint("Manifest package count is %s" % package_count)
