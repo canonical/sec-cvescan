@@ -266,15 +266,10 @@ def main():
         oval_file = str("oci.%s" % oval_file)
         oval_zip = str("%s.bz2" % oval_file)
         manifest_url = str("https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest" % (release, release))
-    manifest_file = "manifest"
-    if cvescan_args.file != None:
-        if os.path.isfile(cvescan_args.file):
-            if cvescan_args.file[0] == "/":
-                manifest_file = cvescan_args.file
-            else:
-                manifest_file = str("%s/%s", (os.path.abspath(os.path.dirname(sys.argv[0])),cvescan_args.file))
-        else:
-            error_exit("Cannot find manifest file \"%s\". Current directory is \"%s\"." % ( cvescan_args.f, os.path.abspath(os.path.dirname(sys.argv[0]))))
+    manifest_file = cvescan_args.file if cvescan_args.file else "manifest"
+    manifest_file = os.path.abspath(manifest_file)
+    if cvescan_args.file and not os.path.isfile(manifest_file):
+        error_exit("Cannot find manifest file \"%s\". Current directory is \"%s\"." % (manifest_file, os.getcwd()))
     all_cve = not cvescan_args.updates
     priority = cvescan_args.priority
     now = math.trunc(time.time()) # Transcription of `date +%s`
