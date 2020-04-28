@@ -124,6 +124,7 @@ def raise_on_invalid_cve(args):
 
 def raise_on_invalid_combinations(args):
     raise_on_invalid_manifest_options(args)
+    raise_on_invalid_nagios_options(args)
     raise_on_invalid_test_options(args)
 
 def raise_on_invalid_manifest_options(args):
@@ -135,6 +136,19 @@ def raise_on_invalid_manifest_options(args):
 
     if args.file and not args.manifest:
         raise ArgumentError("Cannot specify -f|--file argument without -m|--manifest.")
+
+def raise_on_invalid_nagios_options(args):
+    if not args.nagios:
+        return
+
+    if args.cve:
+        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_CVE_OPTION)
+
+    if args.silent:
+        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_SILENT_OPTION)
+
+    if args.updates:
+        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UPDATES_OPTION)
 
 def raise_on_invalid_test_options(args):
     if not args.test:
