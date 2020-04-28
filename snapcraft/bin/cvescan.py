@@ -236,18 +236,21 @@ def test_identify_fixable_cves(cve_list_fixable_filtered):
     return False
 
 def main():
-    try:
-        distrib_codename = get_ubuntu_codename()
-    except (FileNotFoundError, PermissionError) as err:
-        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
-    except DistribIDError as di:
-        error_exit("Invalid distribution: %s" % di)
-
     cvescan_args = parse_args()
     try:
         raise_on_invalid_args(cvescan_args)
     except ValueError as ve:
         error_exit("Invalid option or argument: %s" % ve)
+
+    try:
+        if cvescan_args.manifest:
+            distrib_codename = cvescan_args.manifest
+        else:
+            distrib_codename = get_ubuntu_codename()
+    except (FileNotFoundError, PermissionError) as err:
+        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
+    except DistribIDError as di:
+        error_exit("Invalid distribution: %s" % di)
 
     # Block of variables.
     # TODO: raise error if testmode is invoked with anything other than --verbose and --priority
