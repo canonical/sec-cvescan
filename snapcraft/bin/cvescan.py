@@ -14,6 +14,7 @@ import bz2
 DEBUG_LOG = "debug.log"
 DPKG_LOG = "/var/log/dpkg.log"
 EXPIRE = 86400
+MANIFEST_URL_TEMPLATE = "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
 OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
@@ -265,7 +266,7 @@ def main():
         release = cvescan_args.manifest
         oval_file = str("oci.%s" % oval_file)
         oval_zip = str("%s.bz2" % oval_file)
-        manifest_url = str("https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest" % (release, release))
+        manifest_url = str(MANIFEST_URL_TEMPLATE % (release, release))
     manifest_file = cvescan_args.file if cvescan_args.file else "manifest"
     manifest_file = os.path.abspath(manifest_file)
     if cvescan_args.file and not os.path.isfile(manifest_file):
