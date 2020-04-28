@@ -19,6 +19,8 @@ REPORT = "report.htm"
 RESULTS = "results.xml"
 TEST_CANARY_FILE = "cvescan.test"
 
+verboseprint = lambda *args, **kwargs: None
+
 class DistribIDError(Exception):
     pass
 
@@ -101,6 +103,23 @@ def raise_on_invalid_cve(args):
     if (args.cve is not None) and (not re.match("^CVE-[0-9]{4}-[0-9]{4,}$", args.cve)):
         raise ValueError("Invalid CVE ID (%s)" % args.cve)
 
+def run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir):
+    if not os.path.isfile(RESULTS) or ((current_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
+        verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
+        try:
+            os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG)) #TODO: less Bash-y?
+        except:
+            error_exit("Failed to run oval scan")
+
+def run_oscap_generate_report(current_time, scriptdir):
+    if not os.path.isfile(REPORT) or ((current_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
+        verboseprint("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
+        verboseprint("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), REPORT))
+        try:
+            os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG)) #TODO: less Bash-y?
+        except:
+            error_exit("Failed to generate oval report")
+
 def main():
     try:
         distrib_codename = get_ubuntu_codename()
@@ -154,6 +173,7 @@ def main():
     if cvescan_args.list == True:
         extra_sed = ""
 
+    global verboseprint
     verboseprint = print if (cvescan_args.verbose or testmode) else lambda *args, **kwargs: None
 
 
@@ -260,20 +280,8 @@ def main():
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
         verboseprint("Manifest package count is %s" % package_count)
 
-    if not os.path.isfile(RESULTS) or ((now - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
-        verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
-        try:
-            os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG)) #TODO: less Bash-y?
-        except:
-            error_exit("Failed to run oval scan")
-
-    if not os.path.isfile(REPORT) or ((now - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
-        verboseprint("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
-        verboseprint("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), REPORT))
-        try:
-            os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG)) #TODO: less Bash-y?
-        except:
-            error_exit("Failed to generate oval report")
+    run_oscap_eval(now, verbose_oscap_options, oval_file, scriptdir)
+    run_oscap_generate_report(now, scriptdir)
 
     verboseprint("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
     cve_list_all_filtered = os.popen("xsltproc --stringparam showAll true --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, RESULTS, extra_sed)).read().split('\n')
