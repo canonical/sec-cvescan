@@ -180,9 +180,11 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
     print("Setting priority filter to 'all'")
     extra_sed = ""
     print("Disabling URLs in output")
+
     oval_file = "%s/com.ubuntu.test.cve.oval.xml" % scriptdir
     oval_zip = str("%s.bz2" % oval_file)
     cleanup_files_from_past_run(oval_zip)
+
     if os.path.isfile(oval_file):
         print("Using OVAL file %s to test oscap" % oval_file)
     else:
@@ -196,18 +198,35 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
         os.utime(TEST_CANARY_FILE, None)
     else:
         open(TEST_CANARY_FILE, "a").close()
-    # FIRST TEST
-    if (len(cve_list_all_filtered) == 2) and ("CVE-1970-0300" in cve_list_all_filtered) and ("CVE-1970-0400" in cve_list_all_filtered) and ("CVE-1970-0200" not in cve_list_all_filtered) and ("CVE-1970-0500" not in cve_list_all_filtered):
-        print("first test passed")
-    else:
-        error_exit("first test failed")
-    # SECOND TEST
-    if (len(cve_list_fixable_filtered) == 1) and ("CVE-1970-0400" in cve_list_fixable_filtered):
-        print("second test passed")
-    else:
-        error_exit("second test failed")
+
+    success_1 = test_filter_active_cves(cve_list_all_filtered)
+    success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
+
+    if not (success_1 and success_2):
+        sys.exit(4)
 
     sys.exit(0)
+
+def test_filter_active_cves(cve_list_all_filtered):
+    if ((len(cve_list_all_filtered) == 2)
+            and ("CVE-1970-0300" in cve_list_all_filtered)
+            and ("CVE-1970-0400" in cve_list_all_filtered)
+            and ("CVE-1970-0200" not in cve_list_all_filtered)
+            and ("CVE-1970-0500" not in cve_list_all_filtered)):
+        print("SUCCESS: Filter Active CVEs")
+        return True
+
+    print("FAILURE: Filter Active CVEs")
+    return False
+
+def test_identify_fixable_cves(cve_list_fixable_filtered):
+    if ((len(cve_list_fixable_filtered) == 1)
+            and ("CVE-1970-0400" in cve_list_fixable_filtered)):
+        print("SUCCESS: Identify Fixable/Updatable CVEs")
+        return True
+
+    print("FAILURE: Identify Fixable/Updatable CVEs")
+    return False
 
 def main():
     try:
