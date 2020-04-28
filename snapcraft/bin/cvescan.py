@@ -24,6 +24,9 @@ verboseprint = lambda *args, **kwargs: None
 class DistribIDError(Exception):
     pass
 
+class OpenSCAPError(Exception):
+    pass
+
 def error_exit(msg, code=4):
     print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
@@ -106,19 +109,24 @@ def raise_on_invalid_cve(args):
 def run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir):
     if not os.path.isfile(RESULTS) or ((current_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
         verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
-        try:
-            os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG)) #TODO: less Bash-y?
-        except:
-            error_exit("Failed to run oval scan")
+
+        # TODO: use openscap python binding instead of os.system
+        return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG))
+        if return_val != 0:
+            # TODO: improve error message
+            raise OpenSCAPError("Failed to run oval scan: returned %d" % return_val)
 
 def run_oscap_generate_report(current_time, scriptdir):
     if not os.path.isfile(REPORT) or ((current_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
         verboseprint("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
+
+        # TODO: use openscap python binding instead of os.system
+        return_val = os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG))
+        if return_val != 0:
+            # TODO: improve error message
+            raise OpenSCAPError("Failed to generate oval report: returned %d" % return_val)
+
         verboseprint("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), REPORT))
-        try:
-            os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG)) #TODO: less Bash-y?
-        except:
-            error_exit("Failed to generate oval report")
 
 def run_xsltproc_all(priority, xslt_file, extra_sed):
     verboseprint("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
@@ -304,8 +312,13 @@ def main():
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
         verboseprint("Manifest package count is %s" % package_count)
 
-    run_oscap_eval(now, verbose_oscap_options, oval_file, scriptdir)
-    run_oscap_generate_report(now, scriptdir)
+    try:
+        run_oscap_eval(now, verbose_oscap_options, oval_file, scriptdir)
+        run_oscap_generate_report(now, scriptdir)
+    except OpenSCAPError as ose:
+        error_exit("Failed to run oscap: %s" % ose)
+    except Exception as ex:
+        error_exit(ex)
 
     cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
     cve_count_all_filtered = len(cve_list_all_filtered)
