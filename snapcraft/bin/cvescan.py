@@ -168,8 +168,9 @@ def run_xsltproc_fixable(priority, xslt_file, extra_sed):
 
     return cve_list_fixable_filtered
 
-def cleanup_all_files_from_past_run(oval_zip):
-    cleanup_files([oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG])
+def cleanup_all_files_from_past_run(oval_file, oval_zip, manifest_file):
+    cleanup_files([oval_file, oval_zip, manifest_file, REPORT, RESULTS,
+                   OVAL_LOG, DEBUG_LOG])
 
 def cleanup_oscap_files_from_past_run():
     cleanup_files([REPORT, RESULTS, OVAL_LOG, DEBUG_LOG])
@@ -260,6 +261,7 @@ def main():
     manifest_url = None
     if cvescan_args.manifest != None:
         manifest = True
+        remove = True
         release = cvescan_args.manifest
         oval_file = str("oci.%s" % oval_file)
         oval_zip = str("%s.bz2" % oval_file)
@@ -327,13 +329,6 @@ def main():
       verboseprint("Running in Nagios Mode")
     verboseprint("CVE Priority filter is '%s'\nInstalled package count is %s" % (priority, package_count))
 
-    if manifest:
-        verboseprint("Removing cached report, results, and manifest files")
-        cleanup_oscap_files_from_past_run()
-
-    verboseprint("Removing cached manifest file")
-    rmfile(manifest_file)
-
     if experimental:
         oval_base_url = "%s/alpha" % oval_base_url
         oval_file = "alpha.%s" % oval_file
@@ -341,9 +336,8 @@ def main():
         verboseprint("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
 
     if remove:
-        verboseprint("Removing file: %s" % oval_file)
-        rmfile(oval_file)
-        cleanup_all_files_from_past_run(oval_zip)
+        verboseprint("Removing cached report, results, and manifest files")
+        cleanup_all_files_from_past_run(oval_file, oval_zip, manifest_file)
 
     if (not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE):
         for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
