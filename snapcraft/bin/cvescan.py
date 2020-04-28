@@ -168,9 +168,15 @@ def run_xsltproc_fixable(priority, xslt_file, extra_sed):
 
     return cve_list_fixable_filtered
 
-def cleanup_files_from_past_run(oval_zip):
-    verboseprint("Removing files: %s %s %s %s %s" % (oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG))
-    for i in [oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG]:
+def cleanup_all_files_from_past_run(oval_zip):
+    cleanup_files([oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG])
+
+def cleanup_oscap_files_from_past_run():
+    cleanup_files([REPORT, RESULTS, OVAL_LOG, DEBUG_LOG])
+
+def cleanup_files(files):
+    verboseprint("Removing files: %s" % (" ".join(files)))
+    for i in files:
         rmfile(i)
 
 def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
@@ -182,7 +188,7 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
 
     oval_file = "%s/com.ubuntu.test.cve.oval.xml" % scriptdir
     oval_zip = str("%s.bz2" % oval_file)
-    cleanup_files_from_past_run(oval_zip)
+    cleanup_all_files_from_past_run(oval_zip)
 
     if os.path.isfile(oval_file):
         print("Using OVAL file %s to test oscap" % oval_file)
@@ -197,7 +203,7 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
 
     # TODO: scan_for_cves shouldn't error_exit, otherwise cleanup may not occur
     # clean up after tests
-    cleanup_files_from_past_run(oval_zip)
+    cleanup_all_files_from_past_run(oval_zip)
 
     if not (success_1 and success_2):
         sys.exit(4)
@@ -241,6 +247,7 @@ def main():
 
     # Block of variables.
     # TODO: raise error if testmode is invoked with anything other than --verbose and --priority
+    # TODO: raise error if --manifest and --reuse are invoked together
     cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
     remove = not cvescan_args.reuse
@@ -321,12 +328,10 @@ def main():
 
     if manifest:
         verboseprint("Removing cached report, results, and manifest files")
-        rmfile(REPORT)
-        rmfile(RESULTS)
-        rmfile(manifest_file) # Research suggests that this should be equal to `rm -f file`
-    else:
-        verboseprint("Removing cached manifest file")
-        rmfile(manifest_file)
+        cleanup_oscap_files_from_past_run()
+
+    verboseprint("Removing cached manifest file")
+    rmfile(manifest_file)
 
     if experimental:
         oval_base_url = "%s/alpha" % oval_base_url
@@ -337,7 +342,7 @@ def main():
     if remove:
         verboseprint("Removing file: %s" % oval_file)
         rmfile(oval_file)
-        cleanup_files_from_past_run(oval_zip)
+        cleanup_all_files_from_past_run(oval_zip)
 
     if (not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE):
         for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
@@ -348,9 +353,6 @@ def main():
         bz2decompress(oval_zip, oval_file)
 
     if manifest:
-        for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
-            rmfile(i)
-
         verboseprint("Downloading %s" % manifest_url)
         # TODO: fix this call to download
         download(manifest_url, manifest_file)
