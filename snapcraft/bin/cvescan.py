@@ -271,16 +271,21 @@ def main():
     except DistribIDError as di:
         error_exit("Invalid distribution: %s" % di)
 
+    testmode = cvescan_args.test
+
+    global verboseprint
+    verboseprint = print if (cvescan_args.verbose or testmode) else lambda *args, **kwargs: None
+
     # Block of variables.
     # TODO: raise error if testmode is invoked with anything other than --verbose and --priority
     # TODO: raise error if --manifest and --reuse are invoked together
     cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
+    oval_file = str("com.ubuntu.%s.cve.oval.xml" % distrib_codename)
+    oval_zip = str("%s.bz2" % oval_file)
     remove = not cvescan_args.reuse
     silent = cvescan_args.silent
     nagios = cvescan_args.nagios
-    oval_file = str("com.ubuntu.%s.cve.oval.xml" % distrib_codename)
-    oval_zip = str("%s.bz2" % oval_file)
     manifest = False
     manifest_url = None
     manifest_file = cvescan_args.file if cvescan_args.file else DEFAULT_MANIFEST_FILE
@@ -296,22 +301,23 @@ def main():
         if cvescan_args.file and not os.path.isfile(manifest_file):
             # TODO: mention snap confinement in error message
             error_exit("Cannot find manifest file \"%s\". Current directory is \"%s\"." % (manifest_file, os.getcwd()))
+    if cvescan_args.experimental:
+        oval_base_url = "%s/alpha" % oval_base_url
+        oval_file = "alpha.%s" % oval_file
+        oval_zip = "%s.bz2" % oval_file
+        verboseprint("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
     all_cve = not cvescan_args.updates
     priority = cvescan_args.priority
     now = math.trunc(time.time()) # Transcription of `date +%s`
     scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
     xslt_file = str("%s/text.xsl" % scriptdir)
     verbose_oscap_options = "" if not cvescan_args.verbose else "--verbose WARNING --verbose-log-file %s" % DEBUG_LOG
-    testmode = cvescan_args.test
-    experimental = cvescan_args.experimental
     package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())
     # TODO: does extra_sed need updating?
     extra_sed = "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
     if cvescan_args.list == True:
         extra_sed = ""
 
-    global verboseprint
-    verboseprint = print if (cvescan_args.verbose or testmode) else lambda *args, **kwargs: None
 
 
     ###########
@@ -354,12 +360,6 @@ def main():
 
     verboseprint("CVE Priority filter is '%s'" % priority)
     verboseprint("Installed package count is %s" % package_count)
-
-    if experimental:
-        oval_base_url = "%s/alpha" % oval_base_url
-        oval_file = "alpha.%s" % oval_file
-        oval_zip = "%s.bz2" % oval_file
-        verboseprint("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
 
     if remove:
         verboseprint("Removing cached report, results, and manifest files")
