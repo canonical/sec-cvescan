@@ -20,10 +20,16 @@ OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
 
+FMT_CVE_OPTION = "-c|--cve"
 FMT_EXPERIMENTAL_OPTION = "-x|--experimental"
+FMT_FILE_OPTION = "-f|--file"
 FMT_MANIFEST_OPTION = "-m|--manifest"
+FMT_NAGIOS_OPTION = "-n|--nagios"
+FMT_PRIORITY_OPTION = "-p|priority"
 FMT_REUSE_OPTION = "-r|--reuse"
+FMT_SILENT_OPTION = "-s|--silent"
 FMT_TEST_OPTION = "-t|--test"
+FMT_UPDATES_OPTION = "-u|--updates"
 
 verboseprint = lambda *args, **kwargs: None
 
@@ -118,6 +124,7 @@ def raise_on_invalid_cve(args):
 
 def raise_on_invalid_combinations(args):
     raise_on_invalid_manifest_options(args)
+    raise_on_invalid_test_options(args)
 
 def raise_on_invalid_manifest_options(args):
     if args.manifest and args.reuse:
@@ -128,6 +135,34 @@ def raise_on_invalid_manifest_options(args):
 
     if args.file and not args.manifest:
         raise ArgumentError("Cannot specify -f|--file argument without -m|--manifest.")
+
+def raise_on_invalid_test_options(args):
+    if not args.test:
+        return
+
+    if args.cve:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_CVE_OPTION)
+
+    if args.experimental:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_EXPERIMENTAL_OPTION)
+
+    if args.file:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_FILE_OPTION)
+
+    if args.manifest:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_MANIFEST_OPTION)
+
+    if args.nagios:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_NAGIOS_OPTION)
+
+    if args.reuse:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_REUSE_OPTION)
+
+    if args.silent:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_SILENT_OPTION)
+
+    if args.updates:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_UPDATES_OPTION)
 
 def raise_incompatible_arguments_error(arg1, arg2):
     raise ArgumentError("The %s and %s options are incompatible and may not " \
@@ -303,7 +338,6 @@ def main():
     verboseprint = print if (cvescan_args.verbose or testmode) else lambda *args, **kwargs: None
 
     # Block of variables.
-    # TODO: raise error if testmode is invoked with anything other than --verbose and --priority
     cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
     oval_file = str("com.ubuntu.%s.cve.oval.xml" % distrib_codename)
