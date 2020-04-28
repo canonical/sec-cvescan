@@ -120,6 +120,30 @@ def run_oscap_generate_report(current_time, scriptdir):
         except:
             error_exit("Failed to generate oval report")
 
+def run_xsltproc_all(priority, xslt_file, extra_sed):
+    verboseprint("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
+
+    cmd = "xsltproc --stringparam showAll true --stringparam priority \"%s\"" \
+          " \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, RESULTS, extra_sed)
+    cve_list_all_filtered = os.popen(cmd).read().split('\n')
+
+    while("" in cve_list_all_filtered):
+        cve_list_all_filtered.remove("")
+
+    return cve_list_all_filtered
+
+def run_xsltproc_fixable(priority, xslt_file, extra_sed):
+    verboseprint("Running xsltproc to generate CVE list - fixable and filtered by priority")
+
+    cmd = "xsltproc --stringparam showAll false --stringparam priority \"%s\"" \
+          " \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, RESULTS, extra_sed)
+    cve_list_fixable_filtered = os.popen(cmd).read().split('\n')
+
+    while("" in cve_list_fixable_filtered):
+        cve_list_fixable_filtered.remove("")
+
+    return cve_list_fixable_filtered
+
 def main():
     try:
         distrib_codename = get_ubuntu_codename()
@@ -283,21 +307,14 @@ def main():
     run_oscap_eval(now, verbose_oscap_options, oval_file, scriptdir)
     run_oscap_generate_report(now, scriptdir)
 
-    verboseprint("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
-    cve_list_all_filtered = os.popen("xsltproc --stringparam showAll true --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, RESULTS, extra_sed)).read().split('\n')
-    while("" in cve_list_all_filtered):
-        cve_list_all_filtered.remove("")
+    cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
     cve_count_all_filtered = len(cve_list_all_filtered)
-
     verboseprint("%s vulnerabilities found with priority of %s or higher:\n%s" % (cve_count_all_filtered, priority, cve_list_all_filtered))
-    verboseprint("Running xsltproc to generate CVE list - fixable and filtered by priority")
 
-    cve_list_fixable_filtered = os.popen("xsltproc --stringparam showAll false --stringparam priority \"%s\" \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, RESULTS, extra_sed)).read().split('\n')
-    while("" in cve_list_fixable_filtered):
-        cve_list_fixable_filtered.remove("")
+    cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
     cve_count_fixable_filtered = len(cve_list_fixable_filtered)
-
     verboseprint("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (cve_count_fixable_filtered, priority, cve_list_fixable_filtered))
+
     if snap_user_common == None or len(snap_user_common) == 0:
       verboseprint("Full HTML report available in %s/%s" % (scriptdir, REPORT))
 
