@@ -152,6 +152,60 @@ def run_xsltproc_fixable(priority, xslt_file, extra_sed):
 
     return cve_list_fixable_filtered
 
+def cleanup_files_from_past_run(oval_zip):
+    verboseprint("Removing files: %s %s %s %s %s" % (oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG))
+    for i in [oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG]:
+        rmfile(i)
+
+
+def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
+    print("Running in test mode.")
+    priority = "all"
+    print("Setting priority filter to 'all'")
+    extra_sed = ""
+    print("Disabling URLs in output")
+    oval_file = "%s/com.ubuntu.test.cve.oval.xml" % scriptdir
+    oval_zip = str("%s.bz2" % oval_file)
+    cleanup_files_from_past_run(oval_zip)
+    if os.path.isfile(oval_file):
+        print("Using OVAL file %s to test oscap" % oval_file)
+    else:
+        error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
+
+    try:
+        run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir)
+        run_oscap_generate_report(current_time, scriptdir)
+    except OpenSCAPError as ose:
+        error_exit("Failed to run oscap: %s" % ose)
+    except Exception as ex:
+        error_exit(ex)
+
+    cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
+    cve_count_all_filtered = len(cve_list_all_filtered)
+    verboseprint("%s vulnerabilities found with priority of %s or higher:\n%s" % (cve_count_all_filtered, priority, cve_list_all_filtered))
+
+    cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
+    cve_count_fixable_filtered = len(cve_list_fixable_filtered)
+    verboseprint("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (cve_count_fixable_filtered, priority, cve_list_fixable_filtered))
+
+    print("Writing test canary file %s/%s" % (scriptdir, TEST_CANARY_FILE))
+    if os.path.exists(TEST_CANARY_FILE):
+        os.utime(TEST_CANARY_FILE, None)
+    else:
+        open(TEST_CANARY_FILE, "a").close()
+    # FIRST TEST
+    if (cve_count_all_filtered == 2) and ("CVE-1970-0300" in cve_list_all_filtered) and ("CVE-1970-0400" in cve_list_all_filtered) and ("CVE-1970-0200" not in cve_list_all_filtered) and ("CVE-1970-0500" not in cve_list_all_filtered):
+        print("first test passed")
+    else:
+        error_exit("first test failed")
+    # SECOND TEST
+    if (cve_count_fixable_filtered == 1) and ("CVE-1970-0400" in cve_list_fixable_filtered):
+        print("second test passed")
+    else:
+        error_exit("second test failed")
+
+    sys.exit(0)
+
 def main():
     try:
         distrib_codename = get_ubuntu_codename()
@@ -167,6 +221,7 @@ def main():
         error_exit("Invalid option or argument: %s" % ve)
 
     # Block of variables.
+    # TODO: raise error if testmode is invoked with anything other than --verbose and --priority
     cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
     remove = not cvescan_args.reuse
@@ -237,29 +292,12 @@ def main():
             rmfile(RESULTS)
 
     if testmode:
-        print("Running in test mode.")
-        manifest = False
-        print("Disabling manifest mode (test mode uses test OVAL files distributed with cvescan)")
-        remove = True
-        print("Setting flag to remove all cache files")
-        experimental = False
-        print("Disabling experimental mode (test mode uses test OVAL files distributed with cvescan)")
-        priority = "all"
-        print("Setting priority filter to 'all'")
-        extra_sed = ""
-        print("Disabling URLs in output")
-        oval_file = "%s/com.ubuntu.test.cve.oval.xml" % scriptdir
-        if os.path.isfile(oval_file):
-            print("Using OVAL file %s to test oscap" % oval_file)
-        else:
-            error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
+        run_testmode(scriptdir, verbose_oscap_options, now, xslt_file)
     elif os.path.isfile(TEST_CANARY_FILE):
         verboseprint("Detected previous run in test mode, cleaning up\nRemoving file: '%s'" % TEST_CANARY_FILE)
         rmfile(TEST_CANARY_FILE)
         remove = True
 
-    if testmode:
-      verboseprint("Running in TEST MODE")
     if all_cve:
       verboseprint("Reporting on ALL CVEs, not just those that can be fixed by updates")
     if nagios:
@@ -283,15 +321,12 @@ def main():
         oval_zip = "%s.bz2" % oval_file
         verboseprint("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
 
-    if remove and not testmode:
+    if remove:
         verboseprint("Removing file: %s" % oval_file)
         rmfile(oval_file)
-    if remove:
-        verboseprint("Removing files: %s %s %s %s %s" % (oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG))
-        for i in [oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG]:
-            rmfile(i)
+        cleanup_files_from_past_run(oval_zip)
 
-    if not testmode and ((not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE)):
+    if (not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE):
         for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
             rmfile(i)
         verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
@@ -330,23 +365,6 @@ def main():
 
     if snap_user_common == None or len(snap_user_common) == 0:
       verboseprint("Full HTML report available in %s/%s" % (scriptdir, REPORT))
-
-    if testmode:
-        print("Writing test canary file %s/%s" % (scriptdir, TEST_CANARY_FILE))
-        if os.path.exists(TEST_CANARY_FILE):
-            os.utime(TEST_CANARY_FILE, None)
-        else:
-            open(TEST_CANARY_FILE, "a").close()
-        # FIRST TEST
-        if (cve_count_all_filtered == 2) and ("CVE-1970-0300" in cve_list_all_filtered) and ("CVE-1970-0400" in cve_list_all_filtered) and ("CVE-1970-0200" not in cve_list_all_filtered) and ("CVE-1970-0500" not in cve_list_all_filtered):
-            print("first test passed")
-        else:
-            error_exit("first test failed")
-        # SECOND TEST
-        if (cve_count_fixable_filtered == 1) and ("CVE-1970-0400" in cve_list_fixable_filtered):
-            print("second test passed")
-        else:
-            error_exit("second test failed")
 
     verboseprint("Normal non-verbose output will appear below\n")
 
