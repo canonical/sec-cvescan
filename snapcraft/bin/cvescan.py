@@ -320,12 +320,10 @@ def main():
     verboseprint("CVE Priority filter is '%s'\nInstalled package count is %s" % (priority, package_count))
 
     if manifest:
-        verboseprint("Removing cached report and results files")
+        verboseprint("Removing cached report, results, and manifest files")
         rmfile(REPORT)
         rmfile(RESULTS)
-        if manifest_url != None and len(manifest_url) != 0:
-            verboseprint("Removing cached manifest file")
-            rmfile(manifest_file) # Research suggests that this should be equal to `rm -f file`
+        rmfile(manifest_file) # Research suggests that this should be equal to `rm -f file`
     else:
         verboseprint("Removing cached manifest file")
         rmfile(manifest_file)
@@ -352,13 +350,11 @@ def main():
     if manifest:
         for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
             rmfile(i)
-        if manifest_url != None and len(manifest_url) != 0:
-            verboseprint("Downloading %s" % manifest_url)
-            # TODO: fix this call to download
-            download(manifest_url, manifest_file)
-        else:
-            verboseprint("Using manifest file %s\ncp %s manifest (in %s)" % (manifest_file, manifest_file, scriptdir))
-            copyfile(manifest_file, "%s/manifest" % scriptdir)
+
+        verboseprint("Downloading %s" % manifest_url)
+        # TODO: fix this call to download
+        download(manifest_url, manifest_file)
+
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
         verboseprint("Manifest package count is %s" % package_count)
 
