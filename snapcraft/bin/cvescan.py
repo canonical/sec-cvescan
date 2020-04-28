@@ -235,6 +235,19 @@ def test_identify_fixable_cves(cve_list_fixable_filtered):
     print("FAILURE: Identify Fixable/Updatable CVEs")
     return False
 
+def retrieve_oval_file(oval_base_url, oval_zip, oval_file):
+    verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
+    download(os.path.join(oval_base_url, oval_zip), oval_zip)
+
+    verboseprint("Unzipping %s" % oval_zip)
+    bz2decompress(oval_zip, oval_file)
+
+def should_download_cached_file(filename, current_time):
+    return (not os.path.isfile(filename)) or cached_file_expired(filename, current_time)
+
+def cached_file_expired(filename, current_time):
+    return (current_time - math.trunc(os.path.getmtime(filename))) > EXPIRE
+
 def main():
     cvescan_args = parse_args()
     try:
@@ -341,13 +354,9 @@ def main():
         verboseprint("Removing cached report, results, and manifest files")
         cleanup_all_files_from_past_run(oval_file, oval_zip, DEFAULT_MANIFEST_FILE)
 
-    if (not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE):
-        for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
-            rmfile(i)
-        verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
-        download(os.path.join(oval_base_url, oval_zip), oval_zip)
-        verboseprint("Unzipping %s" % oval_zip)
-        bz2decompress(oval_zip, oval_file)
+    if should_download_cached_file(oval_file, now):
+        cleanup_oscap_files_from_past_run()
+        retrieve_oval_file(oval_base_url, oval_zip, oval_file)
 
     if manifest:
         if download_manifest:
