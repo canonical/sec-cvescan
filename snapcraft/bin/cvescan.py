@@ -181,14 +181,15 @@ def cleanup_files(files):
 
 def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
     print("Running in test mode.")
-    priority = "all"
+    cleanup_oscap_files_from_past_run()
+
     print("Setting priority filter to 'all'")
-    extra_sed = ""
+    priority = "all"
+
     print("Disabling URLs in output")
+    extra_sed = ""
 
     oval_file = "%s/com.ubuntu.test.cve.oval.xml" % scriptdir
-    oval_zip = str("%s.bz2" % oval_file)
-    cleanup_all_files_from_past_run(oval_zip)
 
     if os.path.isfile(oval_file):
         print("Using OVAL file %s to test oscap" % oval_file)
@@ -203,7 +204,7 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
 
     # TODO: scan_for_cves shouldn't error_exit, otherwise cleanup may not occur
     # clean up after tests
-    cleanup_all_files_from_past_run(oval_zip)
+    cleanup_oscap_files_from_past_run()
 
     if not (success_1 and success_2):
         sys.exit(4)
