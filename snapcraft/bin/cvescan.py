@@ -30,17 +30,17 @@ def error_exit(msg, code=4):
     print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
 
-def download(base_url, filename):
+def download(download_url, filename):
     try:
         target_file = open(filename, "wb")
         curl = pycurl.Curl()
-        curl.setopt(pycurl.URL, "%s/%s" % (base_url.rstrip('/'), filename.lstrip('/')))
+        curl.setopt(pycurl.URL, download_url)
         curl.setopt(pycurl.WRITEDATA, target_file)
         curl.perform()
         curl.close()
         target_file.close()
     except:
-        error_exit("Downloading %s/%s failed.", (base_url.rstrip('/'), filename.lstrip('/')))
+        error_exit("Downloading %s failed." % download_url)
 
 def bz2decompress(bz2_archive, target):
     try:
@@ -343,13 +343,12 @@ def main():
         for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
             rmfile(i)
         verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
-        download(oval_base_url, oval_zip)
+        download(os.path.join(oval_base_url, oval_zip), oval_zip)
         verboseprint("Unzipping %s" % oval_zip)
         bz2decompress(oval_zip, oval_file)
 
     if manifest:
         verboseprint("Downloading %s" % manifest_url)
-        # TODO: fix this call to download
         download(manifest_url, manifest_file)
 
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
