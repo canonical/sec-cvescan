@@ -117,26 +117,32 @@ def scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xsl
         error_exit(ex)
 
     cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
-    verboseprint("%s vulnerabilities found with priority of %s or higher:\n%s" % (len(cve_list_all_filtered), priority, cve_list_all_filtered))
+    verboseprint("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), priority))
+    verboseprint(cve_list_all_filtered)
 
     cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
-    verboseprint("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (len(cve_list_fixable_filtered), priority, cve_list_fixable_filtered))
+    verboseprint("%s CVEs found with priority of %s or higher that can be " \
+            "fixed with package updates:" % (len(cve_list_fixable_filtered), priority))
+    verboseprint(cve_list_fixable_filtered)
 
     return (cve_list_all_filtered, cve_list_fixable_filtered)
 
 def run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir):
     if not os.path.isfile(RESULTS) or ((current_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
-        verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
+        verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % \
+                (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
 
         # TODO: use openscap python binding instead of os.system
-        return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG))
+        return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % \
+                (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG))
         if return_val != 0:
             # TODO: improve error message
             raise OpenSCAPError("Failed to run oval scan: returned %d" % return_val)
 
 def run_oscap_generate_report(current_time, scriptdir):
     if not os.path.isfile(REPORT) or ((current_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
-        verboseprint("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
+        verboseprint("Generating html report %s/%s from results xml %s/%s " \
+                "(output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
 
         # TODO: use openscap python binding instead of os.system
         return_val = os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG))
@@ -312,7 +318,10 @@ def main():
     snap_user_common = None
     try:
         snap_user_common = os.environ["SNAP_USER_COMMON"]
-        verboseprint("Running as a snap, changing to '%s' directory.\nDownloaded files, log files and temporary reports will be in '%s'" % (snap_user_common, snap_user_common))
+        verboseprint("Running as a snap, changing to '%s' directory." % snap_user_common)
+        verboseprint("Downloaded files, log files and temporary reports will " \
+                "be in '%s'" % snap_user_common)
+
         try:
             os.chdir(snap_user_common)
         except:
@@ -342,7 +351,9 @@ def main():
       verboseprint("Reporting on ALL CVEs, not just those that can be fixed by updates")
     if nagios:
       verboseprint("Running in Nagios Mode")
-    verboseprint("CVE Priority filter is '%s'\nInstalled package count is %s" % (priority, package_count))
+
+    verboseprint("CVE Priority filter is '%s'" % priority)
+    verboseprint("Installed package count is %s" % package_count)
 
     if experimental:
         oval_base_url = "%s/alpha" % oval_base_url
@@ -381,10 +392,13 @@ def main():
             print("OK: no known %s or higher CVEs that can be fixed by updating" % priority)
             sys.exit(0)
         elif cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-            print("CRITICAL: %s CVEs with priority %s or higher that can be fixed with package updates\n%s" % (len(cve_list_fixable_filtered), priority, '\n'.join(cve_list_fixable_filtered)))
+            print("CRITICAL: %d CVEs with priority %s or higher that can be " \
+                    "fixed with package updates" % (len(cve_list_fixable_filtered), priority))
+            print('\n'.join(cve_list_fixable_filtered))
             sys.exit(2)
         elif cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-            print("WARNING: %s CVEs with priority %s or higher\n%s" % (len(cve_list_all_filtered), priority, '\n'.join(cve_list_all_filtered)))
+            print("WARNING: %s CVEs with priority %s or higher" % (len(cve_list_all_filtered), priority))
+            print('\n'.join(cve_list_all_filtered))
             sys.exit(1)
         else:
             print("UNKNOWN: something went wrong with %s" % sys.args[0])
