@@ -106,6 +106,23 @@ def raise_on_invalid_cve(args):
     if (args.cve is not None) and (not re.match("^CVE-[0-9]{4}-[0-9]{4,}$", args.cve)):
         raise ValueError("Invalid CVE ID (%s)" % args.cve)
 
+def scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority):
+    try:
+        run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir)
+        run_oscap_generate_report(current_time, scriptdir)
+    except OpenSCAPError as ose:
+        error_exit("Failed to run oscap: %s" % ose)
+    except Exception as ex:
+        error_exit(ex)
+
+    cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
+    verboseprint("%s vulnerabilities found with priority of %s or higher:\n%s" % (len(cve_list_all_filtered), priority, cve_list_all_filtered))
+
+    cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
+    verboseprint("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (len(cve_list_fixable_filtered), priority, cve_list_fixable_filtered))
+
+    return (cve_list_all_filtered, cve_list_fixable_filtered)
+
 def run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir):
     if not os.path.isfile(RESULTS) or ((current_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
         verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
@@ -157,7 +174,6 @@ def cleanup_files_from_past_run(oval_zip):
     for i in [oval_zip, REPORT, RESULTS, OVAL_LOG, DEBUG_LOG]:
         rmfile(i)
 
-
 def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
     print("Running in test mode.")
     priority = "all"
@@ -172,21 +188,8 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
     else:
         error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
 
-    try:
-        run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir)
-        run_oscap_generate_report(current_time, scriptdir)
-    except OpenSCAPError as ose:
-        error_exit("Failed to run oscap: %s" % ose)
-    except Exception as ex:
-        error_exit(ex)
-
-    cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
-    cve_count_all_filtered = len(cve_list_all_filtered)
-    verboseprint("%s vulnerabilities found with priority of %s or higher:\n%s" % (cve_count_all_filtered, priority, cve_list_all_filtered))
-
-    cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
-    cve_count_fixable_filtered = len(cve_list_fixable_filtered)
-    verboseprint("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (cve_count_fixable_filtered, priority, cve_list_fixable_filtered))
+    (cve_list_all_filtered, cve_list_fixable_filtered) = \
+        scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority)
 
     print("Writing test canary file %s/%s" % (scriptdir, TEST_CANARY_FILE))
     if os.path.exists(TEST_CANARY_FILE):
@@ -194,12 +197,12 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
     else:
         open(TEST_CANARY_FILE, "a").close()
     # FIRST TEST
-    if (cve_count_all_filtered == 2) and ("CVE-1970-0300" in cve_list_all_filtered) and ("CVE-1970-0400" in cve_list_all_filtered) and ("CVE-1970-0200" not in cve_list_all_filtered) and ("CVE-1970-0500" not in cve_list_all_filtered):
+    if (len(cve_list_all_filtered) == 2) and ("CVE-1970-0300" in cve_list_all_filtered) and ("CVE-1970-0400" in cve_list_all_filtered) and ("CVE-1970-0200" not in cve_list_all_filtered) and ("CVE-1970-0500" not in cve_list_all_filtered):
         print("first test passed")
     else:
         error_exit("first test failed")
     # SECOND TEST
-    if (cve_count_fixable_filtered == 1) and ("CVE-1970-0400" in cve_list_fixable_filtered):
+    if (len(cve_list_fixable_filtered) == 1) and ("CVE-1970-0400" in cve_list_fixable_filtered):
         print("second test passed")
     else:
         error_exit("second test failed")
@@ -347,21 +350,8 @@ def main():
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
         verboseprint("Manifest package count is %s" % package_count)
 
-    try:
-        run_oscap_eval(now, verbose_oscap_options, oval_file, scriptdir)
-        run_oscap_generate_report(now, scriptdir)
-    except OpenSCAPError as ose:
-        error_exit("Failed to run oscap: %s" % ose)
-    except Exception as ex:
-        error_exit(ex)
-
-    cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
-    cve_count_all_filtered = len(cve_list_all_filtered)
-    verboseprint("%s vulnerabilities found with priority of %s or higher:\n%s" % (cve_count_all_filtered, priority, cve_list_all_filtered))
-
-    cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
-    cve_count_fixable_filtered = len(cve_list_fixable_filtered)
-    verboseprint("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (cve_count_fixable_filtered, priority, cve_list_fixable_filtered))
+    (cve_list_all_filtered, cve_list_fixable_filtered) = \
+        scan_for_cves(now, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority)
 
     if snap_user_common == None or len(snap_user_common) == 0:
       verboseprint("Full HTML report available in %s/%s" % (scriptdir, REPORT))
@@ -373,10 +363,10 @@ def main():
             print("OK: no known %s or higher CVEs that can be fixed by updating" % priority)
             sys.exit(0)
         elif cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-            print("CRITICAL: %s CVEs with priority %s or higher that can be fixed with package updates\n%s" % (cve_count_fixable_filtered, priority, '\n'.join(cve_list_fixable_filtered)))
+            print("CRITICAL: %s CVEs with priority %s or higher that can be fixed with package updates\n%s" % (len(cve_list_fixable_filtered), priority, '\n'.join(cve_list_fixable_filtered)))
             sys.exit(2)
         elif cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-            print("WARNING: %s CVEs with priority %s or higher\n%s" % (cve_count_all_filtered, priority, '\n'.join(cve_list_all_filtered)))
+            print("WARNING: %s CVEs with priority %s or higher\n%s" % (len(cve_list_all_filtered), priority, '\n'.join(cve_list_all_filtered)))
             sys.exit(1)
         else:
             print("UNKNOWN: something went wrong with %s" % sys.args[0])
@@ -397,7 +387,7 @@ def main():
     else:
         if all_cve:
             if not silent:
-                print("Inspected %s packages. Found %s CVEs" % (package_count, cve_count_all_filtered))
+                print("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_all_filtered)))
             if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
                 print('\n'.join(cve_list_all_filtered))
                 sys.exit(1)
@@ -405,7 +395,7 @@ def main():
                 sys.exit(0)
         else:
             if not silent:
-                print("Inspected %s packages. Found %s CVEs" % (package_count, cve_count_fixable_filtered))
+                print("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_fixable_filtered)))
             if cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
                 print('\n'.join(cve_list_fixable_filtered))
                 sys.exit(1)
