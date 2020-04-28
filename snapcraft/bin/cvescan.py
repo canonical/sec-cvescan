@@ -20,7 +20,15 @@ OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
 
+FMT_EXPERIMENTAL_OPTION = "-x|--experimental"
+FMT_MANIFEST_OPTION = "-m|--manifest"
+FMT_REUSE_OPTION = "-r|--reuse"
+FMT_TEST_OPTION = "-t|--test"
+
 verboseprint = lambda *args, **kwargs: None
+
+class ArgumentError(Exception):
+    pass
 
 class DistribIDError(Exception):
     pass
@@ -102,10 +110,28 @@ def parse_args():
 
 def raise_on_invalid_args(args):
     raise_on_invalid_cve(args)
+    raise_on_invalid_combinations(args)
 
 def raise_on_invalid_cve(args):
     if (args.cve is not None) and (not re.match("^CVE-[0-9]{4}-[0-9]{4,}$", args.cve)):
         raise ValueError("Invalid CVE ID (%s)" % args.cve)
+
+def raise_on_invalid_combinations(args):
+    raise_on_invalid_manifest_options(args)
+
+def raise_on_invalid_manifest_options(args):
+    if args.manifest and args.reuse:
+        raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_REUSE_OPTION)
+
+    if args.manifest and args.test:
+        raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_TEST_OPTION)
+
+    if args.file and not args.manifest:
+        raise ArgumentError("Cannot specify -f|--file argument without -m|--manifest.")
+
+def raise_incompatible_arguments_error(arg1, arg2):
+    raise ArgumentError("The %s and %s options are incompatible and may not " \
+            "be specified together." % (arg1, arg2))
 
 def scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority):
     try:
@@ -258,8 +284,8 @@ def main():
     cvescan_args = parse_args()
     try:
         raise_on_invalid_args(cvescan_args)
-    except ValueError as ve:
-        error_exit("Invalid option or argument: %s" % ve)
+    except (ArgumentError, ValueError) as err:
+        error_exit("Invalid option or argument: %s" % err)
 
     try:
         if cvescan_args.manifest:
@@ -278,7 +304,6 @@ def main():
 
     # Block of variables.
     # TODO: raise error if testmode is invoked with anything other than --verbose and --priority
-    # TODO: raise error if --manifest and --reuse are invoked together
     cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
     oval_file = str("com.ubuntu.%s.cve.oval.xml" % distrib_codename)
