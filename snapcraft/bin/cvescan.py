@@ -20,7 +20,21 @@ OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
 
+FMT_CVE_OPTION = "-c|--cve"
+FMT_EXPERIMENTAL_OPTION = "-x|--experimental"
+FMT_FILE_OPTION = "-f|--file"
+FMT_MANIFEST_OPTION = "-m|--manifest"
+FMT_NAGIOS_OPTION = "-n|--nagios"
+FMT_PRIORITY_OPTION = "-p|priority"
+FMT_REUSE_OPTION = "-r|--reuse"
+FMT_SILENT_OPTION = "-s|--silent"
+FMT_TEST_OPTION = "-t|--test"
+FMT_UPDATES_OPTION = "-u|--updates"
+
 verboseprint = lambda *args, **kwargs: None
+
+class ArgumentError(Exception):
+    pass
 
 class DistribIDError(Exception):
     pass
@@ -102,10 +116,71 @@ def parse_args():
 
 def raise_on_invalid_args(args):
     raise_on_invalid_cve(args)
+    raise_on_invalid_combinations(args)
 
 def raise_on_invalid_cve(args):
     if (args.cve is not None) and (not re.match("^CVE-[0-9]{4}-[0-9]{4,}$", args.cve)):
         raise ValueError("Invalid CVE ID (%s)" % args.cve)
+
+def raise_on_invalid_combinations(args):
+    raise_on_invalid_manifest_options(args)
+    raise_on_invalid_nagios_options(args)
+    raise_on_invalid_test_options(args)
+
+def raise_on_invalid_manifest_options(args):
+    if args.manifest and args.reuse:
+        raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_REUSE_OPTION)
+
+    if args.manifest and args.test:
+        raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_TEST_OPTION)
+
+    if args.file and not args.manifest:
+        raise ArgumentError("Cannot specify -f|--file argument without -m|--manifest.")
+
+def raise_on_invalid_nagios_options(args):
+    if not args.nagios:
+        return
+
+    if args.cve:
+        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_CVE_OPTION)
+
+    if args.silent:
+        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_SILENT_OPTION)
+
+    if args.updates:
+        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UPDATES_OPTION)
+
+def raise_on_invalid_test_options(args):
+    if not args.test:
+        return
+
+    if args.cve:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_CVE_OPTION)
+
+    if args.experimental:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_EXPERIMENTAL_OPTION)
+
+    if args.file:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_FILE_OPTION)
+
+    if args.manifest:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_MANIFEST_OPTION)
+
+    if args.nagios:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_NAGIOS_OPTION)
+
+    if args.reuse:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_REUSE_OPTION)
+
+    if args.silent:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_SILENT_OPTION)
+
+    if args.updates:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_UPDATES_OPTION)
+
+def raise_incompatible_arguments_error(arg1, arg2):
+    raise ArgumentError("The %s and %s options are incompatible and may not " \
+            "be specified together." % (arg1, arg2))
 
 def scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority):
     try:
@@ -117,26 +192,32 @@ def scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xsl
         error_exit(ex)
 
     cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
-    verboseprint("%s vulnerabilities found with priority of %s or higher:\n%s" % (len(cve_list_all_filtered), priority, cve_list_all_filtered))
+    verboseprint("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), priority))
+    verboseprint(cve_list_all_filtered)
 
     cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
-    verboseprint("%s CVEs found with priority of %s or higher that can be fixed with package updates:\n%s" % (len(cve_list_fixable_filtered), priority, cve_list_fixable_filtered))
+    verboseprint("%s CVEs found with priority of %s or higher that can be " \
+            "fixed with package updates:" % (len(cve_list_fixable_filtered), priority))
+    verboseprint(cve_list_fixable_filtered)
 
     return (cve_list_all_filtered, cve_list_fixable_filtered)
 
 def run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir):
     if not os.path.isfile(RESULTS) or ((current_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
-        verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
+        verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % \
+                (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
 
         # TODO: use openscap python binding instead of os.system
-        return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG))
+        return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % \
+                (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG))
         if return_val != 0:
             # TODO: improve error message
             raise OpenSCAPError("Failed to run oval scan: returned %d" % return_val)
 
 def run_oscap_generate_report(current_time, scriptdir):
     if not os.path.isfile(REPORT) or ((current_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
-        verboseprint("Generating html report %s/%s from results xml %s/%s (output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
+        verboseprint("Generating html report %s/%s from results xml %s/%s " \
+                "(output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
 
         # TODO: use openscap python binding instead of os.system
         return_val = os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG))
@@ -235,12 +316,25 @@ def test_identify_fixable_cves(cve_list_fixable_filtered):
     print("FAILURE: Identify Fixable/Updatable CVEs")
     return False
 
+def retrieve_oval_file(oval_base_url, oval_zip, oval_file):
+    verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
+    download(os.path.join(oval_base_url, oval_zip), oval_zip)
+
+    verboseprint("Unzipping %s" % oval_zip)
+    bz2decompress(oval_zip, oval_file)
+
+def should_download_cached_file(filename, current_time):
+    return (not os.path.isfile(filename)) or cached_file_expired(filename, current_time)
+
+def cached_file_expired(filename, current_time):
+    return (current_time - math.trunc(os.path.getmtime(filename))) > EXPIRE
+
 def main():
     cvescan_args = parse_args()
     try:
         raise_on_invalid_args(cvescan_args)
-    except ValueError as ve:
-        error_exit("Invalid option or argument: %s" % ve)
+    except (ArgumentError, ValueError) as err:
+        error_exit("Invalid option or argument: %s" % err)
 
     try:
         if cvescan_args.manifest:
@@ -252,16 +346,19 @@ def main():
     except DistribIDError as di:
         error_exit("Invalid distribution: %s" % di)
 
+    testmode = cvescan_args.test
+
+    global verboseprint
+    verboseprint = print if (cvescan_args.verbose or testmode) else lambda *args, **kwargs: None
+
     # Block of variables.
-    # TODO: raise error if testmode is invoked with anything other than --verbose and --priority
-    # TODO: raise error if --manifest and --reuse are invoked together
     cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
+    oval_file = str("com.ubuntu.%s.cve.oval.xml" % distrib_codename)
+    oval_zip = str("%s.bz2" % oval_file)
     remove = not cvescan_args.reuse
     silent = cvescan_args.silent
     nagios = cvescan_args.nagios
-    oval_file = str("com.ubuntu.%s.cve.oval.xml" % distrib_codename)
-    oval_zip = str("%s.bz2" % oval_file)
     manifest = False
     manifest_url = None
     manifest_file = cvescan_args.file if cvescan_args.file else DEFAULT_MANIFEST_FILE
@@ -277,29 +374,33 @@ def main():
         if cvescan_args.file and not os.path.isfile(manifest_file):
             # TODO: mention snap confinement in error message
             error_exit("Cannot find manifest file \"%s\". Current directory is \"%s\"." % (manifest_file, os.getcwd()))
+    if cvescan_args.experimental:
+        oval_base_url = "%s/alpha" % oval_base_url
+        oval_file = "alpha.%s" % oval_file
+        oval_zip = "%s.bz2" % oval_file
+        verboseprint("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
     all_cve = not cvescan_args.updates
     priority = cvescan_args.priority
     now = math.trunc(time.time()) # Transcription of `date +%s`
     scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
     xslt_file = str("%s/text.xsl" % scriptdir)
     verbose_oscap_options = "" if not cvescan_args.verbose else "--verbose WARNING --verbose-log-file %s" % DEBUG_LOG
-    testmode = cvescan_args.test
-    experimental = cvescan_args.experimental
     package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())
     # TODO: does extra_sed need updating?
     extra_sed = "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
     if cvescan_args.list == True:
         extra_sed = ""
 
-    global verboseprint
-    verboseprint = print if (cvescan_args.verbose or testmode) else lambda *args, **kwargs: None
 
 
     ###########
     snap_user_common = None
     try:
         snap_user_common = os.environ["SNAP_USER_COMMON"]
-        verboseprint("Running as a snap, changing to '%s' directory.\nDownloaded files, log files and temporary reports will be in '%s'" % (snap_user_common, snap_user_common))
+        verboseprint("Running as a snap, changing to '%s' directory." % snap_user_common)
+        verboseprint("Downloaded files, log files and temporary reports will " \
+                "be in '%s'" % snap_user_common)
+
         try:
             os.chdir(snap_user_common)
         except:
@@ -329,25 +430,17 @@ def main():
       verboseprint("Reporting on ALL CVEs, not just those that can be fixed by updates")
     if nagios:
       verboseprint("Running in Nagios Mode")
-    verboseprint("CVE Priority filter is '%s'\nInstalled package count is %s" % (priority, package_count))
 
-    if experimental:
-        oval_base_url = "%s/alpha" % oval_base_url
-        oval_file = "alpha.%s" % oval_file
-        oval_zip = "%s.bz2" % oval_file
-        verboseprint("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
+    verboseprint("CVE Priority filter is '%s'" % priority)
+    verboseprint("Installed package count is %s" % package_count)
 
     if remove:
         verboseprint("Removing cached report, results, and manifest files")
         cleanup_all_files_from_past_run(oval_file, oval_zip, DEFAULT_MANIFEST_FILE)
 
-    if (not os.path.isfile(oval_file)) or ((now - math.trunc(os.path.getmtime(oval_file))) > EXPIRE):
-        for i in [RESULTS, REPORT, OVAL_LOG, DEBUG_LOG]:
-            rmfile(i)
-        verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
-        download(os.path.join(oval_base_url, oval_zip), oval_zip)
-        verboseprint("Unzipping %s" % oval_zip)
-        bz2decompress(oval_zip, oval_file)
+    if should_download_cached_file(oval_file, now):
+        cleanup_oscap_files_from_past_run()
+        retrieve_oval_file(oval_base_url, oval_zip, oval_file)
 
     if manifest:
         if download_manifest:
@@ -372,10 +465,13 @@ def main():
             print("OK: no known %s or higher CVEs that can be fixed by updating" % priority)
             sys.exit(0)
         elif cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-            print("CRITICAL: %s CVEs with priority %s or higher that can be fixed with package updates\n%s" % (len(cve_list_fixable_filtered), priority, '\n'.join(cve_list_fixable_filtered)))
+            print("CRITICAL: %d CVEs with priority %s or higher that can be " \
+                    "fixed with package updates" % (len(cve_list_fixable_filtered), priority))
+            print('\n'.join(cve_list_fixable_filtered))
             sys.exit(2)
         elif cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-            print("WARNING: %s CVEs with priority %s or higher\n%s" % (len(cve_list_all_filtered), priority, '\n'.join(cve_list_all_filtered)))
+            print("WARNING: %s CVEs with priority %s or higher" % (len(cve_list_all_filtered), priority))
+            print('\n'.join(cve_list_all_filtered))
             sys.exit(1)
         else:
             print("UNKNOWN: something went wrong with %s" % sys.args[0])
