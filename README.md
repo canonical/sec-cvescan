@@ -63,22 +63,22 @@ sudo apt-get install -y libopenscap8 xsltproc curl
 ## Below are some simple examples of using cvescan:
 
 usage/help
-```./cvescan -?```
+```cvescan -?```
 
 display a list of high and critical priority CVEs affecting this system
 that can be fixed with package updates
-```./cvescan```
+```cvescan```
 
 display a list of high and critical priority CVEs affecting this system
 including those that cannot be fixed by updating packages
-```./cvescan -a```
+```cvescan -a```
 
 
 Output "patch available to install" and exit 1 if vulnerable to the specified CVE and there is a patch.
 Output "patch not available" and exit 1 if vulnerable to the specified CVE and there is no patch.
 Output "patch applied or system not known to be affected" and exit 0 if not vulnerable to the specified CVE.
-```./cvescan -c CVE-2019-54321```
+```cvescan -c CVE-2019-54321```
 
 
 Similar to above but no printed output, only exit values
-```./cvescan -c CVE-2019-54321 -s```
+```cvescan -c CVE-2019-54321 -s```
