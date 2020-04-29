@@ -10,6 +10,7 @@ import re
 from shutil import which,copyfile
 import pycurl
 import bz2
+import cvescan.constants as const
 from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
 import logging
 
@@ -110,19 +111,19 @@ def parse_args():
     # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
     acceptable_codenames = ["xenial","bionic","disco","eoan","focal"]
 
-    cvescan_ap = ap.ArgumentParser(description="Use this script to use the Ubuntu security OVAL files.", formatter_class=ap.RawTextHelpFormatter)
-    cvescan_ap.add_argument("-c", "--cve", metavar="CVE-IDENTIFIER", help="Report if this system is vulnerable to a specific CVE.")
-    cvescan_ap.add_argument("-p", "--priority", help="'critical' = show only critical CVEs.\n'high'     = show critical and high CVEs (default)\n'medium'   = show critical and high and medium CVEs\n'all'      = show all CVES (no filtering based on priority)",choices=["critical","high","medium","all"], default="high")
-    cvescan_ap.add_argument("-s", "--silent", action="store_true", default=False, help="Enable script/Silent mode: To be used with '-c <cve-identifier>'.\nDo not print text output; exit 0 if not vulnerable, exit 1 if vulnerable.")
-    cvescan_ap.add_argument("-m", "--manifest", help="Enable manifest mode. Do not scan localhost.\nInstead run a scan against a Ubuntu Official Cloud Image package manifest file.\nThe script will use a server manifest file.",choices=acceptable_codenames)
-    cvescan_ap.add_argument("-f", "--file", metavar="manifest-file", help="Used with '-m' option to override the default behavior. Specify\n a manifest file to scan instead of downloading an OCI manifest.\n The file needs to be readable under snap confinement.\n User's home will likely work, /tmp will likely not work.")
-    cvescan_ap.add_argument("-n", "--nagios", action="store_true", default=False, help="Enable Nagios mode for use with NRPE.\nTypical nagios-style \"OK|WARNING|CRITICAL|UNKNOWN\" messages\n and exit codes of 0, 1, 2, or 3.\n0/OK = not vulnerable to any known and patchable CVEs of the\n specified priority or higher.\n1/WARNING = vulnerable to at least one known CVE of the specified\n priority or higher for which there is no available update.\n2/CRITICAL = vulnerable to at least one known and patchable CVE of\n the specified priority or higher.\n3/UNKNOWN = something went wrong with the script, or oscap.")
-    cvescan_ap.add_argument("-l", "--list", action="store_true", default=False, help="Disable links. Show only CVE IDs instead of URLs.\nDefault is to output URLs linking to the Ubuntu CVE tracker.")
-    cvescan_ap.add_argument("-r", "--reuse", action="store_true", default=False, help="re-use zip, oval, xml, and htm files from cached versions if possible.\nDefault is to redownload and regenerate everything.\nWarning: this may produce inaccurate results.")
-    cvescan_ap.add_argument("-t", "--test", action="store_true", default=False, help="Test mode, use test OVAL data to validate that cvescan and oscap are\n working as expected. In test mode, files are not downloaded.\nIn test mode, the remove and verbose options are enabled automatically.")
-    cvescan_ap.add_argument("-u", "--updates", action="store_true", default=False, help="Only show CVEs affecting packages if there is an update available.\nDefault: show only CVEs affecting this system or manifest file.")
-    cvescan_ap.add_argument("-v", "--verbose", action="store_true", default=False, help="Enable verbose messages.")
-    cvescan_ap.add_argument("-x", "--experimental", action="store_true", default=False, help="Enable eXperimental mode.\nUse experimental (also called \"alpha\") OVAL data files.\nThe alpha OVAL files include information about package updates\n available for users of Ubuntu Advantage running systems with ESM\n Apps enabled.")
+    cvescan_ap = ap.ArgumentParser(description=const.CVESCAN_DESCRIPTION, formatter_class=ap.RawTextHelpFormatter)
+    cvescan_ap.add_argument("-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP)
+    cvescan_ap.add_argument("-p", "--priority", help=const.PRIORITY_HELP, choices=["critical","high","medium","all"], default="high")
+    cvescan_ap.add_argument("-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP)
+    cvescan_ap.add_argument("-m", "--manifest", help=const.MANIFEST_HELP,choices=acceptable_codenames)
+    cvescan_ap.add_argument("-f", "--file", metavar="manifest-file", help=const.FILE_HELP)
+    cvescan_ap.add_argument("-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP)
+    cvescan_ap.add_argument("-l", "--list", action="store_true", default=False, help=const.LIST_HELP)
+    cvescan_ap.add_argument("-r", "--reuse", action="store_true", default=False, help=const.REUSE_HELP)
+    cvescan_ap.add_argument("-t", "--test", action="store_true", default=False, help=const.TEST_HELP)
+    cvescan_ap.add_argument("-u", "--updates", action="store_true", default=False, help=const.UPDATES_HELP)
+    cvescan_ap.add_argument("-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP)
+    cvescan_ap.add_argument("-x", "--experimental", action="store_true", default=False, help=const.EXPERIMENTAL_HELP)
 
     return cvescan_ap.parse_args()
 
