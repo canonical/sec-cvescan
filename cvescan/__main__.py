@@ -45,6 +45,7 @@ FMT_REUSE_OPTION = "-r|--reuse"
 FMT_SILENT_OPTION = "-s|--silent"
 FMT_TEST_OPTION = "-t|--test"
 FMT_UPDATES_OPTION = "-u|--updates"
+FMT_VERBOSE_OPTION = "-v|--verbose"
 
 
 def error_exit(msg, code=4):
@@ -131,6 +132,7 @@ def raise_on_invalid_combinations(args):
     raise_on_invalid_manifest_options(args)
     raise_on_invalid_nagios_options(args)
     raise_on_invalid_test_options(args)
+    raise_on_invalid_silent_options(args)
 
 def raise_on_invalid_manifest_options(args):
     if args.manifest and args.reuse:
@@ -182,6 +184,16 @@ def raise_on_invalid_test_options(args):
 
     if args.updates:
         raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_UPDATES_OPTION)
+
+def raise_on_invalid_silent_options(args):
+    if not args.silent:
+        return
+
+    if not args.cve:
+        raise ArgumentError("Cannot specify %s argument without %s." % (FMT_SILENT_OPTION, FMT_CVE_OPTION))
+
+    if args.verbose:
+        raise_incompatible_arguments_error(FMT_SILENT_OPTION, FMT_VERBOSE_OPTION)
 
 def raise_incompatible_arguments_error(arg1, arg2):
     raise ArgumentError("The %s and %s options are incompatible and may not " \
