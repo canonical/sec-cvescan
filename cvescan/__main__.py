@@ -14,13 +14,19 @@ from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
 import logging
 
 def get_default_logger():
-    logger = logging.getLogger()
+    logger = logging.getLogger("cvescan.stdout")
     logger.setLevel(logging.INFO)
 
     log_formatter = logging.Formatter("%(message)s")
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(log_formatter)
     logger.addHandler(stream_handler)
+
+    return logger
+
+def get_null_logger():
+    logger = logging.getLogger("cvescan.null")
+    logger.addHandler(logging.NullHandler())
 
     return logger
 
@@ -347,6 +353,7 @@ def cached_file_expired(filename, current_time):
     return (current_time - math.trunc(os.path.getmtime(filename))) > EXPIRE
 
 def main():
+    global LOGGER
     cvescan_args = parse_args()
     try:
         raise_on_invalid_args(cvescan_args)
@@ -371,7 +378,6 @@ def main():
     oval_file = str("com.ubuntu.%s.cve.oval.xml" % distrib_codename)
     oval_zip = str("%s.bz2" % oval_file)
     remove = not cvescan_args.reuse
-    silent = cvescan_args.silent
     nagios = cvescan_args.nagios
     manifest = False
     manifest_url = None
@@ -379,6 +385,8 @@ def main():
     download_manifest = False if cvescan_args.file else True
     if cvescan_args.verbose:
         LOGGER.setLevel(logging.DEBUG)
+    elif cvescan_args.silent:
+        LOGGER = get_null_logger()
     if cvescan_args.manifest != None:
         manifest = True
         remove = True
@@ -496,29 +504,24 @@ def main():
             sys.exit(3)
     elif cve != None and len(cve) != 0:
         if cve in cve_list_fixable_filtered:
-            if not silent:
-                LOGGER.info("%s patch available to install" % cve)
+            LOGGER.info("%s patch available to install" % cve)
             sys.exit(1)
         elif cve in cve_list_all_filtered:
-            if not silent:
-                LOGGER.info("%s patch not available" % cve)
+            LOGGER.info("%s patch not available" % cve)
             sys.exit(1)
         else:
-            if not silent:
-                LOGGER.info("%s patch applied or system not known to be affected" % cve)
+            LOGGER.info("%s patch applied or system not known to be affected" % cve)
             sys.exit(0)
     else:
         if all_cve:
-            if not silent:
-                LOGGER.info("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_all_filtered)))
+            LOGGER.info("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_all_filtered)))
             if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
                 LOGGER.info('\n'.join(cve_list_all_filtered))
                 sys.exit(1)
             else:
                 sys.exit(0)
         else:
-            if not silent:
-                LOGGER.info("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_fixable_filtered)))
+            LOGGER.info("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_fixable_filtered)))
             if cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
                 LOGGER.info('\n'.join(cve_list_fixable_filtered))
                 sys.exit(1)
