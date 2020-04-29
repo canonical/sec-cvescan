@@ -383,6 +383,8 @@ def main():
     priority = cvescan_args.priority
     now = math.trunc(time.time()) # Transcription of `date +%s`
     scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+    # TODO: Find a better way to locate this file than relying on it being in the
+    #       same directory as this script
     xslt_file = str("%s/text.xsl" % scriptdir)
     verbose_oscap_options = "" if not cvescan_args.verbose else "--verbose WARNING --verbose-log-file %s" % DEBUG_LOG
     package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())

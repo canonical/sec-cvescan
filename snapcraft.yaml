@@ -40,7 +40,7 @@ layout:
 
 apps:
   py:
-    command: ./cvescan.py
+    command: bin/cvescan
     environment:
       PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
       APT_CONFIG: $SNAP/etc/apt.conf
@@ -70,13 +70,10 @@ apps:
 parts:
   cvescan-python:
     plugin: python
-    python-packages:
-      - configparser
-      - argparse
-      - pycurl
     stage-packages:
       - libssl-dev
       - libcurl4-openssl-dev
+    source: .
   cvescan-bash:
     plugin: dump
     source: snapcraft/
