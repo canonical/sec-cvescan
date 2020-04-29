@@ -10,6 +10,7 @@ import re
 from shutil import which,copyfile
 import pycurl
 import bz2
+from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
 
 DEBUG_LOG = "debug.log"
 DEFAULT_MANIFEST_FILE = "manifest"
@@ -32,15 +33,6 @@ FMT_TEST_OPTION = "-t|--test"
 FMT_UPDATES_OPTION = "-u|--updates"
 
 verboseprint = lambda *args, **kwargs: None
-
-class ArgumentError(Exception):
-    pass
-
-class DistribIDError(Exception):
-    pass
-
-class OpenSCAPError(Exception):
-    pass
 
 def error_exit(msg, code=4):
     print("Error: %s" % msg, file=sys.stderr)
