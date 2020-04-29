@@ -11,6 +11,20 @@ from shutil import which,copyfile
 import pycurl
 import bz2
 from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
+import logging
+
+def get_default_logger():
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    log_formatter = logging.Formatter("%(message)s")
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(log_formatter)
+    logger.addHandler(stream_handler)
+
+    return logger
+
+LOGGER = get_default_logger()
 
 DEBUG_LOG = "debug.log"
 DEFAULT_MANIFEST_FILE = "manifest"
@@ -32,10 +46,9 @@ FMT_SILENT_OPTION = "-s|--silent"
 FMT_TEST_OPTION = "-t|--test"
 FMT_UPDATES_OPTION = "-u|--updates"
 
-verboseprint = lambda *args, **kwargs: None
 
 def error_exit(msg, code=4):
-    print("Error: %s" % msg, file=sys.stderr)
+    LOGGER.error("Error: %s" % msg)
     sys.exit(code)
 
 def download(download_url, filename):
@@ -184,19 +197,19 @@ def scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xsl
         error_exit(ex)
 
     cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
-    verboseprint("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), priority))
-    verboseprint(cve_list_all_filtered)
+    LOGGER.debug("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), priority))
+    LOGGER.debug(cve_list_all_filtered)
 
     cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
-    verboseprint("%s CVEs found with priority of %s or higher that can be " \
+    LOGGER.debug("%s CVEs found with priority of %s or higher that can be " \
             "fixed with package updates:" % (len(cve_list_fixable_filtered), priority))
-    verboseprint(cve_list_fixable_filtered)
+    LOGGER.debug(cve_list_fixable_filtered)
 
     return (cve_list_all_filtered, cve_list_fixable_filtered)
 
 def run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir):
     if not os.path.isfile(RESULTS) or ((current_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
-        verboseprint("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % \
+        LOGGER.debug("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % \
                 (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
 
         # TODO: use openscap python binding instead of os.system
@@ -208,7 +221,7 @@ def run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir):
 
 def run_oscap_generate_report(current_time, scriptdir):
     if not os.path.isfile(REPORT) or ((current_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
-        verboseprint("Generating html report %s/%s from results xml %s/%s " \
+        LOGGER.debug("Generating html report %s/%s from results xml %s/%s " \
                 "(output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
 
         # TODO: use openscap python binding instead of os.system
@@ -217,10 +230,10 @@ def run_oscap_generate_report(current_time, scriptdir):
             # TODO: improve error message
             raise OpenSCAPError("Failed to generate oval report: returned %d" % return_val)
 
-        verboseprint("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), REPORT))
+        LOGGER.debug("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), REPORT))
 
 def run_xsltproc_all(priority, xslt_file, extra_sed):
-    verboseprint("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
+    LOGGER.debug("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
 
     cmd = "xsltproc --stringparam showAll true --stringparam priority \"%s\"" \
           " \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, RESULTS, extra_sed)
@@ -232,7 +245,7 @@ def run_xsltproc_all(priority, xslt_file, extra_sed):
     return cve_list_all_filtered
 
 def run_xsltproc_fixable(priority, xslt_file, extra_sed):
-    verboseprint("Running xsltproc to generate CVE list - fixable and filtered by priority")
+    LOGGER.debug("Running xsltproc to generate CVE list - fixable and filtered by priority")
 
     cmd = "xsltproc --stringparam showAll false --stringparam priority \"%s\"" \
           " \"%s\" \"%s\" | sed -e /^$/d %s" % (priority, xslt_file, RESULTS, extra_sed)
@@ -251,24 +264,24 @@ def cleanup_oscap_files_from_past_run():
     cleanup_files([REPORT, RESULTS, OVAL_LOG, DEBUG_LOG])
 
 def cleanup_files(files):
-    verboseprint("Removing files: %s" % (" ".join(files)))
+    LOGGER.debug("Removing files: %s" % (" ".join(files)))
     for i in files:
         rmfile(i)
 
 def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
-    print("Running in test mode.")
+    LOGGER.info("Running in test mode.")
     cleanup_oscap_files_from_past_run()
 
-    print("Setting priority filter to 'all'")
+    LOGGER.info("Setting priority filter to 'all'")
     priority = "all"
 
-    print("Disabling URLs in output")
+    LOGGER.info("Disabling URLs in output")
     extra_sed = ""
 
     oval_file = "%s/com.ubuntu.test.cve.oval.xml" % scriptdir
 
     if os.path.isfile(oval_file):
-        print("Using OVAL file %s to test oscap" % oval_file)
+        LOGGER.info("Using OVAL file %s to test oscap" % oval_file)
     else:
         error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
 
@@ -293,26 +306,26 @@ def test_filter_active_cves(cve_list_all_filtered):
             and ("CVE-1970-0400" in cve_list_all_filtered)
             and ("CVE-1970-0200" not in cve_list_all_filtered)
             and ("CVE-1970-0500" not in cve_list_all_filtered)):
-        print("SUCCESS: Filter Active CVEs")
+        LOGGER.info("SUCCESS: Filter Active CVEs")
         return True
 
-    print("FAILURE: Filter Active CVEs")
+    LOGGER.error("FAILURE: Filter Active CVEs")
     return False
 
 def test_identify_fixable_cves(cve_list_fixable_filtered):
     if ((len(cve_list_fixable_filtered) == 1)
             and ("CVE-1970-0400" in cve_list_fixable_filtered)):
-        print("SUCCESS: Identify Fixable/Updatable CVEs")
+        LOGGER.info("SUCCESS: Identify Fixable/Updatable CVEs")
         return True
 
-    print("FAILURE: Identify Fixable/Updatable CVEs")
+    LOGGER.error("FAILURE: Identify Fixable/Updatable CVEs")
     return False
 
 def retrieve_oval_file(oval_base_url, oval_zip, oval_file):
-    verboseprint("Downloading %s/%s" % (oval_base_url, oval_zip))
+    LOGGER.debug("Downloading %s/%s" % (oval_base_url, oval_zip))
     download(os.path.join(oval_base_url, oval_zip), oval_zip)
 
-    verboseprint("Unzipping %s" % oval_zip)
+    LOGGER.debug("Unzipping %s" % oval_zip)
     bz2decompress(oval_zip, oval_file)
 
 def should_download_cached_file(filename, current_time):
@@ -340,9 +353,6 @@ def main():
 
     testmode = cvescan_args.test
 
-    global verboseprint
-    verboseprint = print if (cvescan_args.verbose or testmode) else lambda *args, **kwargs: None
-
     # Block of variables.
     cve = cvescan_args.cve
     oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
@@ -355,6 +365,8 @@ def main():
     manifest_url = None
     manifest_file = cvescan_args.file if cvescan_args.file else DEFAULT_MANIFEST_FILE
     download_manifest = False if cvescan_args.file else True
+    if cvescan_args.verbose:
+        LOGGER.setLevel(logging.DEBUG)
     if cvescan_args.manifest != None:
         manifest = True
         remove = True
@@ -370,7 +382,7 @@ def main():
         oval_base_url = "%s/alpha" % oval_base_url
         oval_file = "alpha.%s" % oval_file
         oval_zip = "%s.bz2" % oval_file
-        verboseprint("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
+        LOGGER.debug("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
     all_cve = not cvescan_args.updates
     priority = cvescan_args.priority
     now = math.trunc(time.time()) # Transcription of `date +%s`
@@ -391,8 +403,8 @@ def main():
     snap_user_common = None
     try:
         snap_user_common = os.environ["SNAP_USER_COMMON"]
-        verboseprint("Running as a snap, changing to '%s' directory." % snap_user_common)
-        verboseprint("Downloaded files, log files and temporary reports will " \
+        LOGGER.debug("Running as a snap, changing to '%s' directory." % snap_user_common)
+        LOGGER.debug("Downloaded files, log files and temporary reports will " \
                 "be in '%s'" % snap_user_common)
 
         try:
@@ -414,22 +426,22 @@ def main():
         package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
         results_ts = math.trunc(os.path.getmtime(RESULTS))
         if package_change_ts > results_ts:
-            verboseprint("Removing %s file because it is older than %s" % (RESULTS, DPKG_LOG))
+            LOGGER.debug("Removing %s file because it is older than %s" % (RESULTS, DPKG_LOG))
             rmfile(RESULTS)
 
     if testmode:
         run_testmode(scriptdir, verbose_oscap_options, now, xslt_file)
 
     if all_cve:
-      verboseprint("Reporting on ALL CVEs, not just those that can be fixed by updates")
+      LOGGER.debug("Reporting on ALL CVEs, not just those that can be fixed by updates")
     if nagios:
-      verboseprint("Running in Nagios Mode")
+      LOGGER.debug("Running in Nagios Mode")
 
-    verboseprint("CVE Priority filter is '%s'" % priority)
-    verboseprint("Installed package count is %s" % package_count)
+    LOGGER.debug("CVE Priority filter is '%s'" % priority)
+    LOGGER.debug("Installed package count is %s" % package_count)
 
     if remove:
-        verboseprint("Removing cached report, results, and manifest files")
+        LOGGER.debug("Removing cached report, results, and manifest files")
         cleanup_all_files_from_past_run(oval_file, oval_zip, DEFAULT_MANIFEST_FILE)
 
     if should_download_cached_file(oval_file, now):
@@ -438,65 +450,65 @@ def main():
 
     if manifest:
         if download_manifest:
-            verboseprint("Downloading %s" % manifest_url)
+            LOGGER.debug("Downloading %s" % manifest_url)
             download(manifest_url, DEFAULT_MANIFEST_FILE)
         else:
             copyfile(manifest_file, "manifest")
 
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
-        verboseprint("Manifest package count is %s" % package_count)
+        LOGGER.debug("Manifest package count is %s" % package_count)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
         scan_for_cves(now, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority)
 
     if snap_user_common == None or len(snap_user_common) == 0:
-      verboseprint("Full HTML report available in %s/%s" % (scriptdir, REPORT))
+      LOGGER.debug("Full HTML report available in %s/%s" % (scriptdir, REPORT))
 
-    verboseprint("Normal non-verbose output will appear below\n")
+    LOGGER.debug("Normal non-verbose output will appear below\n")
 
     if nagios:
         if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
-            print("OK: no known %s or higher CVEs that can be fixed by updating" % priority)
+            LOGGER.info("OK: no known %s or higher CVEs that can be fixed by updating" % priority)
             sys.exit(0)
         elif cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-            print("CRITICAL: %d CVEs with priority %s or higher that can be " \
+            LOGGER.info("CRITICAL: %d CVEs with priority %s or higher that can be " \
                     "fixed with package updates" % (len(cve_list_fixable_filtered), priority))
-            print('\n'.join(cve_list_fixable_filtered))
+            LOGGER.info('\n'.join(cve_list_fixable_filtered))
             sys.exit(2)
         elif cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-            print("WARNING: %s CVEs with priority %s or higher" % (len(cve_list_all_filtered), priority))
-            print('\n'.join(cve_list_all_filtered))
+            LOGGER.info("WARNING: %s CVEs with priority %s or higher" % (len(cve_list_all_filtered), priority))
+            LOGGER.info('\n'.join(cve_list_all_filtered))
             sys.exit(1)
         else:
-            print("UNKNOWN: something went wrong with %s" % sys.args[0])
+            LOGGER.info("UNKNOWN: something went wrong with %s" % sys.args[0])
             sys.exit(3)
     elif cve != None and len(cve) != 0:
         if cve in cve_list_fixable_filtered:
             if not silent:
-                print("%s patch available to install" % cve)
+                LOGGER.info("%s patch available to install" % cve)
             sys.exit(1)
         elif cve in cve_list_all_filtered:
             if not silent:
-                print("%s patch not available" % cve)
+                LOGGER.info("%s patch not available" % cve)
             sys.exit(1)
         else:
             if not silent:
-                print("%s patch applied or system not known to be affected" % cve)
+                LOGGER.info("%s patch applied or system not known to be affected" % cve)
             sys.exit(0)
     else:
         if all_cve:
             if not silent:
-                print("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_all_filtered)))
+                LOGGER.info("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_all_filtered)))
             if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-                print('\n'.join(cve_list_all_filtered))
+                LOGGER.info('\n'.join(cve_list_all_filtered))
                 sys.exit(1)
             else:
                 sys.exit(0)
         else:
             if not silent:
-                print("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_fixable_filtered)))
+                LOGGER.info("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_fixable_filtered)))
             if cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-                print('\n'.join(cve_list_fixable_filtered))
+                LOGGER.info('\n'.join(cve_list_fixable_filtered))
                 sys.exit(1)
             else:
                 sys.exit(0)
