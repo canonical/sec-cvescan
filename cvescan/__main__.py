@@ -11,6 +11,7 @@ import bz2
 import cvescan.constants as const
 from cvescan.options import Options
 from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
+from cvescan.sysinfo import SysInfo
 import logging
 
 def get_default_logger():
@@ -232,6 +233,7 @@ def cached_file_expired(filename, current_time):
 
 def main():
     global LOGGER
+    sysinfo = SysInfo()
     args = parse_args()
     try:
         opt = Options(args, LOGGER)
@@ -266,8 +268,8 @@ def main():
             if which(i[0]) == None:
                 error_exit("Missing %s command. Run 'sudo apt install %s'" % (i[0], i[1]))
 
-    if not os.path.isfile(opt.xslt_file):
-        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % opt.xslt_file)
+    if not os.path.isfile(sysinfo.xslt_file):
+        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % sysinfo.xslt_file)
 
     if os.path.isfile(DPKG_LOG) and os.path.isfile(RESULTS):
         package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
@@ -277,7 +279,7 @@ def main():
             rmfile(RESULTS)
 
     if opt.test_mode:
-        run_testmode(opt.scriptdir, opt.verbose_oscap_options, now, opt.xslt_file)
+        run_testmode(sysinfo.scriptdir, opt.verbose_oscap_options, now, sysinfo.xslt_file)
 
     if opt.all_cve:
       LOGGER.debug("Reporting on ALL CVEs, not just those that can be fixed by updates")
@@ -309,10 +311,10 @@ def main():
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
         scan_for_cves(now, opt.verbose_oscap_options, opt.oval_file,
-                opt.scriptdir, opt.xslt_file, opt.extra_sed, opt.priority)
+                sysinfo.scriptdir, sysinfo.xslt_file, opt.extra_sed, opt.priority)
 
     if snap_user_common == None or len(snap_user_common) == 0:
-      LOGGER.debug("Full HTML report available in %s/%s" % (opt.scriptdir, REPORT))
+      LOGGER.debug("Full HTML report available in %s/%s" % (sysinfo.scriptdir, REPORT))
 
     LOGGER.debug("Normal non-verbose output will appear below\n")
 

@@ -35,10 +35,6 @@ class Options:
         self.cve = args.cve
         self.priority = args.priority
         self.all_cve = not args.updates
-        self.scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
-        # TODO: Find a better way to locate this file than relying on it being in the
-        #       same directory as this script
-        self.xslt_file = str("%s/text.xsl" % self.scriptdir)
         # TODO: Find a better solution than this
         self.extra_sed = "" if args.list else "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 
