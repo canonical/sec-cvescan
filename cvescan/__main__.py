@@ -177,7 +177,7 @@ def cleanup_files(files):
     for i in files:
         rmfile(i)
 
-def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
+def run_testmode(sysinfo, verbose_oscap_options):
     LOGGER.info("Running in test mode.")
     cleanup_oscap_files_from_past_run()
 
@@ -187,7 +187,7 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
     LOGGER.info("Disabling URLs in output")
     extra_sed = ""
 
-    oval_file = "%s/com.ubuntu.test.cve.oval.xml" % scriptdir
+    oval_file = "%s/com.ubuntu.test.cve.oval.xml" % sysinfo.scriptdir
 
     if os.path.isfile(oval_file):
         LOGGER.info("Using OVAL file %s to test oscap" % oval_file)
@@ -195,7 +195,7 @@ def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
         error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority)
+        scan_for_cves(sysinfo.current_time, verbose_oscap_options, oval_file, sysinfo.scriptdir, sysinfo.xslt_file, extra_sed, priority)
 
     success_1 = test_filter_active_cves(cve_list_all_filtered)
     success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
@@ -294,7 +294,7 @@ def main():
             rmfile(RESULTS)
 
     if opt.test_mode:
-        run_testmode(sysinfo.scriptdir, opt.verbose_oscap_options, sysinfo.process_start_time, sysinfo.xslt_file)
+        run_testmode(sysinfo, opt.verbose_oscap_options)
 
     if opt.all_cve:
       LOGGER.debug("Reporting on ALL CVEs, not just those that can be fixed by updates")
