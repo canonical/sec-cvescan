@@ -233,16 +233,20 @@ def cached_file_expired(filename, current_time):
 
 def main():
     global LOGGER
-    sysinfo = SysInfo()
+
     args = parse_args()
+
     try:
-        opt = Options(args, LOGGER)
-    except (ArgumentError, ValueError) as err:
-        error_exit("Invalid option or argument: %s" % err)
+        sysinfo = SysInfo()
     except (FileNotFoundError, PermissionError) as err:
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
-        error_exit("Invalid distribution: %s" % di)
+        error_exit("Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s" % di)
+
+    try:
+        opt = Options(args, sysinfo, LOGGER)
+    except (ArgumentError, ValueError) as err:
+        error_exit("Invalid option or argument: %s" % err)
 
     # Block of variables.
     #LOGGER.debug("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
