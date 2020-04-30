@@ -238,7 +238,7 @@ def retrieve_oval_file(oval_base_url, oval_zip, oval_file):
     LOGGER.debug("Unzipping %s" % oval_zip)
     bz2decompress(oval_zip, oval_file)
 
-def should_download_cached_file(filename, current_time):
+def should_replace_cached_file(filename, current_time):
     return (not os.path.isfile(filename)) or cached_file_expired(filename, current_time)
 
 def cached_file_expired(filename, current_time):
@@ -310,7 +310,7 @@ def main():
         LOGGER.debug("Removing cached report, results, and manifest files")
         cleanup_all_files_from_past_run(opt.oval_file, opt.oval_zip, const.DEFAULT_MANIFEST_FILE)
 
-    if should_download_cached_file(opt.oval_file, now):
+    if should_replace_cached_file(opt.oval_file, now):
         cleanup_oscap_files_from_past_run()
         retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
 
