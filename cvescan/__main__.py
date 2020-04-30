@@ -253,7 +253,7 @@ def main():
     LOGGER = set_output_verbosity(args)
 
     try:
-        sysinfo = SysInfo()
+        sysinfo = SysInfo(LOGGER)
     except (FileNotFoundError, PermissionError) as err:
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
