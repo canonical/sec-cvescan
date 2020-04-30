@@ -249,21 +249,19 @@ def main():
     now = math.trunc(time.time()) # Transcription of `date +%s`
 
     ###########
-    snap_user_common = None
-    try:
-        snap_user_common = os.environ["SNAP_USER_COMMON"]
-        LOGGER.debug("Running as a snap, changing to '%s' directory." % snap_user_common)
+    if sysinfo.is_snap:
+        LOGGER.debug("Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common)
         LOGGER.debug("Downloaded files, log files and temporary reports will " \
-                "be in '%s'" % snap_user_common)
+                "be in '%s'" % sysinfo.snap_user_common)
 
         try:
-            os.chdir(snap_user_common)
+            os.chdir(sysinfo.snap_user_common)
         except:
-            error_exit("failed to cd to %s" % snap_user_common)
-    except KeyError:
-        pass
+            error_exit("failed to cd to %s" % sysinfo.snap_user_common)
 
-    if snap_user_common == None:
+    # TODO: Consider moving this check to SysInfo, though it may be moot if we
+    #       can use python bindings for oscap and xsltproc
+    if not sysinfo.is_snap:
         for i in [["oscap", "libopenscap8"], ["xsltproc", "xsltproc"]]:
             if which(i[0]) == None:
                 error_exit("Missing %s command. Run 'sudo apt install %s'" % (i[0], i[1]))
@@ -313,7 +311,7 @@ def main():
         scan_for_cves(now, opt.verbose_oscap_options, opt.oval_file,
                 sysinfo.scriptdir, sysinfo.xslt_file, opt.extra_sed, opt.priority)
 
-    if snap_user_common == None or len(snap_user_common) == 0:
+    if not sysinfo.is_snap:
       LOGGER.debug("Full HTML report available in %s/%s" % (sysinfo.scriptdir, REPORT))
 
     LOGGER.debug("Normal non-verbose output will appear below\n")
