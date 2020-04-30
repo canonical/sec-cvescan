@@ -181,11 +181,9 @@ def run_testmode(sysinfo, opt):
     LOGGER.info("Running in test mode.")
     cleanup_oscap_files_from_past_run()
 
+    # TODO: Log the state of all options at initialization and get rid of these.
     LOGGER.info("Setting priority filter to 'all'")
-    priority = "all"
-
     LOGGER.info("Disabling URLs in output")
-    extra_sed = ""
 
     if os.path.isfile(opt.oval_file):
         LOGGER.info("Using OVAL file %s to test oscap" % opt.oval_file)
@@ -193,7 +191,7 @@ def run_testmode(sysinfo, opt):
         error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(sysinfo.process_start_time, opt.verbose_oscap_options, opt.oval_file, sysinfo.scriptdir, sysinfo.xslt_file, extra_sed, priority)
+        scan_for_cves(sysinfo.process_start_time, opt.verbose_oscap_options, opt.oval_file, sysinfo.scriptdir, sysinfo.xslt_file, opt.extra_sed, opt.priority)
 
     success_1 = test_filter_active_cves(cve_list_all_filtered)
     success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)

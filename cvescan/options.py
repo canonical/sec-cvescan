@@ -30,10 +30,10 @@ class Options:
         self._set_output_verbosity(args)
 
         self.cve = args.cve
-        self.priority = args.priority
+        self.priority = "all" if self.test_mode else args.priority
         self.all_cve = not args.updates
         # TODO: Find a better solution than this
-        self.extra_sed = "" if args.list else "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
+        self.extra_sed = "" if (args.list or self.test_mode) else "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 
     def _set_mode(self, args):
         self.manifest_mode = True if args.manifest else False
