@@ -14,9 +14,16 @@ from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
 from cvescan.sysinfo import SysInfo
 import logging
 
-def get_default_logger():
+def set_output_verbosity(args):
+    if args.silent:
+        return get_null_logger()
+
     logger = logging.getLogger("cvescan.stdout")
-    logger.setLevel(logging.INFO)
+
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     log_formatter = logging.Formatter("%(message)s")
     stream_handler = logging.StreamHandler(sys.stdout)
@@ -25,7 +32,13 @@ def get_default_logger():
 
     return logger
 
-LOGGER = get_default_logger()
+def get_null_logger():
+    logger = logging.getLogger("cvescan.null")
+    logger.addHandler(logging.NullHandler())
+
+    return logger
+
+LOGGER = get_null_logger()
 
 DPKG_LOG = "/var/log/dpkg.log"
 EXPIRE = 86400
@@ -34,7 +47,7 @@ REPORT = "report.htm"
 RESULTS = "results.xml"
 
 def error_exit(msg, code=4):
-    LOGGER.error("Error: %s" % msg)
+    print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
 
 def download(download_url, filename):
@@ -236,6 +249,9 @@ def main():
 
     args = parse_args()
 
+    # Configure debug logging as early as possible
+    LOGGER = set_output_verbosity(args)
+
     try:
         sysinfo = SysInfo()
     except (FileNotFoundError, PermissionError) as err:
@@ -244,7 +260,7 @@ def main():
         error_exit("Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s" % di)
 
     try:
-        opt = Options(args, sysinfo, LOGGER)
+        opt = Options(args, sysinfo)
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err)
 

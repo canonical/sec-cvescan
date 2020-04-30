@@ -19,9 +19,7 @@ FMT_UPDATES_OPTION = "-u|--updates"
 MANIFEST_URL_TEMPLATE = "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
 
 class Options:
-    def __init__(self, args, sysinfo, logger):
-        self.logger = logger
-
+    def __init__(self, args, sysinfo):
         raise_on_invalid_args(args)
 
         self._set_mode(args)
@@ -73,10 +71,7 @@ class Options:
         self.verbose_oscap_options = ""
 
         if args.verbose:
-            self.logger.setLevel(logging.DEBUG)
             self.verbose_oscap_options = "--verbose WARNING --verbose-log-file %s" % const.DEBUG_LOG
-        elif args.silent:
-            self.logger = get_null_logger()
 
 
 def raise_on_invalid_args(args):
@@ -169,8 +164,3 @@ def raise_on_invalid_manifest_file(args):
         # TODO: mention snap confinement in error message
         raise ArgumentError("Cannot find manifest file \"%s\". Current "
                 "working directory is \"%s\"." % (file_abs_path, os.getcwd()))
-def get_null_logger():
-    logger = logging.getLogger("cvescan.null")
-    logger.addHandler(logging.NullHandler())
-
-    return logger
