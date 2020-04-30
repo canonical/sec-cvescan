@@ -96,40 +96,40 @@ def parse_args():
 
     return cvescan_ap.parse_args()
 
-def scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority):
+def scan_for_cves(sysinfo, opt):
     try:
-        run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir)
-        run_oscap_generate_report(current_time, scriptdir)
+        run_oscap_eval(sysinfo, opt)
+        run_oscap_generate_report(sysinfo.process_start_time, sysinfo.scriptdir)
     except OpenSCAPError as ose:
         error_exit("Failed to run oscap: %s" % ose)
     except Exception as ex:
         error_exit(ex)
 
-    cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
-    LOGGER.debug("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), priority))
+    cve_list_all_filtered = run_xsltproc_all(opt.priority, sysinfo.xslt_file, opt.extra_sed)
+    LOGGER.debug("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), opt.priority))
     LOGGER.debug(cve_list_all_filtered)
 
-    cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
+    cve_list_fixable_filtered = run_xsltproc_fixable(opt.priority, sysinfo.xslt_file, opt.extra_sed)
     LOGGER.debug("%s CVEs found with priority of %s or higher that can be " \
-            "fixed with package updates:" % (len(cve_list_fixable_filtered), priority))
+            "fixed with package updates:" % (len(cve_list_fixable_filtered), opt.priority))
     LOGGER.debug(cve_list_fixable_filtered)
 
     return (cve_list_all_filtered, cve_list_fixable_filtered)
 
-def run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir):
-    if not os.path.isfile(RESULTS) or ((current_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
+def run_oscap_eval(sysinfo, opt):
+    if not os.path.isfile(RESULTS) or ((sysinfo.process_start_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
         LOGGER.debug("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % \
-                (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
+                (opt.verbose_oscap_options, RESULTS, opt.oval_file, sysinfo.scriptdir, OVAL_LOG))
 
         # TODO: use openscap python binding instead of os.system
         return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % \
-                (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG))
+                (opt.verbose_oscap_options, RESULTS, opt.oval_file, OVAL_LOG))
         if return_val != 0:
             # TODO: improve error message
             raise OpenSCAPError("Failed to run oval scan: returned %d" % return_val)
 
-def run_oscap_generate_report(current_time, scriptdir):
-    if not os.path.isfile(REPORT) or ((current_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
+def run_oscap_generate_report(process_start_time, scriptdir):
+    if not os.path.isfile(REPORT) or ((process_start_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
         LOGGER.debug("Generating html report %s/%s from results xml %s/%s " \
                 "(output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
 
@@ -191,7 +191,7 @@ def run_testmode(sysinfo, opt):
         error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(sysinfo.process_start_time, opt.verbose_oscap_options, opt.oval_file, sysinfo.scriptdir, sysinfo.xslt_file, opt.extra_sed, opt.priority)
+        scan_for_cves(sysinfo, opt)
 
     success_1 = test_filter_active_cves(cve_list_all_filtered)
     success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
@@ -321,8 +321,7 @@ def main():
         LOGGER.debug("Manifest package count is %s" % package_count)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(sysinfo.process_start_time, opt.verbose_oscap_options, opt.oval_file,
-                sysinfo.scriptdir, sysinfo.xslt_file, opt.extra_sed, opt.priority)
+        scan_for_cves(sysinfo, opt)
 
     if not sysinfo.is_snap:
       LOGGER.debug("Full HTML report available in %s/%s" % (sysinfo.scriptdir, REPORT))
