@@ -2,7 +2,6 @@
 
 import sys
 import os
-import time
 import math
 import argparse as ap
 from shutil import which,copyfile
@@ -264,9 +263,7 @@ def main():
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err)
 
-    # Block of variables.
     #LOGGER.debug("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
-    now = math.trunc(time.time()) # Transcription of `date +%s`
 
     ###########
     if sysinfo.is_snap:
@@ -297,7 +294,7 @@ def main():
             rmfile(RESULTS)
 
     if opt.test_mode:
-        run_testmode(sysinfo.scriptdir, opt.verbose_oscap_options, now, sysinfo.xslt_file)
+        run_testmode(sysinfo.scriptdir, opt.verbose_oscap_options, sysinfo.process_start_time, sysinfo.xslt_file)
 
     if opt.all_cve:
       LOGGER.debug("Reporting on ALL CVEs, not just those that can be fixed by updates")
@@ -310,7 +307,7 @@ def main():
         LOGGER.debug("Removing cached report, results, and manifest files")
         cleanup_all_files_from_past_run(opt.oval_file, opt.oval_zip, const.DEFAULT_MANIFEST_FILE)
 
-    if should_replace_cached_file(opt.oval_file, now):
+    if should_replace_cached_file(opt.oval_file, sysinfo.process_start_time):
         cleanup_oscap_files_from_past_run()
         retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
 
@@ -328,7 +325,7 @@ def main():
         LOGGER.debug("Manifest package count is %s" % package_count)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(now, opt.verbose_oscap_options, opt.oval_file,
+        scan_for_cves(sysinfo.process_start_time, opt.verbose_oscap_options, opt.oval_file,
                 sysinfo.scriptdir, sysinfo.xslt_file, opt.extra_sed, opt.priority)
 
     if not sysinfo.is_snap:

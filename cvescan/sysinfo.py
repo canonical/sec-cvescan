@@ -1,6 +1,8 @@
 import configparser
+import math
 import os
 import sys
+import time
 
 class SysInfo:
     def __init__(self, logger):
@@ -12,6 +14,7 @@ class SysInfo:
 
         self._set_snap_info()
         self.distrib_codename = self.get_ubuntu_codename()
+        self.process_start_time = math.trunc(time.time())
 
     def _set_snap_info(self):
         self.is_snap = False
