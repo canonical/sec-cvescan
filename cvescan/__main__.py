@@ -2,15 +2,14 @@
 
 import sys
 import os
-import configparser
 import time
 import math
 import argparse as ap
-import re
 from shutil import which,copyfile
 import pycurl
 import bz2
 import cvescan.constants as const
+from cvescan.options import Options
 from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
 import logging
 
@@ -25,35 +24,13 @@ def get_default_logger():
 
     return logger
 
-def get_null_logger():
-    logger = logging.getLogger("cvescan.null")
-    logger.addHandler(logging.NullHandler())
-
-    return logger
-
 LOGGER = get_default_logger()
 
-DEBUG_LOG = "debug.log"
-DEFAULT_MANIFEST_FILE = "manifest"
 DPKG_LOG = "/var/log/dpkg.log"
 EXPIRE = 86400
-MANIFEST_URL_TEMPLATE = "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
 OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
-
-FMT_CVE_OPTION = "-c|--cve"
-FMT_EXPERIMENTAL_OPTION = "-x|--experimental"
-FMT_FILE_OPTION = "-f|--file"
-FMT_MANIFEST_OPTION = "-m|--manifest"
-FMT_NAGIOS_OPTION = "-n|--nagios"
-FMT_PRIORITY_OPTION = "-p|priority"
-FMT_REUSE_OPTION = "-r|--reuse"
-FMT_SILENT_OPTION = "-s|--silent"
-FMT_TEST_OPTION = "-t|--test"
-FMT_UPDATES_OPTION = "-u|--updates"
-FMT_VERBOSE_OPTION = "-v|--verbose"
-
 
 def error_exit(msg, code=4):
     LOGGER.error("Error: %s" % msg)
@@ -86,27 +63,6 @@ def rmfile(filename):
         if os.path.isfile(filename):
             os.remove(filename)
 
-def get_lsb_release_info():
-    with open("/etc/lsb-release", "rt") as lsb_file:
-        lsb_file_contents = lsb_file.read()
-
-    # ConfigParser needs section headers, so adding a header.
-    lsb_file_contents = "[lsb]\n" + lsb_file_contents
-    lsb_config = configparser.ConfigParser()
-    lsb_config.read_string(lsb_file_contents)
-
-    return lsb_config
-
-def get_ubuntu_codename():
-    lsb_config = get_lsb_release_info()
-    distrib_id = lsb_config.get("lsb","DISTRIB_ID")
-
-    # Compare /etc/lsb-release to acceptable environment.
-    if distrib_id != "Ubuntu":
-        raise DistribIDError("DISTRIB_ID in /etc/lsb-release must be Ubuntu (DISTRIB_ID=%s)" % distrib_id)
-
-    return lsb_config.get("lsb","DISTRIB_CODENAME")
-
 def parse_args():
     # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
     acceptable_codenames = ["xenial","bionic","disco","eoan","focal"]
@@ -126,85 +82,6 @@ def parse_args():
     cvescan_ap.add_argument("-x", "--experimental", action="store_true", default=False, help=const.EXPERIMENTAL_HELP)
 
     return cvescan_ap.parse_args()
-
-def raise_on_invalid_args(args):
-    raise_on_invalid_cve(args)
-    raise_on_invalid_combinations(args)
-
-def raise_on_invalid_cve(args):
-    if (args.cve is not None) and (not re.match("^CVE-[0-9]{4}-[0-9]{4,}$", args.cve)):
-        raise ValueError("Invalid CVE ID (%s)" % args.cve)
-
-def raise_on_invalid_combinations(args):
-    raise_on_invalid_manifest_options(args)
-    raise_on_invalid_nagios_options(args)
-    raise_on_invalid_test_options(args)
-    raise_on_invalid_silent_options(args)
-
-def raise_on_invalid_manifest_options(args):
-    if args.manifest and args.reuse:
-        raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_REUSE_OPTION)
-
-    if args.manifest and args.test:
-        raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_TEST_OPTION)
-
-    if args.file and not args.manifest:
-        raise ArgumentError("Cannot specify -f|--file argument without -m|--manifest.")
-
-def raise_on_invalid_nagios_options(args):
-    if not args.nagios:
-        return
-
-    if args.cve:
-        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_CVE_OPTION)
-
-    if args.silent:
-        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_SILENT_OPTION)
-
-    if args.updates:
-        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UPDATES_OPTION)
-
-def raise_on_invalid_test_options(args):
-    if not args.test:
-        return
-
-    if args.cve:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_CVE_OPTION)
-
-    if args.experimental:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_EXPERIMENTAL_OPTION)
-
-    if args.file:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_FILE_OPTION)
-
-    if args.manifest:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_MANIFEST_OPTION)
-
-    if args.nagios:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_NAGIOS_OPTION)
-
-    if args.reuse:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_REUSE_OPTION)
-
-    if args.silent:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_SILENT_OPTION)
-
-    if args.updates:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_UPDATES_OPTION)
-
-def raise_on_invalid_silent_options(args):
-    if not args.silent:
-        return
-
-    if not args.cve:
-        raise ArgumentError("Cannot specify %s argument without %s." % (FMT_SILENT_OPTION, FMT_CVE_OPTION))
-
-    if args.verbose:
-        raise_incompatible_arguments_error(FMT_SILENT_OPTION, FMT_VERBOSE_OPTION)
-
-def raise_incompatible_arguments_error(arg1, arg2):
-    raise ArgumentError("The %s and %s options are incompatible and may not " \
-            "be specified together." % (arg1, arg2))
 
 def scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority):
     try:
@@ -277,10 +154,10 @@ def run_xsltproc_fixable(priority, xslt_file, extra_sed):
 
 def cleanup_all_files_from_past_run(oval_file, oval_zip, manifest_file):
     cleanup_files([oval_file, oval_zip, manifest_file, REPORT, RESULTS,
-                   OVAL_LOG, DEBUG_LOG])
+                   OVAL_LOG, const.DEBUG_LOG])
 
 def cleanup_oscap_files_from_past_run():
-    cleanup_files([REPORT, RESULTS, OVAL_LOG, DEBUG_LOG])
+    cleanup_files([REPORT, RESULTS, OVAL_LOG, const.DEBUG_LOG])
 
 def cleanup_files(files):
     LOGGER.debug("Removing files: %s" % (" ".join(files)))
@@ -355,70 +232,19 @@ def cached_file_expired(filename, current_time):
 
 def main():
     global LOGGER
-    cvescan_args = parse_args()
+    args = parse_args()
     try:
-        raise_on_invalid_args(cvescan_args)
+        opt = Options(args, LOGGER)
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err)
-
-    try:
-        if cvescan_args.manifest:
-            distrib_codename = cvescan_args.manifest
-        else:
-            distrib_codename = get_ubuntu_codename()
     except (FileNotFoundError, PermissionError) as err:
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
         error_exit("Invalid distribution: %s" % di)
 
-    testmode = cvescan_args.test
-
     # Block of variables.
-    cve = cvescan_args.cve
-    oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
-    oval_file = str("com.ubuntu.%s.cve.oval.xml" % distrib_codename)
-    oval_zip = str("%s.bz2" % oval_file)
-    remove = not cvescan_args.reuse
-    nagios = cvescan_args.nagios
-    manifest = False
-    manifest_url = None
-    manifest_file = cvescan_args.file if cvescan_args.file else DEFAULT_MANIFEST_FILE
-    download_manifest = False if cvescan_args.file else True
-    if cvescan_args.verbose:
-        LOGGER.setLevel(logging.DEBUG)
-    elif cvescan_args.silent:
-        LOGGER = get_null_logger()
-    if cvescan_args.manifest != None:
-        manifest = True
-        remove = True
-        release = cvescan_args.manifest
-        oval_file = str("oci.%s" % oval_file)
-        oval_zip = str("%s.bz2" % oval_file)
-        manifest_url = str(MANIFEST_URL_TEMPLATE % (release, release))
-        manifest_file = os.path.abspath(manifest_file)
-        if cvescan_args.file and not os.path.isfile(manifest_file):
-            # TODO: mention snap confinement in error message
-            error_exit("Cannot find manifest file \"%s\". Current directory is \"%s\"." % (manifest_file, os.getcwd()))
-    if cvescan_args.experimental:
-        oval_base_url = "%s/alpha" % oval_base_url
-        oval_file = "alpha.%s" % oval_file
-        oval_zip = "%s.bz2" % oval_file
-        LOGGER.debug("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
-    all_cve = not cvescan_args.updates
-    priority = cvescan_args.priority
+    #LOGGER.debug("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
     now = math.trunc(time.time()) # Transcription of `date +%s`
-    scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
-    # TODO: Find a better way to locate this file than relying on it being in the
-    #       same directory as this script
-    xslt_file = str("%s/text.xsl" % scriptdir)
-    verbose_oscap_options = "" if not cvescan_args.verbose else "--verbose WARNING --verbose-log-file %s" % DEBUG_LOG
-    package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())
-    # TODO: does extra_sed need updating?
-    extra_sed = "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
-    if cvescan_args.list == True:
-        extra_sed = ""
-
-
 
     ###########
     snap_user_common = None
@@ -440,8 +266,8 @@ def main():
             if which(i[0]) == None:
                 error_exit("Missing %s command. Run 'sudo apt install %s'" % (i[0], i[1]))
 
-    if not os.path.isfile(xslt_file):
-        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % xslt_file)
+    if not os.path.isfile(opt.xslt_file):
+        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % opt.xslt_file)
 
     if os.path.isfile(DPKG_LOG) and os.path.isfile(RESULTS):
         package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
@@ -450,71 +276,74 @@ def main():
             LOGGER.debug("Removing %s file because it is older than %s" % (RESULTS, DPKG_LOG))
             rmfile(RESULTS)
 
-    if testmode:
-        run_testmode(scriptdir, verbose_oscap_options, now, xslt_file)
+    if opt.test_mode:
+        run_testmode(opt.scriptdir, opt.verbose_oscap_options, now, opt.xslt_file)
 
-    if all_cve:
+    if opt.all_cve:
       LOGGER.debug("Reporting on ALL CVEs, not just those that can be fixed by updates")
-    if nagios:
+    if opt.nagios:
       LOGGER.debug("Running in Nagios Mode")
 
-    LOGGER.debug("CVE Priority filter is '%s'" % priority)
-    LOGGER.debug("Installed package count is %s" % package_count)
+    LOGGER.debug("CVE Priority filter is '%s'" % opt.priority)
 
-    if remove:
+    if opt.remove:
         LOGGER.debug("Removing cached report, results, and manifest files")
-        cleanup_all_files_from_past_run(oval_file, oval_zip, DEFAULT_MANIFEST_FILE)
+        cleanup_all_files_from_past_run(opt.oval_file, opt.oval_zip, const.DEFAULT_MANIFEST_FILE)
 
-    if should_download_cached_file(oval_file, now):
+    if should_download_cached_file(opt.oval_file, now):
         cleanup_oscap_files_from_past_run()
-        retrieve_oval_file(oval_base_url, oval_zip, oval_file)
+        retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
 
-    if manifest:
-        if download_manifest:
-            LOGGER.debug("Downloading %s" % manifest_url)
-            download(manifest_url, DEFAULT_MANIFEST_FILE)
+    if not opt.manifest_mode:
+        package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())
+        LOGGER.debug("Installed package count is %s" % package_count)
+    else:
+        if not opt.manifest_file:
+            LOGGER.debug("Downloading %s" % opt.manifest_url)
+            download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
         else:
-            copyfile(manifest_file, "manifest")
+            copyfile(opt.manifest_file,const.DEFAULT_MANIFEST_FILE)
 
-        package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % manifest_file).read())
+        package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % const.DEFAULT_MANIFEST_FILE).read())
         LOGGER.debug("Manifest package count is %s" % package_count)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(now, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority)
+        scan_for_cves(now, opt.verbose_oscap_options, opt.oval_file,
+                opt.scriptdir, opt.xslt_file, opt.extra_sed, opt.priority)
 
     if snap_user_common == None or len(snap_user_common) == 0:
-      LOGGER.debug("Full HTML report available in %s/%s" % (scriptdir, REPORT))
+      LOGGER.debug("Full HTML report available in %s/%s" % (opt.scriptdir, REPORT))
 
     LOGGER.debug("Normal non-verbose output will appear below\n")
 
-    if nagios:
+    if opt.nagios:
         if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
-            LOGGER.info("OK: no known %s or higher CVEs that can be fixed by updating" % priority)
+            LOGGER.info("OK: no known %s or higher CVEs that can be fixed by updating" % opt.priority)
             sys.exit(0)
         elif cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
             LOGGER.info("CRITICAL: %d CVEs with priority %s or higher that can be " \
-                    "fixed with package updates" % (len(cve_list_fixable_filtered), priority))
+                    "fixed with package updates" % (len(cve_list_fixable_filtered), opt.priority))
             LOGGER.info('\n'.join(cve_list_fixable_filtered))
             sys.exit(2)
         elif cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-            LOGGER.info("WARNING: %s CVEs with priority %s or higher" % (len(cve_list_all_filtered), priority))
+            LOGGER.info("WARNING: %s CVEs with priority %s or higher" % (len(cve_list_all_filtered), opt.priority))
             LOGGER.info('\n'.join(cve_list_all_filtered))
             sys.exit(1)
         else:
             LOGGER.info("UNKNOWN: something went wrong with %s" % sys.args[0])
             sys.exit(3)
-    elif cve != None and len(cve) != 0:
-        if cve in cve_list_fixable_filtered:
-            LOGGER.info("%s patch available to install" % cve)
+    elif opt.cve != None and len(opt.cve) != 0:
+        if opt.cve in cve_list_fixable_filtered:
+            LOGGER.info("%s patch available to install" % opt.cve)
             sys.exit(1)
-        elif cve in cve_list_all_filtered:
-            LOGGER.info("%s patch not available" % cve)
+        elif opt.cve in cve_list_all_filtered:
+            LOGGER.info("%s patch not available" % opt.cve)
             sys.exit(1)
         else:
-            LOGGER.info("%s patch applied or system not known to be affected" % cve)
+            LOGGER.info("%s patch applied or system not known to be affected" % opt.cve)
             sys.exit(0)
     else:
-        if all_cve:
+        if opt.all_cve:
             LOGGER.info("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_all_filtered)))
             if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
                 LOGGER.info('\n'.join(cve_list_all_filtered))

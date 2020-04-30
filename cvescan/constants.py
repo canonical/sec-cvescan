@@ -51,3 +51,6 @@ EXPERIMENTAL_HELP = ("Enable eXperimental mode.\nUse experimental (also called "
         "information about package updates\n available for users of Ubuntu "
         "Advantage running systems with ESM\n Apps enabled.")
 
+DEBUG_LOG = "debug.log"
+DEFAULT_MANIFEST_FILE = "manifest"
+
