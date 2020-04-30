@@ -2,7 +2,6 @@
 
 import sys
 import os
-import time
 import math
 import argparse as ap
 from shutil import which,copyfile
@@ -11,11 +10,19 @@ import bz2
 import cvescan.constants as const
 from cvescan.options import Options
 from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
+from cvescan.sysinfo import SysInfo
 import logging
 
-def get_default_logger():
+def set_output_verbosity(args):
+    if args.silent:
+        return get_null_logger()
+
     logger = logging.getLogger("cvescan.stdout")
-    logger.setLevel(logging.INFO)
+
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     log_formatter = logging.Formatter("%(message)s")
     stream_handler = logging.StreamHandler(sys.stdout)
@@ -24,7 +31,13 @@ def get_default_logger():
 
     return logger
 
-LOGGER = get_default_logger()
+def get_null_logger():
+    logger = logging.getLogger("cvescan.null")
+    logger.addHandler(logging.NullHandler())
+
+    return logger
+
+LOGGER = get_null_logger()
 
 DPKG_LOG = "/var/log/dpkg.log"
 EXPIRE = 86400
@@ -33,7 +46,7 @@ REPORT = "report.htm"
 RESULTS = "results.xml"
 
 def error_exit(msg, code=4):
-    LOGGER.error("Error: %s" % msg)
+    print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
 
 def download(download_url, filename):
@@ -224,7 +237,7 @@ def retrieve_oval_file(oval_base_url, oval_zip, oval_file):
     LOGGER.debug("Unzipping %s" % oval_zip)
     bz2decompress(oval_zip, oval_file)
 
-def should_download_cached_file(filename, current_time):
+def should_replace_cached_file(filename, current_time):
     return (not os.path.isfile(filename)) or cached_file_expired(filename, current_time)
 
 def cached_file_expired(filename, current_time):
@@ -232,42 +245,46 @@ def cached_file_expired(filename, current_time):
 
 def main():
     global LOGGER
+
     args = parse_args()
+
+    # Configure debug logging as early as possible
+    LOGGER = set_output_verbosity(args)
+
     try:
-        opt = Options(args, LOGGER)
-    except (ArgumentError, ValueError) as err:
-        error_exit("Invalid option or argument: %s" % err)
+        sysinfo = SysInfo(LOGGER)
     except (FileNotFoundError, PermissionError) as err:
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
-        error_exit("Invalid distribution: %s" % di)
+        error_exit("Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s" % di)
 
-    # Block of variables.
+    try:
+        opt = Options(args, sysinfo)
+    except (ArgumentError, ValueError) as err:
+        error_exit("Invalid option or argument: %s" % err)
+
     #LOGGER.debug("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
-    now = math.trunc(time.time()) # Transcription of `date +%s`
 
     ###########
-    snap_user_common = None
-    try:
-        snap_user_common = os.environ["SNAP_USER_COMMON"]
-        LOGGER.debug("Running as a snap, changing to '%s' directory." % snap_user_common)
+    if sysinfo.is_snap:
+        LOGGER.debug("Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common)
         LOGGER.debug("Downloaded files, log files and temporary reports will " \
-                "be in '%s'" % snap_user_common)
+                "be in '%s'" % sysinfo.snap_user_common)
 
         try:
-            os.chdir(snap_user_common)
+            os.chdir(sysinfo.snap_user_common)
         except:
-            error_exit("failed to cd to %s" % snap_user_common)
-    except KeyError:
-        pass
+            error_exit("failed to cd to %s" % sysinfo.snap_user_common)
 
-    if snap_user_common == None:
+    # TODO: Consider moving this check to SysInfo, though it may be moot if we
+    #       can use python bindings for oscap and xsltproc
+    if not sysinfo.is_snap:
         for i in [["oscap", "libopenscap8"], ["xsltproc", "xsltproc"]]:
             if which(i[0]) == None:
                 error_exit("Missing %s command. Run 'sudo apt install %s'" % (i[0], i[1]))
 
-    if not os.path.isfile(opt.xslt_file):
-        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % opt.xslt_file)
+    if not os.path.isfile(sysinfo.xslt_file):
+        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % sysinfo.xslt_file)
 
     if os.path.isfile(DPKG_LOG) and os.path.isfile(RESULTS):
         package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
@@ -277,7 +294,7 @@ def main():
             rmfile(RESULTS)
 
     if opt.test_mode:
-        run_testmode(opt.scriptdir, opt.verbose_oscap_options, now, opt.xslt_file)
+        run_testmode(sysinfo.scriptdir, opt.verbose_oscap_options, sysinfo.process_start_time, sysinfo.xslt_file)
 
     if opt.all_cve:
       LOGGER.debug("Reporting on ALL CVEs, not just those that can be fixed by updates")
@@ -290,7 +307,7 @@ def main():
         LOGGER.debug("Removing cached report, results, and manifest files")
         cleanup_all_files_from_past_run(opt.oval_file, opt.oval_zip, const.DEFAULT_MANIFEST_FILE)
 
-    if should_download_cached_file(opt.oval_file, now):
+    if should_replace_cached_file(opt.oval_file, sysinfo.process_start_time):
         cleanup_oscap_files_from_past_run()
         retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
 
@@ -308,11 +325,11 @@ def main():
         LOGGER.debug("Manifest package count is %s" % package_count)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(now, opt.verbose_oscap_options, opt.oval_file,
-                opt.scriptdir, opt.xslt_file, opt.extra_sed, opt.priority)
+        scan_for_cves(sysinfo.process_start_time, opt.verbose_oscap_options, opt.oval_file,
+                sysinfo.scriptdir, sysinfo.xslt_file, opt.extra_sed, opt.priority)
 
-    if snap_user_common == None or len(snap_user_common) == 0:
-      LOGGER.debug("Full HTML report available in %s/%s" % (opt.scriptdir, REPORT))
+    if not sysinfo.is_snap:
+      LOGGER.debug("Full HTML report available in %s/%s" % (sysinfo.scriptdir, REPORT))
 
     LOGGER.debug("Normal non-verbose output will appear below\n")
 

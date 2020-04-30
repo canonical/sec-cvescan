@@ -1,4 +1,3 @@
-import configparser
 import cvescan.constants as const
 from cvescan.errors import ArgumentError
 import logging
@@ -20,13 +19,11 @@ FMT_UPDATES_OPTION = "-u|--updates"
 MANIFEST_URL_TEMPLATE = "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
 
 class Options:
-    def __init__(self, args, logger):
-        self.logger = logger
-
+    def __init__(self, args, sysinfo):
         raise_on_invalid_args(args)
-        self.distrib_codename = get_ubuntu_codename(args)
 
         self._set_mode(args)
+        self._set_distrib_codename(args, sysinfo)
         self._set_oval_file_options(args)
         self._set_manifest_file_options(args)
         self._set_remove_cached_files_options(args)
@@ -35,10 +32,6 @@ class Options:
         self.cve = args.cve
         self.priority = args.priority
         self.all_cve = not args.updates
-        self.scriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
-        # TODO: Find a better way to locate this file than relying on it being in the
-        #       same directory as this script
-        self.xslt_file = str("%s/text.xsl" % self.scriptdir)
         # TODO: Find a better solution than this
         self.extra_sed = "" if args.list else "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 
@@ -47,6 +40,12 @@ class Options:
         self.experimental_mode = args.experimental
         self.test_mode = args.test
         self.nagios = args.nagios
+
+    def _set_distrib_codename(self, args, sysinfo):
+        if self.manifest_mode:
+            self.distrib_codename = args.manifest
+        else:
+            self.distrib_codename = sysinfo.distrib_codename
 
     def _set_oval_file_options(self, args):
         self.oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
@@ -72,10 +71,7 @@ class Options:
         self.verbose_oscap_options = ""
 
         if args.verbose:
-            self.logger.setLevel(logging.DEBUG)
             self.verbose_oscap_options = "--verbose WARNING --verbose-log-file %s" % const.DEBUG_LOG
-        elif args.silent:
-            self.logger = get_null_logger()
 
 
 def raise_on_invalid_args(args):
@@ -168,36 +164,3 @@ def raise_on_invalid_manifest_file(args):
         # TODO: mention snap confinement in error message
         raise ArgumentError("Cannot find manifest file \"%s\". Current "
                 "working directory is \"%s\"." % (file_abs_path, os.getcwd()))
-
-def get_lsb_release_info():
-    with open("/etc/lsb-release", "rt") as lsb_file:
-        lsb_file_contents = lsb_file.read()
-
-    # ConfigParser needs section headers, so adding a header.
-    lsb_file_contents = "[lsb]\n" + lsb_file_contents
-
-    lsb_config = configparser.ConfigParser()
-    lsb_config.read_string(lsb_file_contents)
-
-    return lsb_config
-
-# TODO: This probably shouldn't be determined in Options
-def get_ubuntu_codename(args):
-    if args.manifest:
-        return args.manifest
-
-    lsb_config = get_lsb_release_info()
-    distrib_id = lsb_config.get("lsb","DISTRIB_ID")
-
-    # NOTE: I don't care about DISTRIB_ID if cvescan was run with --manifest
-    # Compare /etc/lsb-release to acceptable environment.
-    if distrib_id != "Ubuntu":
-        raise DistribIDError("DISTRIB_ID in /etc/lsb-release must be Ubuntu (DISTRIB_ID=%s)" % distrib_id)
-
-    return lsb_config.get("lsb","DISTRIB_CODENAME")
-
-def get_null_logger():
-    logger = logging.getLogger("cvescan.null")
-    logger.addHandler(logging.NullHandler())
-
-    return logger
