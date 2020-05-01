@@ -70,7 +70,7 @@ class Options:
         self.manifest_url = MANIFEST_URL_TEMPLATE % (self.distrib_codename, self.distrib_codename)
 
     def _set_remove_cached_files_options(self, args):
-        self.remove = not args.reuse or args.manifest
+        self.remove = (not args.reuse) or args.manifest
 
     def _set_output_verbosity(self, args):
         self.verbose_oscap_options = ""

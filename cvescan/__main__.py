@@ -166,6 +166,21 @@ def run_xsltproc_fixable(priority, xslt_file, extra_sed):
 
     return cve_list_fixable_filtered
 
+def cleanup_cached_files(opt, sysinfo):
+    if os.path.isfile(DPKG_LOG) and os.path.isfile(RESULTS):
+        package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
+        results_ts = math.trunc(os.path.getmtime(RESULTS))
+        if package_change_ts > results_ts:
+            LOGGER.debug("Removing %s file because it is older than %s" % (RESULTS, DPKG_LOG))
+            rmfile(RESULTS)
+
+    if opt.remove:
+        LOGGER.debug("Removing cached report, results, and manifest files")
+        cleanup_all_files_from_past_run(opt.oval_file, opt.oval_zip, const.DEFAULT_MANIFEST_FILE)
+
+    if os.path.isfile(opt.oval_file) and is_cached_file_expired(opt.oval_file, sysinfo.process_start_time):
+        cleanup_oscap_files_from_past_run()
+
 def cleanup_all_files_from_past_run(oval_file, oval_zip, manifest_file):
     cleanup_files([oval_file, oval_zip, manifest_file, REPORT, RESULTS,
                    OVAL_LOG, const.DEBUG_LOG])
@@ -361,19 +376,9 @@ def main():
     if opt.test_mode:
         run_testmode(sysinfo, opt)
 
-    if os.path.isfile(DPKG_LOG) and os.path.isfile(RESULTS):
-        package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
-        results_ts = math.trunc(os.path.getmtime(RESULTS))
-        if package_change_ts > results_ts:
-            LOGGER.debug("Removing %s file because it is older than %s" % (RESULTS, DPKG_LOG))
-            rmfile(RESULTS)
+    cleanup_cached_files(opt, sysinfo)
 
-    if opt.remove:
-        LOGGER.debug("Removing cached report, results, and manifest files")
-        cleanup_all_files_from_past_run(opt.oval_file, opt.oval_zip, const.DEFAULT_MANIFEST_FILE)
-
-    if not os.path.isfile(opt.oval_file) or is_cached_file_expired(opt.oval_file, sysinfo.process_start_time):
-        cleanup_oscap_files_from_past_run()
+    if not os.path.isfile(opt.oval_file):
         retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
 
     if opt.manifest_mode:
