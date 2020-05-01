@@ -258,6 +258,7 @@ def log_system_info(sysinfo):
     LOGGER.debug("System Info")
     table = [
         ["Local Ubuntu Codename", sysinfo.distrib_codename],
+        ["Installed Package Count", sysinfo.package_count],
         ["CVEScan is a Snap", sysinfo.is_snap],
         ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
         ["Scripts Directory", sysinfo.scriptdir],
@@ -330,10 +331,7 @@ def main():
         cleanup_oscap_files_from_past_run()
         retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
 
-    if not opt.manifest_mode:
-        package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())
-        LOGGER.debug("Installed package count is %s" % package_count)
-    else:
+    if opt.manifest_mode:
         if not opt.manifest_file:
             LOGGER.debug("Downloading %s" % opt.manifest_url)
             download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
@@ -342,6 +340,8 @@ def main():
 
         package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % const.DEFAULT_MANIFEST_FILE).read())
         LOGGER.debug("Manifest package count is %s" % package_count)
+    else:
+        package_count = sysinfo.package_count
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
         scan_for_cves(sysinfo, opt)
