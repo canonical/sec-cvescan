@@ -48,6 +48,8 @@ class Options:
             self.distrib_codename = sysinfo.distrib_codename
 
     def _set_oval_file_options(self, args, sysinfo):
+        self.oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
+
         if self.test_mode:
             self.oval_file = "%s/com.ubuntu.test.cve.oval.xml" % sysinfo.scriptdir
             return
@@ -59,9 +61,8 @@ class Options:
 
         if self.experimental_mode:
             self.oval_base_url = "%s/alpha" % self.oval_base_url
-            self.oval_file = "alpha.%s" % oval_file
+            self.oval_file = "alpha.%s" % self.oval_file
 
-        self.oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
         self.oval_zip = "%s.bz2" % self.oval_file
 
     def _set_manifest_file_options(self, args):
