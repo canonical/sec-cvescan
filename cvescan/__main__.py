@@ -97,7 +97,7 @@ def parse_args():
 
     return cvescan_ap.parse_args()
 
-def scan_for_cves(sysinfo, opt):
+def scan_for_cves(opt, sysinfo):
     try:
         run_oscap_eval(sysinfo, opt)
         run_oscap_generate_report(sysinfo.process_start_time, sysinfo.scriptdir)
@@ -200,7 +200,7 @@ def run_testmode(sysinfo, opt):
     if not os.path.isfile(opt.oval_file):
         error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
 
-    (cve_list_all_filtered, cve_list_fixable_filtered) = scan_for_cves(sysinfo, opt)
+    (cve_list_all_filtered, cve_list_fixable_filtered) = scan_for_cves(opt, sysinfo)
 
     success_1 = test_filter_active_cves(cve_list_all_filtered)
     success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
@@ -278,6 +278,30 @@ def log_system_info(sysinfo):
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
 
+def run_manifest_mode(opt, sysinfo):
+    if not opt.manifest_file:
+        LOGGER.debug("Downloading %s" % opt.manifest_url)
+        download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
+    else:
+        copyfile(opt.manifest_file,const.DEFAULT_MANIFEST_FILE)
+
+    # TODO: Find a better way of doing this or at least check return code
+    package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % const.DEFAULT_MANIFEST_FILE).read())
+    LOGGER.debug("Manifest package count is %s" % package_count)
+
+    return run_cvescan(opt, sysinfo, package_count)
+
+def run_cvescan(opt, sysinfo, package_count):
+    if not os.path.isfile(opt.oval_file):
+        retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
+
+    (cve_list_all_filtered, cve_list_fixable_filtered) = \
+        scan_for_cves(opt, sysinfo)
+
+    LOGGER.debug("Full HTML report available in %s/%s" % (sysinfo.scriptdir, REPORT))
+
+    return analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, package_count)
+
 def analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, package_count):
     if opt.nagios:
         return analyze_nagios_results(cve_list_fixable_filtered, opt.priority)
@@ -347,12 +371,9 @@ def main():
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err)
 
-    #LOGGER.debug("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
-
     log_config_options(opt)
     log_system_info(sysinfo)
 
-    ###########
     if sysinfo.is_snap:
         LOGGER.debug("Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common)
         LOGGER.debug("Downloaded files, log files and temporary reports will " \
@@ -378,30 +399,11 @@ def main():
 
     cleanup_cached_files(opt, sysinfo)
 
-    if not os.path.isfile(opt.oval_file):
-        retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
-
     if opt.manifest_mode:
-        if not opt.manifest_file:
-            LOGGER.debug("Downloading %s" % opt.manifest_url)
-            download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
-        else:
-            copyfile(opt.manifest_file,const.DEFAULT_MANIFEST_FILE)
-
-        package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % const.DEFAULT_MANIFEST_FILE).read())
-        LOGGER.debug("Manifest package count is %s" % package_count)
+        (results, return_code) = run_manifest_mode(opt, sysinfo)
     else:
-        package_count = sysinfo.package_count
+        (results, return_code) = run_cvescan(opt, sysinfo, sysinfo.package_count)
 
-    (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(sysinfo, opt)
-
-    if not sysinfo.is_snap:
-      LOGGER.debug("Full HTML report available in %s/%s" % (sysinfo.scriptdir, REPORT))
-
-    LOGGER.debug("Normal non-verbose output will appear below\n")
-
-    (results, return_code) = analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, package_count)
     LOGGER.info(results)
     sys.exit(return_code)
 
