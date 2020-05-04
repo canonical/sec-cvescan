@@ -45,7 +45,7 @@ OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
 
-def error_exit(msg, code=4):
+def error_exit(msg, code=1):
     print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
 
@@ -168,7 +168,7 @@ def run_testmode(sysinfo, opt):
     results = "%s\n%s" % (results_1, results_2)
 
     if not (success_1 and success_2):
-        return (results, 4)
+        return (results, 1)
 
     return (results, 0)
 
@@ -270,6 +270,8 @@ def analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, packa
     return analyze_cve_list_results(cve_list_fixable_filtered, package_count)
 
 def analyze_nagios_results(cve_list_fixable_filtered, priority):
+    # Nagios return codes defined here:
+    # https://assets.nagios.com/downloads/nagioscore/docs/nagioscore/3/en/pluginapi.html
     if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
         return("OK: no known %s or higher CVEs that can be fixed by updating" % priority, 0)
 
@@ -277,8 +279,6 @@ def analyze_nagios_results(cve_list_fixable_filtered, priority):
         results_msg = ("CRITICAL: %d CVEs with priority %s or higher that can " \
                 "be fixed with package updates\n%s"
                 % (len(cve_list_fixable_filtered), priority, '\n'.join(cve_list_fixable_filtered)))
-        # TODO: This exit code conflicts with the error code returned by
-        #       argparse if the CLI syntax is invalid.
         return (results_msg, 2)
 
     if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
@@ -290,10 +290,10 @@ def analyze_nagios_results(cve_list_fixable_filtered, priority):
 
 def analyze_single_cve_results(cve_list_all_filtered, cve_list_fixable_filtered, cve):
     if cve in cve_list_fixable_filtered:
-        return ("%s patch available to install" % cve, 1)
+        return ("%s patch available to install" % cve, 4)
 
     if cve in cve_list_all_filtered:
-        return ("%s patch not available" % cve, 1)
+        return ("%s patch not available" % cve, 3)
 
     return ("%s patch applied or system not known to be affected" % cve, 0)
 
@@ -302,7 +302,7 @@ def analyze_cve_list_results(cve_list, package_count):
 
     if cve_list != None and len(cve_list) != 0:
         results_msg = results_msg + '\n'.join(cve_list)
-        return (results_msg, 1)
+        return (results_msg, 3)
 
     return (results_msg, 0)
 
@@ -324,7 +324,7 @@ def main():
     try:
         opt = Options(args, sysinfo)
     except (ArgumentError, ValueError) as err:
-        error_exit("Invalid option or argument: %s" % err)
+        error_exit("Invalid option or argument: %s" % err, 2)
 
     log_config_options(opt)
     log_system_info(sysinfo)
