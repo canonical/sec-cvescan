@@ -3,7 +3,7 @@
 import argparse as ap
 import bz2
 import cvescan.constants as const
-from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
+from cvescan.errors import *
 from cvescan.options import Options
 from cvescan.sysinfo import SysInfo
 import logging
@@ -58,8 +58,8 @@ def download(download_url, filename):
         curl.perform()
         curl.close()
         target_file.close()
-    except:
-        error_exit("Downloading %s failed." % download_url)
+    except Exception as ex:
+        raise DownloadError("Downloading %s failed: %s" % (download_url, ex))
 
 def bz2decompress(bz2_archive, target):
     try:
@@ -68,8 +68,8 @@ def bz2decompress(bz2_archive, target):
         opened_target.write(bz2.decompress(opened_archive.read()))
         opened_archive.close()
         opened_target.close()
-    except:
-        error_exit("Decompressing %s to %s failed.", (bz2_archive, target))
+    except Exception as ex:
+        raise BZ2Error("Decompressing %s to %s failed: %s", (bz2_archive, target, ex))
 
 def parse_args():
     # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
@@ -92,13 +92,8 @@ def parse_args():
     return cvescan_ap.parse_args()
 
 def scan_for_cves(opt, sysinfo):
-    try:
-        run_oscap_eval(sysinfo, opt)
-        run_oscap_generate_report(sysinfo.scriptdir)
-    except OpenSCAPError as ose:
-        error_exit("Failed to run oscap: %s" % ose)
-    except Exception as ex:
-        error_exit(ex)
+    run_oscap_eval(sysinfo, opt)
+    run_oscap_generate_report(sysinfo.scriptdir)
 
     cve_list_all_filtered = run_xsltproc_all(opt.priority, sysinfo.xslt_file, opt.extra_sed)
     LOGGER.debug("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), opt.priority))
@@ -162,19 +157,20 @@ def run_testmode(sysinfo, opt):
     LOGGER.info("Running in test mode.")
 
     if not os.path.isfile(opt.oval_file):
-        error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
+        raise FileNotFoundError("Missing test OVAL file at '%s', this file " \
+                "should have installed with cvescan" % oval_file)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = scan_for_cves(opt, sysinfo)
 
-    success_1 = test_filter_active_cves(cve_list_all_filtered)
-    success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
+    (results_1, success_1) = test_filter_active_cves(cve_list_all_filtered)
+    (results_2, success_2) = test_identify_fixable_cves(cve_list_fixable_filtered)
 
-    # TODO: scan_for_cves shouldn't error_exit. Exits should be handled in main().
+    results = "%s\n%s" % (results_1, results_2)
 
     if not (success_1 and success_2):
-        sys.exit(4)
+        return (results, 4)
 
-    sys.exit(0)
+    return (results, 0)
 
 def test_filter_active_cves(cve_list_all_filtered):
     if ((len(cve_list_all_filtered) == 2)
@@ -182,20 +178,16 @@ def test_filter_active_cves(cve_list_all_filtered):
             and ("CVE-1970-0400" in cve_list_all_filtered)
             and ("CVE-1970-0200" not in cve_list_all_filtered)
             and ("CVE-1970-0500" not in cve_list_all_filtered)):
-        LOGGER.info("SUCCESS: Filter Active CVEs")
-        return True
+        return ("SUCCESS: Filter Active CVEs", True)
 
-    LOGGER.error("FAILURE: Filter Active CVEs")
-    return False
+    return ("FAILURE: Filter Active CVEs", False)
 
 def test_identify_fixable_cves(cve_list_fixable_filtered):
     if ((len(cve_list_fixable_filtered) == 1)
             and ("CVE-1970-0400" in cve_list_fixable_filtered)):
-        LOGGER.info("SUCCESS: Identify Fixable/Updatable CVEs")
-        return True
+        return ("SUCCESS: Identify Fixable/Updatable CVEs", True)
 
-    LOGGER.error("FAILURE: Identify Fixable/Updatable CVEs")
-    return False
+    return ("FAILURE: Identify Fixable/Updatable CVEs", False)
 
 def retrieve_oval_file(oval_base_url, oval_zip, oval_file):
     LOGGER.debug("Downloading %s/%s" % (oval_base_url, oval_zip))
@@ -357,13 +349,15 @@ def main():
     if not os.path.isfile(sysinfo.xslt_file):
         error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % sysinfo.xslt_file)
 
-    if opt.test_mode:
-        run_testmode(sysinfo, opt)
-
-    if opt.manifest_mode:
-        (results, return_code) = run_manifest_mode(opt, sysinfo)
-    else:
-        (results, return_code) = run_cvescan(opt, sysinfo, sysinfo.package_count)
+    try:
+        if opt.test_mode:
+            (results, return_code) = run_testmode(sysinfo, opt)
+        elif opt.manifest_mode:
+            (results, return_code) = run_manifest_mode(opt, sysinfo)
+        else:
+            (results, return_code) = run_cvescan(opt, sysinfo, sysinfo.package_count)
+    except Exception as ex:
+        error_exit("An error occurred while running CVEScan: %s" % ex)
 
     LOGGER.info(results)
     sys.exit(return_code)
