@@ -23,9 +23,10 @@ setuptools.setup(
         "Topic :: Security",
     ],
     install_requires=[
-	"configparser",
 	"argparse",
-	"pycurl"
+	"configparser",
+	"pycurl",
+        "tabulate"
     ],
     python_requires=">=3.5",
     setup_requires=[

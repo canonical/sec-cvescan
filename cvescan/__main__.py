@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
-import sys
-import os
-import math
 import argparse as ap
-from shutil import which,copyfile
-import pycurl
 import bz2
 import cvescan.constants as const
-from cvescan.options import Options
 from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
+from cvescan.options import Options
 from cvescan.sysinfo import SysInfo
 import logging
+import math
+import pycurl
+import os
+from shutil import which,copyfile
+import sys
+from tabulate import tabulate
 
 def set_output_verbosity(args):
     if args.silent:
@@ -96,40 +97,40 @@ def parse_args():
 
     return cvescan_ap.parse_args()
 
-def scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority):
+def scan_for_cves(sysinfo, opt):
     try:
-        run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir)
-        run_oscap_generate_report(current_time, scriptdir)
+        run_oscap_eval(sysinfo, opt)
+        run_oscap_generate_report(sysinfo.process_start_time, sysinfo.scriptdir)
     except OpenSCAPError as ose:
         error_exit("Failed to run oscap: %s" % ose)
     except Exception as ex:
         error_exit(ex)
 
-    cve_list_all_filtered = run_xsltproc_all(priority, xslt_file, extra_sed)
-    LOGGER.debug("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), priority))
+    cve_list_all_filtered = run_xsltproc_all(opt.priority, sysinfo.xslt_file, opt.extra_sed)
+    LOGGER.debug("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), opt.priority))
     LOGGER.debug(cve_list_all_filtered)
 
-    cve_list_fixable_filtered = run_xsltproc_fixable(priority, xslt_file, extra_sed)
+    cve_list_fixable_filtered = run_xsltproc_fixable(opt.priority, sysinfo.xslt_file, opt.extra_sed)
     LOGGER.debug("%s CVEs found with priority of %s or higher that can be " \
-            "fixed with package updates:" % (len(cve_list_fixable_filtered), priority))
+            "fixed with package updates:" % (len(cve_list_fixable_filtered), opt.priority))
     LOGGER.debug(cve_list_fixable_filtered)
 
     return (cve_list_all_filtered, cve_list_fixable_filtered)
 
-def run_oscap_eval(current_time, verbose_oscap_options, oval_file, scriptdir):
-    if not os.path.isfile(RESULTS) or ((current_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
+def run_oscap_eval(sysinfo, opt):
+    if not os.path.isfile(RESULTS) or ((sysinfo.process_start_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
         LOGGER.debug("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % \
-                (verbose_oscap_options, RESULTS, oval_file, scriptdir, OVAL_LOG))
+                (opt.verbose_oscap_options, RESULTS, opt.oval_file, sysinfo.scriptdir, OVAL_LOG))
 
         # TODO: use openscap python binding instead of os.system
         return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % \
-                (verbose_oscap_options, RESULTS, oval_file, OVAL_LOG))
+                (opt.verbose_oscap_options, RESULTS, opt.oval_file, OVAL_LOG))
         if return_val != 0:
             # TODO: improve error message
             raise OpenSCAPError("Failed to run oval scan: returned %d" % return_val)
 
-def run_oscap_generate_report(current_time, scriptdir):
-    if not os.path.isfile(REPORT) or ((current_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
+def run_oscap_generate_report(process_start_time, scriptdir):
+    if not os.path.isfile(REPORT) or ((process_start_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
         LOGGER.debug("Generating html report %s/%s from results xml %s/%s " \
                 "(output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
 
@@ -177,25 +178,14 @@ def cleanup_files(files):
     for i in files:
         rmfile(i)
 
-def run_testmode(scriptdir, verbose_oscap_options, current_time, xslt_file):
+def run_testmode(sysinfo, opt):
     LOGGER.info("Running in test mode.")
     cleanup_oscap_files_from_past_run()
 
-    LOGGER.info("Setting priority filter to 'all'")
-    priority = "all"
-
-    LOGGER.info("Disabling URLs in output")
-    extra_sed = ""
-
-    oval_file = "%s/com.ubuntu.test.cve.oval.xml" % scriptdir
-
-    if os.path.isfile(oval_file):
-        LOGGER.info("Using OVAL file %s to test oscap" % oval_file)
-    else:
+    if not os.path.isfile(opt.oval_file):
         error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
 
-    (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(current_time, verbose_oscap_options, oval_file, scriptdir, xslt_file, extra_sed, priority)
+    (cve_list_all_filtered, cve_list_fixable_filtered) = scan_for_cves(sysinfo, opt)
 
     success_1 = test_filter_active_cves(cve_list_all_filtered)
     success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
@@ -243,6 +233,39 @@ def should_replace_cached_file(filename, current_time):
 def cached_file_expired(filename, current_time):
     return (current_time - math.trunc(os.path.getmtime(filename))) > EXPIRE
 
+def log_config_options(opt):
+    LOGGER.debug("Config Options")
+    table = [
+        ["Test Mode", opt.test_mode],
+        ["Manifest Mode", opt.manifest_mode],
+        ["Experimental Mode", opt.experimental_mode],
+        ["Nagios Output Mode", opt.nagios],
+        ["Target Ubuntu Codename", opt.distrib_codename],
+        ["OVAL File Path", opt.oval_file],
+        ["OVAL URL", opt.oval_base_url],
+        ["Manifest File", opt.manifest_file],
+        ["Manifest URL", opt.manifest_url],
+        ["Check Specific CVE", opt.cve],
+        ["CVE Priority", opt.priority],
+        ["Only Show Updates Available", (not opt.all_cve)],
+        ["Reuse Cached Files", (not opt.remove)]]
+
+    LOGGER.debug(tabulate(table))
+    LOGGER.debug("")
+
+
+def log_system_info(sysinfo):
+    LOGGER.debug("System Info")
+    table = [
+        ["Local Ubuntu Codename", sysinfo.distrib_codename],
+        ["CVEScan is a Snap", sysinfo.is_snap],
+        ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
+        ["Scripts Directory", sysinfo.scriptdir],
+        ["XSLT File", sysinfo.xslt_file]]
+        
+    LOGGER.debug(tabulate(table))
+    LOGGER.debug("")
+
 def main():
     global LOGGER
 
@@ -264,6 +287,9 @@ def main():
         error_exit("Invalid option or argument: %s" % err)
 
     #LOGGER.debug("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
+
+    log_config_options(opt)
+    log_system_info(sysinfo)
 
     ###########
     if sysinfo.is_snap:
@@ -294,14 +320,7 @@ def main():
             rmfile(RESULTS)
 
     if opt.test_mode:
-        run_testmode(sysinfo.scriptdir, opt.verbose_oscap_options, sysinfo.process_start_time, sysinfo.xslt_file)
-
-    if opt.all_cve:
-      LOGGER.debug("Reporting on ALL CVEs, not just those that can be fixed by updates")
-    if opt.nagios:
-      LOGGER.debug("Running in Nagios Mode")
-
-    LOGGER.debug("CVE Priority filter is '%s'" % opt.priority)
+        run_testmode(sysinfo, opt)
 
     if opt.remove:
         LOGGER.debug("Removing cached report, results, and manifest files")
@@ -325,8 +344,7 @@ def main():
         LOGGER.debug("Manifest package count is %s" % package_count)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(sysinfo.process_start_time, opt.verbose_oscap_options, opt.oval_file,
-                sysinfo.scriptdir, sysinfo.xslt_file, opt.extra_sed, opt.priority)
+        scan_for_cves(sysinfo, opt)
 
     if not sysinfo.is_snap:
       LOGGER.debug("Full HTML report available in %s/%s" % (sysinfo.scriptdir, REPORT))
@@ -341,6 +359,8 @@ def main():
             LOGGER.info("CRITICAL: %d CVEs with priority %s or higher that can be " \
                     "fixed with package updates" % (len(cve_list_fixable_filtered), opt.priority))
             LOGGER.info('\n'.join(cve_list_fixable_filtered))
+            # TODO: This exit code conflicts with the error code returned by 
+            #       argparse if the CLI syntax is invalid.
             sys.exit(2)
         elif cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
             LOGGER.info("WARNING: %s CVEs with priority %s or higher" % (len(cve_list_all_filtered), opt.priority))

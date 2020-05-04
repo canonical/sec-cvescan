@@ -24,16 +24,16 @@ class Options:
 
         self._set_mode(args)
         self._set_distrib_codename(args, sysinfo)
-        self._set_oval_file_options(args)
+        self._set_oval_file_options(args, sysinfo)
         self._set_manifest_file_options(args)
         self._set_remove_cached_files_options(args)
         self._set_output_verbosity(args)
 
         self.cve = args.cve
-        self.priority = args.priority
+        self.priority = "all" if self.test_mode else args.priority
         self.all_cve = not args.updates
         # TODO: Find a better solution than this
-        self.extra_sed = "" if args.list else "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
+        self.extra_sed = "" if (args.list or self.test_mode) else "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 
     def _set_mode(self, args):
         self.manifest_mode = True if args.manifest else False
@@ -47,8 +47,13 @@ class Options:
         else:
             self.distrib_codename = sysinfo.distrib_codename
 
-    def _set_oval_file_options(self, args):
+    def _set_oval_file_options(self, args, sysinfo):
         self.oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
+
+        if self.test_mode:
+            self.oval_file = "%s/com.ubuntu.test.cve.oval.xml" % sysinfo.scriptdir
+            return
+
         self.oval_file = "com.ubuntu.%s.cve.oval.xml" % self.distrib_codename
 
         if self.manifest_mode:
@@ -56,7 +61,7 @@ class Options:
 
         if self.experimental_mode:
             self.oval_base_url = "%s/alpha" % self.oval_base_url
-            self.oval_file = "alpha.%s" % oval_file
+            self.oval_file = "alpha.%s" % self.oval_file
 
         self.oval_zip = "%s.bz2" % self.oval_file
 
