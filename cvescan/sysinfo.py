@@ -15,6 +15,8 @@ class SysInfo:
         self._set_snap_info()
         self.distrib_codename = self.get_ubuntu_codename()
         self.process_start_time = math.trunc(time.time())
+        # TODO: Find a better way to do this or at least check the return code
+        self.package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())
 
     def _set_snap_info(self):
         self.is_snap = False

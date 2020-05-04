@@ -97,7 +97,7 @@ def parse_args():
 
     return cvescan_ap.parse_args()
 
-def scan_for_cves(sysinfo, opt):
+def scan_for_cves(opt, sysinfo):
     try:
         run_oscap_eval(sysinfo, opt)
         run_oscap_generate_report(sysinfo.process_start_time, sysinfo.scriptdir)
@@ -166,6 +166,21 @@ def run_xsltproc_fixable(priority, xslt_file, extra_sed):
 
     return cve_list_fixable_filtered
 
+def cleanup_cached_files(opt, sysinfo):
+    if os.path.isfile(DPKG_LOG) and os.path.isfile(RESULTS):
+        package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
+        results_ts = math.trunc(os.path.getmtime(RESULTS))
+        if package_change_ts > results_ts:
+            LOGGER.debug("Removing %s file because it is older than %s" % (RESULTS, DPKG_LOG))
+            rmfile(RESULTS)
+
+    if opt.remove:
+        LOGGER.debug("Removing cached report, results, and manifest files")
+        cleanup_all_files_from_past_run(opt.oval_file, opt.oval_zip, const.DEFAULT_MANIFEST_FILE)
+
+    if os.path.isfile(opt.oval_file) and is_cached_file_expired(opt.oval_file, sysinfo.process_start_time):
+        cleanup_oscap_files_from_past_run()
+
 def cleanup_all_files_from_past_run(oval_file, oval_zip, manifest_file):
     cleanup_files([oval_file, oval_zip, manifest_file, REPORT, RESULTS,
                    OVAL_LOG, const.DEBUG_LOG])
@@ -185,7 +200,7 @@ def run_testmode(sysinfo, opt):
     if not os.path.isfile(opt.oval_file):
         error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
 
-    (cve_list_all_filtered, cve_list_fixable_filtered) = scan_for_cves(sysinfo, opt)
+    (cve_list_all_filtered, cve_list_fixable_filtered) = scan_for_cves(opt, sysinfo)
 
     success_1 = test_filter_active_cves(cve_list_all_filtered)
     success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
@@ -227,10 +242,7 @@ def retrieve_oval_file(oval_base_url, oval_zip, oval_file):
     LOGGER.debug("Unzipping %s" % oval_zip)
     bz2decompress(oval_zip, oval_file)
 
-def should_replace_cached_file(filename, current_time):
-    return (not os.path.isfile(filename)) or cached_file_expired(filename, current_time)
-
-def cached_file_expired(filename, current_time):
+def is_cached_file_expired(filename, current_time):
     return (current_time - math.trunc(os.path.getmtime(filename))) > EXPIRE
 
 def log_config_options(opt):
@@ -253,18 +265,91 @@ def log_config_options(opt):
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
 
-
 def log_system_info(sysinfo):
     LOGGER.debug("System Info")
     table = [
         ["Local Ubuntu Codename", sysinfo.distrib_codename],
+        ["Installed Package Count", sysinfo.package_count],
         ["CVEScan is a Snap", sysinfo.is_snap],
         ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
         ["Scripts Directory", sysinfo.scriptdir],
         ["XSLT File", sysinfo.xslt_file]]
-        
+
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
+
+def run_manifest_mode(opt, sysinfo):
+    if not opt.manifest_file:
+        LOGGER.debug("Downloading %s" % opt.manifest_url)
+        download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
+    else:
+        copyfile(opt.manifest_file,const.DEFAULT_MANIFEST_FILE)
+
+    # TODO: Find a better way of doing this or at least check return code
+    package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % const.DEFAULT_MANIFEST_FILE).read())
+    LOGGER.debug("Manifest package count is %s" % package_count)
+
+    return run_cvescan(opt, sysinfo, package_count)
+
+def run_cvescan(opt, sysinfo, package_count):
+    if not os.path.isfile(opt.oval_file):
+        retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
+
+    (cve_list_all_filtered, cve_list_fixable_filtered) = \
+        scan_for_cves(opt, sysinfo)
+
+    LOGGER.debug("Full HTML report available in %s/%s" % (sysinfo.scriptdir, REPORT))
+
+    return analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, package_count)
+
+def analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, package_count):
+    if opt.nagios:
+        return analyze_nagios_results(cve_list_fixable_filtered, opt.priority)
+
+    if opt.cve:
+        return analyze_single_cve_results(cve_list_all_filtered, cve_list_fixable_filtered, opt.cve)
+
+    if opt.all_cve:
+        return analyze_cve_list_results(cve_list_all_filtered, package_count)
+
+    return analyze_cve_list_results(cve_list_fixable_filtered, package_count)
+
+def analyze_nagios_results(cve_list_fixable_filtered, priority):
+    if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
+        return("OK: no known %s or higher CVEs that can be fixed by updating" % priority, 0)
+
+    if cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
+        results_msg = ("CRITICAL: %d CVEs with priority %s or higher that can " \
+                "be fixed with package updates\n%s"
+                % (len(cve_list_fixable_filtered), priority, '\n'.join(cve_list_fixable_filtered)))
+        # TODO: This exit code conflicts with the error code returned by
+        #       argparse if the CLI syntax is invalid.
+        return (results_msg, 2)
+
+    if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
+        results_msg = ("WARNING: %s CVEs with priority %s or higher\n%s"
+            % (len(cve_list_all_filtered), priority, '\n'.join(cve_list_all_filtered)))
+        return (results_msg, 1)
+    
+    return ("UNKNOWN: something went wrong with %s" % sys.args[0], 3)
+
+def analyze_single_cve_results(cve_list_all_filtered, cve_list_fixable_filtered, cve):
+    if cve in cve_list_fixable_filtered:
+        return ("%s patch available to install" % cve, 1)
+
+    if cve in cve_list_all_filtered:
+        return ("%s patch not available" % cve, 1)
+
+    return ("%s patch applied or system not known to be affected" % cve, 0)
+
+def analyze_cve_list_results(cve_list, package_count):
+    results_msg = "Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list))
+
+    if cve_list != None and len(cve_list) != 0:
+        results_msg = results_msg + '\n'.join(cve_list)
+        return (results_msg, 1)
+
+    return (results_msg, 0)
 
 def main():
     global LOGGER
@@ -286,12 +371,9 @@ def main():
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err)
 
-    #LOGGER.debug("Running in experimental mode, using 'alpha' OVAL file from %s/%s" % (oval_base_url, oval_zip))
-
     log_config_options(opt)
     log_system_info(sysinfo)
 
-    ###########
     if sysinfo.is_snap:
         LOGGER.debug("Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common)
         LOGGER.debug("Downloaded files, log files and temporary reports will " \
@@ -312,88 +394,18 @@ def main():
     if not os.path.isfile(sysinfo.xslt_file):
         error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % sysinfo.xslt_file)
 
-    if os.path.isfile(DPKG_LOG) and os.path.isfile(RESULTS):
-        package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
-        results_ts = math.trunc(os.path.getmtime(RESULTS))
-        if package_change_ts > results_ts:
-            LOGGER.debug("Removing %s file because it is older than %s" % (RESULTS, DPKG_LOG))
-            rmfile(RESULTS)
-
     if opt.test_mode:
         run_testmode(sysinfo, opt)
 
-    if opt.remove:
-        LOGGER.debug("Removing cached report, results, and manifest files")
-        cleanup_all_files_from_past_run(opt.oval_file, opt.oval_zip, const.DEFAULT_MANIFEST_FILE)
+    cleanup_cached_files(opt, sysinfo)
 
-    if should_replace_cached_file(opt.oval_file, sysinfo.process_start_time):
-        cleanup_oscap_files_from_past_run()
-        retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
-
-    if not opt.manifest_mode:
-        package_count = int(os.popen("dpkg -l | grep -E -c '^ii'").read())
-        LOGGER.debug("Installed package count is %s" % package_count)
+    if opt.manifest_mode:
+        (results, return_code) = run_manifest_mode(opt, sysinfo)
     else:
-        if not opt.manifest_file:
-            LOGGER.debug("Downloading %s" % opt.manifest_url)
-            download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
-        else:
-            copyfile(opt.manifest_file,const.DEFAULT_MANIFEST_FILE)
+        (results, return_code) = run_cvescan(opt, sysinfo, sysinfo.package_count)
 
-        package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % const.DEFAULT_MANIFEST_FILE).read())
-        LOGGER.debug("Manifest package count is %s" % package_count)
-
-    (cve_list_all_filtered, cve_list_fixable_filtered) = \
-        scan_for_cves(sysinfo, opt)
-
-    if not sysinfo.is_snap:
-      LOGGER.debug("Full HTML report available in %s/%s" % (sysinfo.scriptdir, REPORT))
-
-    LOGGER.debug("Normal non-verbose output will appear below\n")
-
-    if opt.nagios:
-        if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
-            LOGGER.info("OK: no known %s or higher CVEs that can be fixed by updating" % opt.priority)
-            sys.exit(0)
-        elif cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-            LOGGER.info("CRITICAL: %d CVEs with priority %s or higher that can be " \
-                    "fixed with package updates" % (len(cve_list_fixable_filtered), opt.priority))
-            LOGGER.info('\n'.join(cve_list_fixable_filtered))
-            # TODO: This exit code conflicts with the error code returned by 
-            #       argparse if the CLI syntax is invalid.
-            sys.exit(2)
-        elif cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-            LOGGER.info("WARNING: %s CVEs with priority %s or higher" % (len(cve_list_all_filtered), opt.priority))
-            LOGGER.info('\n'.join(cve_list_all_filtered))
-            sys.exit(1)
-        else:
-            LOGGER.info("UNKNOWN: something went wrong with %s" % sys.args[0])
-            sys.exit(3)
-    elif opt.cve != None and len(opt.cve) != 0:
-        if opt.cve in cve_list_fixable_filtered:
-            LOGGER.info("%s patch available to install" % opt.cve)
-            sys.exit(1)
-        elif opt.cve in cve_list_all_filtered:
-            LOGGER.info("%s patch not available" % opt.cve)
-            sys.exit(1)
-        else:
-            LOGGER.info("%s patch applied or system not known to be affected" % opt.cve)
-            sys.exit(0)
-    else:
-        if opt.all_cve:
-            LOGGER.info("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_all_filtered)))
-            if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-                LOGGER.info('\n'.join(cve_list_all_filtered))
-                sys.exit(1)
-            else:
-                sys.exit(0)
-        else:
-            LOGGER.info("Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list_fixable_filtered)))
-            if cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-                LOGGER.info('\n'.join(cve_list_fixable_filtered))
-                sys.exit(1)
-            else:
-                sys.exit(0)
+    LOGGER.info(results)
+    sys.exit(return_code)
 
 if __name__ == "__main__":
     main()
