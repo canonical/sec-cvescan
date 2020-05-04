@@ -20,6 +20,9 @@ FILE_HELP = ("Used with '-m' option to override the default behavior. Specify\n 
         "The file needs to be readable under snap confinement.\n User's home "
         "will likely work, /tmp will likely not work.")
 
+OVAL_FILE_HELP = ("Specify an OVAL file to use instead of downloading the "
+        "latest from people.canonical.com.")
+
 NAGIOS_HELP = ("Enable Nagios mode for use with NRPE.\nTypical nagios-style "
         "\"OK|WARNING|CRITICAL|UNKNOWN\" messages\n and exit codes of 0, 1, "
         "2, or 3.\n0/OK = not vulnerable to any known and patchable CVEs of "

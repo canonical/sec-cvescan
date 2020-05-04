@@ -79,6 +79,7 @@ def parse_args():
     cvescan_ap.add_argument("-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP)
     cvescan_ap.add_argument("-p", "--priority", help=const.PRIORITY_HELP, choices=["critical","high","medium","all"], default="high")
     cvescan_ap.add_argument("-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP)
+    cvescan_ap.add_argument("-o", "--oval-file", help=const.OVAL_FILE_HELP)
     cvescan_ap.add_argument("-m", "--manifest", help=const.MANIFEST_HELP,choices=acceptable_codenames)
     cvescan_ap.add_argument("-f", "--file", metavar="manifest-file", help=const.FILE_HELP)
     cvescan_ap.add_argument("-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP)
@@ -249,7 +250,8 @@ def run_manifest_mode(opt, sysinfo):
     return run_cvescan(opt, sysinfo, package_count)
 
 def run_cvescan(opt, sysinfo, package_count):
-    retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
+    if opt.download_oval_file:
+        retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
         scan_for_cves(opt, sysinfo)
