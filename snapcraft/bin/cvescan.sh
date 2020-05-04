@@ -31,8 +31,8 @@ usage() {
 		             To be used with '-c <cve-identifier>', do not print text output
 		             exit 0 if not vulnerable, exit 1 if vulnerable
 
-		          -m <xenial|bionic|disco|eoan>
-		         --manifest=<xenial|bionic|disco|eoan>
+		          -m <xenial|bionic|eoan|focal>
+		         --manifest=<xenial|bionic|eoan|focal>
 		             Enable manifest mode
 		             Do not scan localhost. Instead run a scan against a Ubuntu Official
 		                 Cloud Image package manifest file.
@@ -173,7 +173,7 @@ while getopts ":c:p:lrsnm:f:tuvx-:" OPT ; do
 		m | manifest )
 			needs_arg
 			MANIFEST=true
-			if [[ ${OPTARG} =~ ^(xenial|bionic|disco|eoan)$ ]] ; then
+			if [[ ${OPTARG} =~ ^(xenial|bionic|eoan|focal)$ ]] ; then
 				RELEASE=${OPTARG}
 				OVAL_FILE=oci.com.ubuntu.${RELEASE}.cve.oval.xml
 				OVAL_ZIP=${OVAL_FILE}.bz2
@@ -218,8 +218,8 @@ done
 shift $((OPTIND-1))
 
 
-if ! $TESTMODE && ! $MANIFEST && [[ ! $DISTRIB_CODENAME =~ trusty|xenial||eoan ]] ; then
-	error "DISTRIB_CODENAME=${DISTRIB_CODENAME} in /etc/lsb-release is not trusty|xenial|bionic|eoan, not running"
+if ! $TESTMODE && ! $MANIFEST && [[ ! $DISTRIB_CODENAME =~ trusty|xenial|bionic|eoan|focal ]] ; then
+	error "DISTRIB_CODENAME=${DISTRIB_CODENAME} in /etc/lsb-release is not trusty|xenial|bionic|eoan|focal, not running"
 fi
 
 if [[ -n "$SNAP_USER_COMMON" ]] ; then
