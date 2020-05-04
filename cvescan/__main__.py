@@ -45,7 +45,7 @@ OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
 
-def error_exit(msg, code=1):
+def error_exit(msg, code=const.ERROR_RETURN_CODE):
     print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
 
@@ -168,7 +168,7 @@ def run_testmode(sysinfo, opt):
     results = "%s\n%s" % (results_1, results_2)
 
     if not (success_1 and success_2):
-        return (results, 1)
+        return (results, const.ERROR_RETURN_CODE)
 
     return (results, 0)
 
@@ -270,41 +270,40 @@ def analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, packa
     return analyze_cve_list_results(cve_list_fixable_filtered, package_count)
 
 def analyze_nagios_results(cve_list_fixable_filtered, priority):
-    # Nagios return codes defined here:
-    # https://assets.nagios.com/downloads/nagioscore/docs/nagioscore/3/en/pluginapi.html
     if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
-        return("OK: no known %s or higher CVEs that can be fixed by updating" % priority, 0)
+        results_msg = "OK: no known %s or higher CVEs that can be fixed by updating" % priority
+        return(results_msg, const.NAGIOS_OK_RETURN_CODE)
 
     if cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
         results_msg = ("CRITICAL: %d CVEs with priority %s or higher that can " \
                 "be fixed with package updates\n%s"
                 % (len(cve_list_fixable_filtered), priority, '\n'.join(cve_list_fixable_filtered)))
-        return (results_msg, 2)
+        return (results_msg, const.NAGIOS_CRITICAL_RETURN_CODE)
 
     if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
         results_msg = ("WARNING: %s CVEs with priority %s or higher\n%s"
             % (len(cve_list_all_filtered), priority, '\n'.join(cve_list_all_filtered)))
-        return (results_msg, 1)
+        return (results_msg, const.NAGIOS_WARNING_RETURN_CODE)
     
-    return ("UNKNOWN: something went wrong with %s" % sys.args[0], 3)
+    return ("UNKNOWN: something went wrong with %s" % sys.args[0], const.NAGIOS_UNKNOWN_RETURN_CODE)
 
 def analyze_single_cve_results(cve_list_all_filtered, cve_list_fixable_filtered, cve):
     if cve in cve_list_fixable_filtered:
-        return ("%s patch available to install" % cve, 4)
+        return ("%s patch available to install" % cve, const.PATCH_AVAILABLE_RETURN_CODE)
 
     if cve in cve_list_all_filtered:
-        return ("%s patch not available" % cve, 3)
+        return ("%s patch not available" % cve, const.SYSTEM_VULNERABLE_RETURN_CODE)
 
-    return ("%s patch applied or system not known to be affected" % cve, 0)
+    return ("%s patch applied or system not known to be affected" % cve, const.SUCCESS_RETURN_CODE)
 
 def analyze_cve_list_results(cve_list, package_count):
     results_msg = "Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list))
 
     if cve_list != None and len(cve_list) != 0:
         results_msg = results_msg + '\n'.join(cve_list)
-        return (results_msg, 3)
+        return (results_msg, const.SYSTEM_VULNERABLE_RETURN_CODE)
 
-    return (results_msg, 0)
+    return (results_msg, const.SUCCESS_RETURN_CODE)
 
 def main():
     global LOGGER
@@ -324,7 +323,7 @@ def main():
     try:
         opt = Options(args, sysinfo)
     except (ArgumentError, ValueError) as err:
-        error_exit("Invalid option or argument: %s" % err, 2)
+        error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
 
     log_config_options(opt)
     log_system_info(sysinfo)

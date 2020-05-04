@@ -52,3 +52,16 @@ EXPERIMENTAL_HELP = ("Enable eXperimental mode.\nUse experimental (also called "
 DEBUG_LOG = "debug.log"
 DEFAULT_MANIFEST_FILE = "manifest"
 
+SUCCESS_RETURN_CODE = 0
+ERROR_RETURN_CODE = 1
+CLI_ERROR_RETURN_CODE = 2
+SYSTEM_VULNERABLE_RETURN_CODE = 3
+PATCH_AVAILABLE_RETURN_CODE = 4
+
+# Nagios return codes defined here:
+# https://assets.nagios.com/downloads/nagioscore/docs/nagioscore/3/en/pluginapi.html
+NAGIOS_OK_RETURN_CODE = 0
+NAGIOS_WARNING_RETURN_CODE = 1
+NAGIOS_CRITICAL_CRETURN_CODE = 2
+NAGIOS_UNKNOWN_CRETURN_CODE = 3
+
