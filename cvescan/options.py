@@ -64,8 +64,10 @@ class Options:
         self.oval_zip = "%s.bz2" % self.oval_file
 
     def _set_manifest_file_options(self, args):
+        manifest_url_tmp = MANIFEST_URL_TEMPLATE % (self.distrib_codename, self.distrib_codename)
+
         self.manifest_file = os.path.abspath(args.file) if args.file else None
-        self.manifest_url = MANIFEST_URL_TEMPLATE % (self.distrib_codename, self.distrib_codename)
+        self.manifest_url = manifest_url_tmp if (self.manifest_mode and not args.file) else None
 
     def _set_output_verbosity(self, args):
         self.verbose_oscap_options = ""
