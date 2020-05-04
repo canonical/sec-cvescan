@@ -241,13 +241,18 @@ def run_manifest_mode(opt, sysinfo):
         LOGGER.debug("Downloading %s" % opt.manifest_url)
         download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
     else:
-        copyfile(opt.manifest_file,const.DEFAULT_MANIFEST_FILE)
+        copyfile(opt.manifest_file, const.DEFAULT_MANIFEST_FILE)
 
-    # TODO: Find a better way of doing this or at least check return code
-    package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % const.DEFAULT_MANIFEST_FILE).read())
+    package_count = count_packages_in_manifest_file(const.DEFAULT_MANIFEST_FILE)
     LOGGER.debug("Manifest package count is %s" % package_count)
 
     return run_cvescan(opt, sysinfo, package_count)
+
+def count_packages_in_manifest_file(manifest_file):
+    with open(manifest_file) as mf:
+        package_count = len(mf.readlines())
+
+    return package_count
 
 def run_cvescan(opt, sysinfo, package_count):
     if opt.download_oval_file:
