@@ -32,13 +32,8 @@ NAGIOS_HELP = ("Enable Nagios mode for use with NRPE.\nTypical nagios-style "
 LIST_HELP = ("Disable links. Show only CVE IDs instead of URLs.\nDefault is to "
         "output URLs linking to the Ubuntu CVE tracker.")
 
-REUSE_HELP = ("re-use zip, oval, xml, and htm files from cached versions if "
-        "possible.\nDefault is to redownload and regenerate everything.\n"
-        "Warning: this may produce inaccurate results.")
-
 TEST_HELP = ("Test mode, use test OVAL data to validate that cvescan and oscap "
-        "are\n working as expected. In test mode, files are not downloaded.\n"
-        "In test mode, the remove and verbose options are enabled automatically.")
+        "are\n working as expected. In test mode, oval files are not downloaded.")
 
 UPDATES_HELP = ("Only show CVEs affecting packages if there is an update "
         "available.\nDefault: show only CVEs affecting this system or "

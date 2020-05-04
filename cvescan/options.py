@@ -11,7 +11,6 @@ FMT_FILE_OPTION = "-f|--file"
 FMT_MANIFEST_OPTION = "-m|--manifest"
 FMT_NAGIOS_OPTION = "-n|--nagios"
 FMT_PRIORITY_OPTION = "-p|priority"
-FMT_REUSE_OPTION = "-r|--reuse"
 FMT_SILENT_OPTION = "-s|--silent"
 FMT_TEST_OPTION = "-t|--test"
 FMT_UPDATES_OPTION = "-u|--updates"
@@ -26,7 +25,6 @@ class Options:
         self._set_distrib_codename(args, sysinfo)
         self._set_oval_file_options(args, sysinfo)
         self._set_manifest_file_options(args)
-        self._set_remove_cached_files_options(args)
         self._set_output_verbosity(args)
 
         self.cve = args.cve
@@ -69,9 +67,6 @@ class Options:
         self.manifest_file = os.path.abspath(args.file) if args.file else None
         self.manifest_url = MANIFEST_URL_TEMPLATE % (self.distrib_codename, self.distrib_codename)
 
-    def _set_remove_cached_files_options(self, args):
-        self.remove = (not args.reuse) or args.manifest
-
     def _set_output_verbosity(self, args):
         self.verbose_oscap_options = ""
 
@@ -96,9 +91,6 @@ def raise_on_invalid_combinations(args):
     raise_on_invalid_silent_options(args)
 
 def raise_on_invalid_manifest_options(args):
-    if args.manifest and args.reuse:
-        raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_REUSE_OPTION)
-
     if args.manifest and args.test:
         raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_TEST_OPTION)
 
@@ -136,9 +128,6 @@ def raise_on_invalid_test_options(args):
 
     if args.nagios:
         raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_NAGIOS_OPTION)
-
-    if args.reuse:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_REUSE_OPTION)
 
     if args.silent:
         raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_SILENT_OPTION)

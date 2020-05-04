@@ -41,7 +41,6 @@ def get_null_logger():
 LOGGER = get_null_logger()
 
 DPKG_LOG = "/var/log/dpkg.log"
-EXPIRE = 86400
 OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
@@ -72,11 +71,6 @@ def bz2decompress(bz2_archive, target):
     except:
         error_exit("Decompressing %s to %s failed.", (bz2_archive, target))
 
-def rmfile(filename):
-    if os.path.exists(filename):
-        if os.path.isfile(filename):
-            os.remove(filename)
-
 def parse_args():
     # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
     acceptable_codenames = ["xenial","bionic","disco","eoan","focal"]
@@ -89,7 +83,6 @@ def parse_args():
     cvescan_ap.add_argument("-f", "--file", metavar="manifest-file", help=const.FILE_HELP)
     cvescan_ap.add_argument("-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP)
     cvescan_ap.add_argument("-l", "--list", action="store_true", default=False, help=const.LIST_HELP)
-    cvescan_ap.add_argument("-r", "--reuse", action="store_true", default=False, help=const.REUSE_HELP)
     cvescan_ap.add_argument("-t", "--test", action="store_true", default=False, help=const.TEST_HELP)
     cvescan_ap.add_argument("-u", "--updates", action="store_true", default=False, help=const.UPDATES_HELP)
     cvescan_ap.add_argument("-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP)
@@ -100,7 +93,7 @@ def parse_args():
 def scan_for_cves(opt, sysinfo):
     try:
         run_oscap_eval(sysinfo, opt)
-        run_oscap_generate_report(sysinfo.process_start_time, sysinfo.scriptdir)
+        run_oscap_generate_report(sysinfo.scriptdir)
     except OpenSCAPError as ose:
         error_exit("Failed to run oscap: %s" % ose)
     except Exception as ex:
@@ -118,29 +111,27 @@ def scan_for_cves(opt, sysinfo):
     return (cve_list_all_filtered, cve_list_fixable_filtered)
 
 def run_oscap_eval(sysinfo, opt):
-    if not os.path.isfile(RESULTS) or ((sysinfo.process_start_time - math.trunc(os.path.getmtime(RESULTS))) > EXPIRE):
-        LOGGER.debug("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % \
-                (opt.verbose_oscap_options, RESULTS, opt.oval_file, sysinfo.scriptdir, OVAL_LOG))
+    LOGGER.debug("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % \
+            (opt.verbose_oscap_options, RESULTS, opt.oval_file, sysinfo.scriptdir, OVAL_LOG))
 
-        # TODO: use openscap python binding instead of os.system
-        return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % \
-                (opt.verbose_oscap_options, RESULTS, opt.oval_file, OVAL_LOG))
-        if return_val != 0:
-            # TODO: improve error message
-            raise OpenSCAPError("Failed to run oval scan: returned %d" % return_val)
+    # TODO: use openscap python binding instead of os.system
+    return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % \
+            (opt.verbose_oscap_options, RESULTS, opt.oval_file, OVAL_LOG))
+    if return_val != 0:
+        # TODO: improve error message
+        raise OpenSCAPError("Failed to run oval scan: returned %d" % return_val)
 
-def run_oscap_generate_report(process_start_time, scriptdir):
-    if not os.path.isfile(REPORT) or ((process_start_time - math.trunc(os.path.getmtime(REPORT))) > EXPIRE):
-        LOGGER.debug("Generating html report %s/%s from results xml %s/%s " \
-                "(output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
+def run_oscap_generate_report(scriptdir):
+    LOGGER.debug("Generating html report %s/%s from results xml %s/%s " \
+            "(output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
 
-        # TODO: use openscap python binding instead of os.system
-        return_val = os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG))
-        if return_val != 0:
-            # TODO: improve error message
-            raise OpenSCAPError("Failed to generate oval report: returned %d" % return_val)
+    # TODO: use openscap python binding instead of os.system
+    return_val = os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG))
+    if return_val != 0:
+        # TODO: improve error message
+        raise OpenSCAPError("Failed to generate oval report: returned %d" % return_val)
 
-        LOGGER.debug("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), REPORT))
+    LOGGER.debug("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), REPORT))
 
 def run_xsltproc_all(priority, xslt_file, extra_sed):
     LOGGER.debug("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
@@ -166,36 +157,8 @@ def run_xsltproc_fixable(priority, xslt_file, extra_sed):
 
     return cve_list_fixable_filtered
 
-def cleanup_cached_files(opt, sysinfo):
-    if os.path.isfile(DPKG_LOG) and os.path.isfile(RESULTS):
-        package_change_ts = math.trunc(os.path.getmtime(DPKG_LOG))
-        results_ts = math.trunc(os.path.getmtime(RESULTS))
-        if package_change_ts > results_ts:
-            LOGGER.debug("Removing %s file because it is older than %s" % (RESULTS, DPKG_LOG))
-            rmfile(RESULTS)
-
-    if opt.remove:
-        LOGGER.debug("Removing cached report, results, and manifest files")
-        cleanup_all_files_from_past_run(opt.oval_file, opt.oval_zip, const.DEFAULT_MANIFEST_FILE)
-
-    if os.path.isfile(opt.oval_file) and is_cached_file_expired(opt.oval_file, sysinfo.process_start_time):
-        cleanup_oscap_files_from_past_run()
-
-def cleanup_all_files_from_past_run(oval_file, oval_zip, manifest_file):
-    cleanup_files([oval_file, oval_zip, manifest_file, REPORT, RESULTS,
-                   OVAL_LOG, const.DEBUG_LOG])
-
-def cleanup_oscap_files_from_past_run():
-    cleanup_files([REPORT, RESULTS, OVAL_LOG, const.DEBUG_LOG])
-
-def cleanup_files(files):
-    LOGGER.debug("Removing files: %s" % (" ".join(files)))
-    for i in files:
-        rmfile(i)
-
 def run_testmode(sysinfo, opt):
     LOGGER.info("Running in test mode.")
-    cleanup_oscap_files_from_past_run()
 
     if not os.path.isfile(opt.oval_file):
         error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
@@ -205,9 +168,7 @@ def run_testmode(sysinfo, opt):
     success_1 = test_filter_active_cves(cve_list_all_filtered)
     success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
 
-    # TODO: scan_for_cves shouldn't error_exit, otherwise cleanup may not occur
-    # clean up after tests
-    cleanup_oscap_files_from_past_run()
+    # TODO: scan_for_cves shouldn't error_exit. Exits should be handled in main().
 
     if not (success_1 and success_2):
         sys.exit(4)
@@ -242,9 +203,6 @@ def retrieve_oval_file(oval_base_url, oval_zip, oval_file):
     LOGGER.debug("Unzipping %s" % oval_zip)
     bz2decompress(oval_zip, oval_file)
 
-def is_cached_file_expired(filename, current_time):
-    return (current_time - math.trunc(os.path.getmtime(filename))) > EXPIRE
-
 def log_config_options(opt):
     LOGGER.debug("Config Options")
     table = [
@@ -259,8 +217,7 @@ def log_config_options(opt):
         ["Manifest URL", opt.manifest_url],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
-        ["Only Show Updates Available", (not opt.all_cve)],
-        ["Reuse Cached Files", (not opt.remove)]]
+        ["Only Show Updates Available", (not opt.all_cve)]]
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
@@ -292,8 +249,7 @@ def run_manifest_mode(opt, sysinfo):
     return run_cvescan(opt, sysinfo, package_count)
 
 def run_cvescan(opt, sysinfo, package_count):
-    if not os.path.isfile(opt.oval_file):
-        retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
+    retrieve_oval_file(opt.oval_base_url, opt.oval_zip, opt.oval_file)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = \
         scan_for_cves(opt, sysinfo)
@@ -396,8 +352,6 @@ def main():
 
     if opt.test_mode:
         run_testmode(sysinfo, opt)
-
-    cleanup_cached_files(opt, sysinfo)
 
     if opt.manifest_mode:
         (results, return_code) = run_manifest_mode(opt, sysinfo)
