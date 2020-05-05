@@ -319,6 +319,8 @@ def main():
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
         error_exit("Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s" % di)
+    except PkgCountError as pke:
+        error_exit("Failed to determine the local package count: %s" % pke)
 
     try:
         opt = Options(args, sysinfo)

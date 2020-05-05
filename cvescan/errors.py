@@ -13,3 +13,6 @@ class DownloadError(Exception):
 class OpenSCAPError(Exception):
     pass
 
+class PkgCountError(Exception):
+    pass
+
