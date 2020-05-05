@@ -20,6 +20,9 @@ FILE_HELP = ("Used with '-m' option to override the default behavior. Specify\n 
         "The file needs to be readable under snap confinement.\n User's home "
         "will likely work, /tmp will likely not work.")
 
+OVAL_FILE_HELP = ("Specify an OVAL file to use instead of downloading the "
+        "latest from people.canonical.com.")
+
 NAGIOS_HELP = ("Enable Nagios mode for use with NRPE.\nTypical nagios-style "
         "\"OK|WARNING|CRITICAL|UNKNOWN\" messages\n and exit codes of 0, 1, "
         "2, or 3.\n0/OK = not vulnerable to any known and patchable CVEs of "
@@ -32,13 +35,8 @@ NAGIOS_HELP = ("Enable Nagios mode for use with NRPE.\nTypical nagios-style "
 LIST_HELP = ("Disable links. Show only CVE IDs instead of URLs.\nDefault is to "
         "output URLs linking to the Ubuntu CVE tracker.")
 
-REUSE_HELP = ("re-use zip, oval, xml, and htm files from cached versions if "
-        "possible.\nDefault is to redownload and regenerate everything.\n"
-        "Warning: this may produce inaccurate results.")
-
 TEST_HELP = ("Test mode, use test OVAL data to validate that cvescan and oscap "
-        "are\n working as expected. In test mode, files are not downloaded.\n"
-        "In test mode, the remove and verbose options are enabled automatically.")
+        "are\n working as expected. In test mode, oval files are not downloaded.")
 
 UPDATES_HELP = ("Only show CVEs affecting packages if there is an update "
         "available.\nDefault: show only CVEs affecting this system or "

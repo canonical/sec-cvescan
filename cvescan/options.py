@@ -10,8 +10,8 @@ FMT_EXPERIMENTAL_OPTION = "-x|--experimental"
 FMT_FILE_OPTION = "-f|--file"
 FMT_MANIFEST_OPTION = "-m|--manifest"
 FMT_NAGIOS_OPTION = "-n|--nagios"
+FMT_OVAL_FILE_OPTION = "-o|--oval_file"
 FMT_PRIORITY_OPTION = "-p|priority"
-FMT_REUSE_OPTION = "-r|--reuse"
 FMT_SILENT_OPTION = "-s|--silent"
 FMT_TEST_OPTION = "-t|--test"
 FMT_UPDATES_OPTION = "-u|--updates"
@@ -26,7 +26,6 @@ class Options:
         self._set_distrib_codename(args, sysinfo)
         self._set_oval_file_options(args, sysinfo)
         self._set_manifest_file_options(args)
-        self._set_remove_cached_files_options(args)
         self._set_output_verbosity(args)
 
         self.cve = args.cve
@@ -48,13 +47,20 @@ class Options:
             self.distrib_codename = sysinfo.distrib_codename
 
     def _set_oval_file_options(self, args, sysinfo):
-        self.oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
+        self.oval_base_url = None
+        self.download_oval_file = False
 
         if self.test_mode:
             self.oval_file = "%s/com.ubuntu.test.cve.oval.xml" % sysinfo.scriptdir
             return
 
+        if args.oval_file:
+            self.oval_file = args.oval_file
+            return
+
+        self.oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
         self.oval_file = "com.ubuntu.%s.cve.oval.xml" % self.distrib_codename
+        self.download_oval_file = True
 
         if self.manifest_mode:
             self.oval_file = "oci.%s" % self.oval_file
@@ -66,11 +72,10 @@ class Options:
         self.oval_zip = "%s.bz2" % self.oval_file
 
     def _set_manifest_file_options(self, args):
-        self.manifest_file = os.path.abspath(args.file) if args.file else None
-        self.manifest_url = MANIFEST_URL_TEMPLATE % (self.distrib_codename, self.distrib_codename)
+        manifest_url_tmp = MANIFEST_URL_TEMPLATE % (self.distrib_codename, self.distrib_codename)
 
-    def _set_remove_cached_files_options(self, args):
-        self.remove = (not args.reuse) or args.manifest
+        self.manifest_file = os.path.abspath(args.file) if args.file else None
+        self.manifest_url = manifest_url_tmp if (self.manifest_mode and not args.file) else None
 
     def _set_output_verbosity(self, args):
         self.verbose_oscap_options = ""
@@ -82,7 +87,8 @@ class Options:
 def raise_on_invalid_args(args):
     raise_on_invalid_cve(args)
     raise_on_invalid_combinations(args)
-    raise_on_invalid_manifest_file(args)
+    raise_on_missing_manifest_file(args)
+    raise_on_missing_oval_file(args)
 
 def raise_on_invalid_cve(args):
     cve_regex = r"^CVE-[0-9]{4}-[0-9]{4,}$"
@@ -96,9 +102,6 @@ def raise_on_invalid_combinations(args):
     raise_on_invalid_silent_options(args)
 
 def raise_on_invalid_manifest_options(args):
-    if args.manifest and args.reuse:
-        raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_REUSE_OPTION)
-
     if args.manifest and args.test:
         raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_TEST_OPTION)
 
@@ -137,8 +140,8 @@ def raise_on_invalid_test_options(args):
     if args.nagios:
         raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_NAGIOS_OPTION)
 
-    if args.reuse:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_REUSE_OPTION)
+    if args.oval_file:
+        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_OVAL_FILE_OPTION)
 
     if args.silent:
         raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_SILENT_OPTION)
@@ -160,12 +163,18 @@ def raise_incompatible_arguments_error(arg1, arg2):
     raise ArgumentError("The %s and %s options are incompatible and may not " \
             "be specified together." % (arg1, arg2))
 
-def raise_on_invalid_manifest_file(args):
-    if not args.file:
+def raise_on_missing_manifest_file(args):
+    raise_on_missing_file(args.file)
+
+def raise_on_missing_oval_file(args):
+    raise_on_missing_file(args.oval_file)
+
+def raise_on_missing_file(file_path):
+    if not file_path:
         return
 
-    file_abs_path = os.path.abspath(args.file)
+    file_abs_path = os.path.abspath(file_path)
     if not os.path.isfile(file_abs_path):
         # TODO: mention snap confinement in error message
-        raise ArgumentError("Cannot find manifest file \"%s\". Current "
+        raise ArgumentError("Cannot find file \"%s\". Current "
                 "working directory is \"%s\"." % (file_abs_path, os.getcwd()))
