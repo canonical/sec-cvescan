@@ -91,7 +91,6 @@ class CVEScanner:
 
     def _scan_for_cves(self, opt):
         self._run_oscap_eval(opt)
-        self._run_oscap_generate_report()
 
         cve_list_all_filtered = self._run_xsltproc_all(opt)
         self.logger.debug("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), opt.priority))
@@ -105,28 +104,16 @@ class CVEScanner:
         return (cve_list_all_filtered, cve_list_fixable_filtered)
 
     def _run_oscap_eval(self, opt):
-        self.logger.debug("Running oval scan oscap oval eval %s --results %s %s (output logged to %s/%s)" % \
-                (opt.verbose_oscap_options, RESULTS, opt.oval_file, self.sysinfo.scriptdir, OVAL_LOG))
+        cmd = ("oscap oval eval %s --results \"%s\" --report \"%s\" \"%s\" >%s 2>&1"
+                % (opt.verbose_oscap_options, RESULTS, REPORT, opt.oval_file, OVAL_LOG))
+        self.logger.debug("Running '%s'" % cmd)
+        self.logger.debug("Output logged to %s/%s" % (self.sysinfo.scriptdir, OVAL_LOG))
 
         # TODO: use openscap python binding instead of os.system
-        return_val = os.system("oscap oval eval %s --results \"%s\" \"%s\" >%s 2>&1" % \
-                (opt.verbose_oscap_options, RESULTS, opt.oval_file, OVAL_LOG))
+        return_val = os.system(cmd)
         if return_val != 0:
             # TODO: improve error message
             raise OpenSCAPError("Failed to run oval scan: returned %d" % return_val)
-
-    def _run_oscap_generate_report(self):
-        scriptdir = self.sysinfo.scriptdir
-        self.logger.debug("Generating html report %s/%s from results xml %s/%s " \
-                "(output logged to %s/%s)" % (scriptdir, REPORT, scriptdir, RESULTS, scriptdir, OVAL_LOG))
-
-        # TODO: use openscap python binding instead of os.system
-        return_val = os.system("oscap oval generate report --output %s %s >>%s 2>&1" % (REPORT, RESULTS, OVAL_LOG))
-        if return_val != 0:
-            # TODO: improve error message
-            raise OpenSCAPError("Failed to generate oval report: returned %d" % return_val)
-
-        self.logger.debug("Open %s/%s in a browser to see complete and unfiltered scan results" % (os.getcwd(), REPORT))
 
     # TODO: Use python libxml2 bindings instead of os.popen()
     def _run_xsltproc_all(self, opt):
