@@ -32,7 +32,8 @@ def set_output_verbosity(args):
 
 def get_null_logger():
     logger = logging.getLogger("cvescan.null")
-    logger.addHandler(logging.NullHandler())
+    if not logger.hasHandlers():
+        logger.addHandler(logging.NullHandler())
 
     return logger
 
