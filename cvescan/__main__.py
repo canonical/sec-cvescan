@@ -3,7 +3,7 @@
 import argparse as ap
 import bz2
 import cvescan.constants as const
-from cvescan.errors import ArgumentError, DistribIDError, OpenSCAPError
+from cvescan.errors import *
 from cvescan.options import Options
 from cvescan.sysinfo import SysInfo
 import logging
@@ -45,7 +45,7 @@ OVAL_LOG = "oval.log"
 REPORT = "report.htm"
 RESULTS = "results.xml"
 
-def error_exit(msg, code=4):
+def error_exit(msg, code=const.ERROR_RETURN_CODE):
     print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
 
@@ -58,8 +58,8 @@ def download(download_url, filename):
         curl.perform()
         curl.close()
         target_file.close()
-    except:
-        error_exit("Downloading %s failed." % download_url)
+    except Exception as ex:
+        raise DownloadError("Downloading %s failed: %s" % (download_url, ex))
 
 def bz2decompress(bz2_archive, target):
     try:
@@ -68,8 +68,8 @@ def bz2decompress(bz2_archive, target):
         opened_target.write(bz2.decompress(opened_archive.read()))
         opened_archive.close()
         opened_target.close()
-    except:
-        error_exit("Decompressing %s to %s failed.", (bz2_archive, target))
+    except Exception as ex:
+        raise BZ2Error("Decompressing %s to %s failed: %s", (bz2_archive, target, ex))
 
 def parse_args():
     # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
@@ -92,13 +92,8 @@ def parse_args():
     return cvescan_ap.parse_args()
 
 def scan_for_cves(opt, sysinfo):
-    try:
-        run_oscap_eval(sysinfo, opt)
-        run_oscap_generate_report(sysinfo.scriptdir)
-    except OpenSCAPError as ose:
-        error_exit("Failed to run oscap: %s" % ose)
-    except Exception as ex:
-        error_exit(ex)
+    run_oscap_eval(sysinfo, opt)
+    run_oscap_generate_report(sysinfo.scriptdir)
 
     cve_list_all_filtered = run_xsltproc_all(opt.priority, sysinfo.xslt_file, opt.extra_sed)
     LOGGER.debug("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), opt.priority))
@@ -162,19 +157,20 @@ def run_testmode(sysinfo, opt):
     LOGGER.info("Running in test mode.")
 
     if not os.path.isfile(opt.oval_file):
-        error_exit("Missing test OVAL file at '%s', this file should have installed with cvescan" % oval_file)
+        raise FileNotFoundError("Missing test OVAL file at '%s', this file " \
+                "should have installed with cvescan" % oval_file)
 
     (cve_list_all_filtered, cve_list_fixable_filtered) = scan_for_cves(opt, sysinfo)
 
-    success_1 = test_filter_active_cves(cve_list_all_filtered)
-    success_2 = test_identify_fixable_cves(cve_list_fixable_filtered)
+    (results_1, success_1) = test_filter_active_cves(cve_list_all_filtered)
+    (results_2, success_2) = test_identify_fixable_cves(cve_list_fixable_filtered)
 
-    # TODO: scan_for_cves shouldn't error_exit. Exits should be handled in main().
+    results = "%s\n%s" % (results_1, results_2)
 
     if not (success_1 and success_2):
-        sys.exit(4)
+        return (results, const.ERROR_RETURN_CODE)
 
-    sys.exit(0)
+    return (results, 0)
 
 def test_filter_active_cves(cve_list_all_filtered):
     if ((len(cve_list_all_filtered) == 2)
@@ -182,20 +178,16 @@ def test_filter_active_cves(cve_list_all_filtered):
             and ("CVE-1970-0400" in cve_list_all_filtered)
             and ("CVE-1970-0200" not in cve_list_all_filtered)
             and ("CVE-1970-0500" not in cve_list_all_filtered)):
-        LOGGER.info("SUCCESS: Filter Active CVEs")
-        return True
+        return ("SUCCESS: Filter Active CVEs", True)
 
-    LOGGER.error("FAILURE: Filter Active CVEs")
-    return False
+    return ("FAILURE: Filter Active CVEs", False)
 
 def test_identify_fixable_cves(cve_list_fixable_filtered):
     if ((len(cve_list_fixable_filtered) == 1)
             and ("CVE-1970-0400" in cve_list_fixable_filtered)):
-        LOGGER.info("SUCCESS: Identify Fixable/Updatable CVEs")
-        return True
+        return ("SUCCESS: Identify Fixable/Updatable CVEs", True)
 
-    LOGGER.error("FAILURE: Identify Fixable/Updatable CVEs")
-    return False
+    return ("FAILURE: Identify Fixable/Updatable CVEs", False)
 
 def retrieve_oval_file(oval_base_url, oval_zip, oval_file):
     LOGGER.debug("Downloading %s/%s" % (oval_base_url, oval_zip))
@@ -241,13 +233,18 @@ def run_manifest_mode(opt, sysinfo):
         LOGGER.debug("Downloading %s" % opt.manifest_url)
         download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
     else:
-        copyfile(opt.manifest_file,const.DEFAULT_MANIFEST_FILE)
+        copyfile(opt.manifest_file, const.DEFAULT_MANIFEST_FILE)
 
-    # TODO: Find a better way of doing this or at least check return code
-    package_count = int(os.popen("wc -l %s | cut -f1 -d' '" % const.DEFAULT_MANIFEST_FILE).read())
+    package_count = count_packages_in_manifest_file(const.DEFAULT_MANIFEST_FILE)
     LOGGER.debug("Manifest package count is %s" % package_count)
 
     return run_cvescan(opt, sysinfo, package_count)
+
+def count_packages_in_manifest_file(manifest_file):
+    with open(manifest_file) as mf:
+        package_count = len(mf.readlines())
+
+    return package_count
 
 def run_cvescan(opt, sysinfo, package_count):
     if opt.download_oval_file:
@@ -274,40 +271,39 @@ def analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, packa
 
 def analyze_nagios_results(cve_list_fixable_filtered, priority):
     if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
-        return("OK: no known %s or higher CVEs that can be fixed by updating" % priority, 0)
+        results_msg = "OK: no known %s or higher CVEs that can be fixed by updating" % priority
+        return(results_msg, const.NAGIOS_OK_RETURN_CODE)
 
     if cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
         results_msg = ("CRITICAL: %d CVEs with priority %s or higher that can " \
                 "be fixed with package updates\n%s"
                 % (len(cve_list_fixable_filtered), priority, '\n'.join(cve_list_fixable_filtered)))
-        # TODO: This exit code conflicts with the error code returned by
-        #       argparse if the CLI syntax is invalid.
-        return (results_msg, 2)
+        return (results_msg, const.NAGIOS_CRITICAL_RETURN_CODE)
 
     if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
         results_msg = ("WARNING: %s CVEs with priority %s or higher\n%s"
             % (len(cve_list_all_filtered), priority, '\n'.join(cve_list_all_filtered)))
-        return (results_msg, 1)
+        return (results_msg, const.NAGIOS_WARNING_RETURN_CODE)
     
-    return ("UNKNOWN: something went wrong with %s" % sys.args[0], 3)
+    return ("UNKNOWN: something went wrong with %s" % sys.args[0], const.NAGIOS_UNKNOWN_RETURN_CODE)
 
 def analyze_single_cve_results(cve_list_all_filtered, cve_list_fixable_filtered, cve):
     if cve in cve_list_fixable_filtered:
-        return ("%s patch available to install" % cve, 1)
+        return ("%s patch available to install" % cve, const.PATCH_AVAILABLE_RETURN_CODE)
 
     if cve in cve_list_all_filtered:
-        return ("%s patch not available" % cve, 1)
+        return ("%s patch not available" % cve, const.SYSTEM_VULNERABLE_RETURN_CODE)
 
-    return ("%s patch applied or system not known to be affected" % cve, 0)
+    return ("%s patch applied or system not known to be affected" % cve, const.SUCCESS_RETURN_CODE)
 
 def analyze_cve_list_results(cve_list, package_count):
     results_msg = "Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list))
 
     if cve_list != None and len(cve_list) != 0:
         results_msg = results_msg + '\n'.join(cve_list)
-        return (results_msg, 1)
+        return (results_msg, const.SYSTEM_VULNERABLE_RETURN_CODE)
 
-    return (results_msg, 0)
+    return (results_msg, const.SUCCESS_RETURN_CODE)
 
 def main():
     global LOGGER
@@ -323,11 +319,13 @@ def main():
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
         error_exit("Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s" % di)
+    except PkgCountError as pke:
+        error_exit("Failed to determine the local package count: %s" % pke)
 
     try:
         opt = Options(args, sysinfo)
     except (ArgumentError, ValueError) as err:
-        error_exit("Invalid option or argument: %s" % err)
+        error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
 
     log_config_options(opt)
     log_system_info(sysinfo)
@@ -352,13 +350,15 @@ def main():
     if not os.path.isfile(sysinfo.xslt_file):
         error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % sysinfo.xslt_file)
 
-    if opt.test_mode:
-        run_testmode(sysinfo, opt)
-
-    if opt.manifest_mode:
-        (results, return_code) = run_manifest_mode(opt, sysinfo)
-    else:
-        (results, return_code) = run_cvescan(opt, sysinfo, sysinfo.package_count)
+    try:
+        if opt.test_mode:
+            (results, return_code) = run_testmode(sysinfo, opt)
+        elif opt.manifest_mode:
+            (results, return_code) = run_manifest_mode(opt, sysinfo)
+        else:
+            (results, return_code) = run_cvescan(opt, sysinfo, sysinfo.package_count)
+    except Exception as ex:
+        error_exit("An error occurred while running CVEScan: %s" % ex)
 
     LOGGER.info(results)
     sys.exit(return_code)
