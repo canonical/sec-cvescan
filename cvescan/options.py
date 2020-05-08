@@ -38,7 +38,7 @@ class Options:
         self.manifest_mode = True if args.manifest else False
         self.experimental_mode = args.experimental
         self.test_mode = args.test
-        self.nagios = args.nagios
+        self.nagios_mode = args.nagios
 
     def _set_distrib_codename(self, args, sysinfo):
         if self.manifest_mode:

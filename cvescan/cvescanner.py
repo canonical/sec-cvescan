@@ -147,7 +147,7 @@ def _count_packages_in_manifest_file(manifest_file):
     return package_count
 
 def _analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, package_count):
-    if opt.nagios:
+    if opt.nagios_mode:
         return _analyze_nagios_results(cve_list_fixable_filtered, opt.priority)
 
     if opt.cve:

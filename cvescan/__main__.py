@@ -69,7 +69,7 @@ def log_config_options(opt):
         ["Test Mode", opt.test_mode],
         ["Manifest Mode", opt.manifest_mode],
         ["Experimental Mode", opt.experimental_mode],
-        ["Nagios Output Mode", opt.nagios],
+        ["Nagios Output Mode", opt.nagios_mode],
         ["Target Ubuntu Codename", opt.distrib_codename],
         ["OVAL File Path", opt.oval_file],
         ["OVAL URL", opt.oval_base_url],
