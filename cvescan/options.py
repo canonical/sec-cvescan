@@ -15,6 +15,7 @@ FMT_PRIORITY_OPTION = "-p|priority"
 FMT_SILENT_OPTION = "-s|--silent"
 FMT_TEST_OPTION = "-t|--test"
 FMT_UPDATES_OPTION = "-u|--updates"
+FMT_VERBOSE_OPTION = "-v|--verbose"
 
 MANIFEST_URL_TEMPLATE = "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
 
