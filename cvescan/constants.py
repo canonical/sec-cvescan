@@ -51,6 +51,7 @@ EXPERIMENTAL_HELP = ("Enable eXperimental mode.\nUse experimental (also called "
 
 DEBUG_LOG = "debug.log"
 DEFAULT_MANIFEST_FILE = "manifest"
+LSB_RELEASE_FILE = "/etc/lsb-release"
 
 SUCCESS_RETURN_CODE = 0
 ERROR_RETURN_CODE = 1
