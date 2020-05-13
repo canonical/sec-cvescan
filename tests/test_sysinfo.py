@@ -24,7 +24,15 @@ ii  acpi-support                                    0.143                       
 rc  acpid                                           1:2.0.31-1ubuntu2                           amd64        Advanced Configuration and Power Interface event daemon
 ii  adduser                                         3.118ubuntu1                                all          add and remove users and groups
 ii  adwaita-icon-theme                              3.34.0-1ubuntu1                             all          default icon theme of GNOME (small subset)
-ii  afl                                             2.52b-5ubuntu1                              amd64        instrumentation-driven fuzzer for binary formats
+ui  afl                                             2.52b-5ubuntu1                              amd64        instrumentation-driven fuzzer for binary formats
+ii  afl-clang                                       2.52b-5ubuntu1                              amd64        instrumentation-driven fuzzer for binary formats - clang support
+hi  afl-cov                                         0.6.2-1                                     all          code coverage for afl (American Fuzzy Lop)
+ii  afl-doc                                         2.52b-5ubuntu1                              all          instrumentation-driven fuzzer for binary formats - documentation
+ii  akonadi-backend-mysql                           4:19.04.3-0ubuntu3                          all          MySQL storage backend for Akonadi
+ri  akonadi-server                                  4:19.04.3-0ubuntu3                          amd64        Akonadi PIM storage service
+pi  akregator                                       4:19.04.3-0ubuntu1                          amd64        RSS/Atom feed aggregator
+iH  alsa-base                                       1.0.25+dfsg-0ubuntu5                        all          ALSA driver configuration files
+in  alsa-tools-gui                                  1.1.7-1                                     amd64        GUI based ALSA utilities for specific hardware
 """
         self.error = None
         self.returncode = 0
@@ -155,9 +163,9 @@ def test_package_count(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     sysinfo = SysInfo(null_logger)
-    assert sysinfo.package_count == 8
+    assert sysinfo.package_count == 14
 
-def test_package_count_errir(monkeypatch, null_logger):
+def test_package_count_error(monkeypatch, null_logger):
     mock_responses = MockResponses()
     ms = MockSubprocess()
     ms.returncode = 1
@@ -166,3 +174,24 @@ def test_package_count_errir(monkeypatch, null_logger):
 
     with pytest.raises(PkgCountError) as pce:
         sysinfo = SysInfo(null_logger)
+
+def test_installed_packages_list(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    apply_mock_responses(monkeypatch, mock_responses)
+
+    sysinfo = SysInfo(null_logger)
+    expected_installed_packages = {"2to3": "3.7.5-1",
+        "accountsservice": "0.6.55-0ubuntu10",
+        "accountwizard": "4:19.04.3-0ubuntu1",
+        "acl": "2.2.53-4",
+        "acpi-support": "0.143",
+        "adduser": "3.118ubuntu1",
+        "adwaita-icon-theme": "3.34.0-1ubuntu1",
+        "afl": "2.52b-5ubuntu1",
+        "afl-clang": "2.52b-5ubuntu1",
+        "afl-cov": "0.6.2-1",
+        "afl-doc": "2.52b-5ubuntu1",
+        "akonadi-backend-mysql": "4:19.04.3-0ubuntu3",
+        "akonadi-server": "4:19.04.3-0ubuntu3",
+        "akregator": "4:19.04.3-0ubuntu1"}
+    assert sysinfo.installed_packages == expected_installed_packages

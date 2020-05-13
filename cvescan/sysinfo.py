@@ -3,6 +3,7 @@ from cvescan.errors import DistribIDError, PkgCountError
 import configparser
 import math
 import os
+import re
 import subprocess
 import sys
 
@@ -16,7 +17,7 @@ class SysInfo:
 
         self._set_snap_info()
         self.distrib_codename = self.get_ubuntu_codename()
-        self.package_count = self._count_locally_installed_packages()
+        self.installed_packages = self._get_installed_packages()
 
     def _set_snap_info(self):
         self.is_snap = False
@@ -42,6 +43,7 @@ class SysInfo:
 
             self.logger.debug("Using the lsb_release python module to determine ubuntu codename")
             distro = lsb_release.get_distro_information()
+
             return (distro.get('ID', "UNKNOWN"), distro.get('CODENAME', "UNKNOWN"))
         except:
             self.logger.debug("The lsb_release python module is not installed or has failed")
@@ -63,13 +65,24 @@ class SysInfo:
 
         return (lsb_config.get("lsb","DISTRIB_ID"), lsb_config.get("lsb","DISTRIB_CODENAME"))
 
+    @property
+    def package_count(self):
+        return len(self.installed_packages.keys())
+
     # TODO: We can skip this if --manifest is set.
-    def _count_locally_installed_packages(self):
+    def _get_installed_packages(self):
+        installed_regex = re.compile(r'^[uihrp]i')
+        installed_pkgs = {}
         try:
             self.logger.debug("Querying the local system for installed packages")
             dpkg_output = self._get_dpkg_list()
 
-            return sum(pkg.startswith(b'ii') for pkg in dpkg_output)
+            for pkg in dpkg_output:
+                if installed_regex.match(str(pkg)) is not None:
+                    pkg_details = pkg.split()
+                    installed_pkgs[pkg_details[1]] = pkg_details[2]
+
+            return installed_pkgs
         except Exception as ex:
             raise PkgCountError(ex)
 
@@ -81,4 +94,4 @@ class SysInfo:
         if dpkg.returncode != 0:
             raise PkgCountError("dpkg exited with code %d: %s" % (dpkg.returncode, outerr))
 
-        return out.encode('utf-8').splitlines()
+        return out.splitlines()
