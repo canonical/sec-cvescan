@@ -82,3 +82,23 @@ Output "patch applied or system not known to be affected" and exit 0 if not vuln
 
 Similar to above but no printed output, only exit values
 ```cvescan -c CVE-2019-54321 -s```
+
+## Running the python version of CVEScan
+The python rewrite of CVEScan is still in development. You can run the python
+version of CVEScan by running
+
+    python -m cvescan
+
+You can install CVEScan locally by running
+
+    pip install --user .
+
+### Running the test suite
+You can run the automated test suite by running
+
+    python3 setup.py test.
+
+An HTML code coverage report will be generated at `./htmlcov`. You can view
+this report by running
+
+    firefox ./htmlcov/index.html

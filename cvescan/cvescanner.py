@@ -146,50 +146,60 @@ def _count_packages_in_manifest_file(manifest_file):
 
     return package_count
 
+# TODO: create a new module that is responsible for analysing and formatting output
 def _analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, package_count):
-    if opt.nagios:
-        return _analyze_nagios_results(cve_list_fixable_filtered, opt.priority)
+    if opt.nagios_mode:
+        return _analyze_nagios_results(cve_list_all_filtered, cve_list_fixable_filtered, opt.priority)
 
     if opt.cve:
         return _analyze_single_cve_results(cve_list_all_filtered, cve_list_fixable_filtered, opt.cve)
 
-    if opt.all_cve:
-        return _analyze_cve_list_results(cve_list_all_filtered, package_count)
+    return _analyze_cve_list_results(opt, cve_list_all_filtered, cve_list_fixable_filtered, package_count)
 
-    return _analyze_cve_list_results(cve_list_fixable_filtered, package_count)
-
-def _analyze_nagios_results(cve_list_fixable_filtered, priority):
-    if cve_list_fixable_filtered == None or len(cve_list_fixable_filtered) == 0:
+def _analyze_nagios_results(cve_list_all_filtered, cve_list_fixable_filtered, priority):
+    if len(cve_list_all_filtered) == 0:
         results_msg = "OK: no known %s or higher CVEs that can be fixed by updating" % priority
-        return(results_msg, const.NAGIOS_OK_RETURN_CODE)
-
-    if cve_list_fixable_filtered != None and len(cve_list_fixable_filtered) != 0:
-        results_msg = ("CRITICAL: %d CVEs with priority %s or higher that can " \
-                "be fixed with package updates\n%s"
-                % (len(cve_list_fixable_filtered), priority, '\n'.join(cve_list_fixable_filtered)))
-        return (results_msg, const.NAGIOS_CRITICAL_RETURN_CODE)
-
-    if cve_list_all_filtered != None and len(cve_list_all_filtered) != 0:
-        results_msg = ("WARNING: %s CVEs with priority %s or higher\n%s"
+        return_code = const.NAGIOS_OK_RETURN_CODE
+    elif len(cve_list_all_filtered) != 0 and len(cve_list_fixable_filtered) == 0:
+        results_msg = ("WARNING: %s CVEs with priority %s or higher affect this system\n%s"
             % (len(cve_list_all_filtered), priority, '\n'.join(cve_list_all_filtered)))
-        return (results_msg, const.NAGIOS_WARNING_RETURN_CODE)
+        return_code = const.NAGIOS_WARNING_RETURN_CODE
+    else:
+        results_msg = ("CRITICAL: %d CVEs with priority %s or higher affect "
+                "this system and can be fixed with package updates\n%s"
+                % (len(cve_list_fixable_filtered), priority, '\n'.join(cve_list_fixable_filtered)))
+        return_code = const.NAGIOS_CRITICAL_RETURN_CODE
 
-    return ("UNKNOWN: something went wrong with %s" % sys.args[0], const.NAGIOS_UNKNOWN_RETURN_CODE)
+    return (results_msg, return_code)
 
 def _analyze_single_cve_results(cve_list_all_filtered, cve_list_fixable_filtered, cve):
     if cve in cve_list_fixable_filtered:
-        return ("%s patch available to install" % cve, const.PATCH_AVAILABLE_RETURN_CODE)
+        return ("A patch is available to fix %s." % cve, const.PATCH_AVAILABLE_RETURN_CODE)
 
     if cve in cve_list_all_filtered:
-        return ("%s patch not available" % cve, const.SYSTEM_VULNERABLE_RETURN_CODE)
+        return ("%s affects this system, but no patch is available." % cve, const.SYSTEM_VULNERABLE_RETURN_CODE)
 
-    return ("%s patch applied or system not known to be affected" % cve, const.SUCCESS_RETURN_CODE)
+    return ("This system is not known to be affected by %s." % cve, const.SUCCESS_RETURN_CODE)
 
-def _analyze_cve_list_results(cve_list, package_count):
-    results_msg = "Inspected %s packages. Found %s CVEs" % (package_count, len(cve_list))
+def _analyze_cve_list_results(opt, cve_list_all_filtered, cve_list_fixable_filtered, package_count):
+    inspected_msg = "Inspected %d packages." % package_count
 
-    if cve_list != None and len(cve_list) != 0:
-        results_msg = results_msg + '\n' + '\n'.join(cve_list)
-        return (results_msg, const.SYSTEM_VULNERABLE_RETURN_CODE)
+    if len(cve_list_all_filtered) == 0:
+        results_msg = "%s No CVEs of priority \"%s\" or higher affect this system" % (inspected_msg, opt.priority)
+        return_code = const.SUCCESS_RETURN_CODE
+    else:
+        results_msg = ("%s %d CVEs of priority \"%s\" or higher affect this system."
+            % (inspected_msg, len(cve_list_all_filtered), opt.priority))
 
-    return (results_msg, const.SUCCESS_RETURN_CODE)
+        if opt.all_cve:
+            results_msg = ("%s\n\nAll CVEs affecting this system:\n\t%s"
+                % (results_msg, '\n\t'.join(cve_list_all_filtered)))
+
+        if len(cve_list_fixable_filtered) != 0:
+            results_msg = ("%s\n\nThe following %d CVEs can be fixed by installing updates:\n\t%s"
+                % (results_msg, len(cve_list_fixable_filtered), '\n\t'.join(cve_list_fixable_filtered)))
+            return_code = const.PATCH_AVAILABLE_RETURN_CODE
+        else:
+            return_code = const.SYSTEM_VULNERABLE_RETURN_CODE
+
+    return (results_msg, return_code)

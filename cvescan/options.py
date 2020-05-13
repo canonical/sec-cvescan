@@ -15,6 +15,7 @@ FMT_PRIORITY_OPTION = "-p|priority"
 FMT_SILENT_OPTION = "-s|--silent"
 FMT_TEST_OPTION = "-t|--test"
 FMT_UPDATES_OPTION = "-u|--updates"
+FMT_VERBOSE_OPTION = "-v|--verbose"
 
 MANIFEST_URL_TEMPLATE = "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
 
@@ -38,7 +39,7 @@ class Options:
         self.manifest_mode = True if args.manifest else False
         self.experimental_mode = args.experimental
         self.test_mode = args.test
-        self.nagios = args.nagios
+        self.nagios_mode = args.nagios
 
     def _set_distrib_codename(self, args, sysinfo):
         if self.manifest_mode:
@@ -48,7 +49,6 @@ class Options:
 
     def _set_oval_file_options(self, args, sysinfo):
         self.oval_base_url = None
-        self.download_oval_file = False
 
         if self.test_mode:
             self.oval_file = "%s/com.ubuntu.test.cve.oval.xml" % sysinfo.scriptdir
@@ -60,7 +60,6 @@ class Options:
 
         self.oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
         self.oval_file = "com.ubuntu.%s.cve.oval.xml" % self.distrib_codename
-        self.download_oval_file = True
 
         if self.manifest_mode:
             self.oval_file = "oci.%s" % self.oval_file
@@ -83,6 +82,9 @@ class Options:
         if args.verbose:
             self.verbose_oscap_options = "--verbose WARNING --verbose-log-file %s" % const.DEBUG_LOG
 
+    @property
+    def download_oval_file(self):
+        return self.oval_base_url is not None
 
 def raise_on_invalid_args(args):
     raise_on_invalid_cve(args)

@@ -1,3 +1,4 @@
+import cvescan.constants as const
 from cvescan.errors import DistribIDError, PkgCountError
 import configparser
 import math
@@ -50,10 +51,8 @@ class SysInfo:
     # is not available. The lsb_release module is not installed in the snap package
     # because it causes the package to triple in size.
     def get_lsb_release_info_from_file(self):
-        lsb_release_file = "/etc/lsb-release"
-
-        self.logger.debug("Attempting to read %s to determine DISTRIB_ID and DISTRIB_CODENAME" % lsb_release_file)
-        with open(lsb_release_file, "rt") as lsb_file:
+        self.logger.debug("Attempting to read %s to determine DISTRIB_ID and DISTRIB_CODENAME" % const.LSB_RELEASE_FILE)
+        with open(const.LSB_RELEASE_FILE, "rt") as lsb_file:
             lsb_file_contents = lsb_file.read()
 
         # ConfigParser needs section headers, so adding a header.

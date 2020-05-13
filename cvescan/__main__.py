@@ -32,7 +32,8 @@ def set_output_verbosity(args):
 
 def get_null_logger():
     logger = logging.getLogger("cvescan.null")
-    logger.addHandler(logging.NullHandler())
+    if not logger.hasHandlers():
+        logger.addHandler(logging.NullHandler())
 
     return logger
 
@@ -68,7 +69,7 @@ def log_config_options(opt):
         ["Test Mode", opt.test_mode],
         ["Manifest Mode", opt.manifest_mode],
         ["Experimental Mode", opt.experimental_mode],
-        ["Nagios Output Mode", opt.nagios],
+        ["Nagios Output Mode", opt.nagios_mode],
         ["Target Ubuntu Codename", opt.distrib_codename],
         ["OVAL File Path", opt.oval_file],
         ["OVAL URL", opt.oval_base_url],
@@ -116,6 +117,8 @@ def main():
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
 
+    error_exit_code = const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
+
     log_config_options(opt)
     log_system_info(sysinfo)
 
@@ -127,25 +130,26 @@ def main():
         try:
             os.chdir(sysinfo.snap_user_common)
         except:
-            error_exit("failed to cd to %s" % sysinfo.snap_user_common)
+            error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
 
     # TODO: Consider moving this check to SysInfo, though it may be moot if we
     #       can use python bindings for oscap and xsltproc
     if not sysinfo.is_snap:
         for i in [["oscap", "libopenscap8"], ["xsltproc", "xsltproc"]]:
             if which(i[0]) == None:
-                error_exit("Missing %s command. Run 'sudo apt install %s'" % (i[0], i[1]))
+                error_exit("Missing %s command. Run 'sudo apt install %s'" % (i[0], i[1]), error_exit_code)
 
     # TODO: Consider moving this check into SysInfo, but it may be moot if we
     #       use python to get rid of the xslt file.
     if not os.path.isfile(sysinfo.xslt_file):
-        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan" % sysinfo.xslt_file)
+        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan"
+                % sysinfo.xslt_file, error_exit_code)
 
     try:
         cve_scanner = CVEScanner(sysinfo, LOGGER)
         (results, return_code) = cve_scanner.scan(opt)
     except Exception as ex:
-        error_exit("An unexpected error occurred while running CVEScan: %s" % ex)
+        error_exit("An unexpected error occurred while running CVEScan: %s" % ex, error_exit_code)
 
     LOGGER.info(results)
     sys.exit(return_code)
