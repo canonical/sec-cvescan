@@ -69,7 +69,9 @@ class SysInfo:
     def package_count(self):
         return len(self.installed_packages.keys())
 
-    # TODO: We can skip this if --manifest is set.
+    # TODO: We can skip this if --manifest is set. The simplest solution is
+    #       probably to use a @property for self.installed_packages and
+    #       "lazy load" it.
     def _get_installed_packages(self):
         installed_regex = re.compile(r'^[uihrp]i')
         installed_pkgs = {}

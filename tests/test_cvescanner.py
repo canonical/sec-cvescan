@@ -12,19 +12,27 @@ def null_logger():
 
 class MockSysInfo:
     def __init__(self):
+        self.distrib_codename = "bionic"
         self.package_count = 100
         self.scriptdir = "."
-
+        self.installed_packages = {"pkg1": "1:1.2.3-4+deb9u2ubuntu0.1",
+                                   "pkg2": "1:1.2.3-4+deb9u2ubuntu0.1",
+                                   "pkg3": "10.2.3-2",
+                                   "pkg4": "2.0.0+dfsg-1ubuntu1",
+                                   "pkg5": "2.0.0+dfsg-1ubuntu1",
+                                   "pkg6": "2.0.0+dfsg-1ubuntu1",
+                                   "pkg7": "1.2.0-1"}
 class MockOpt:
     def __init__(self):
         self.test_mode = False
         self.manifest_mode = False
         self.manifest_file = None
         self.download_oval_file = False
+        self.oval_file = "tests/assets/uct.json"
         self.nagios_mode = False
         self.cve = None
         self.all_cve = True
-        self.priority = "high"
+        self.priority = "all"
 
 class MockCVEScanner(CVEScanner):
     def __init__(self, cve_list_all, cve_list_fixable):
@@ -35,16 +43,13 @@ class MockCVEScanner(CVEScanner):
     def _retrieve_oval_file(self, opt):
         pass
 
-    def _scan_for_cves(self, opt):
-        return (self.cve_list_all, self.cve_list_fixable)
-
 @pytest.fixture
 def test_cve_list_all():
-    return ["CVE-2020-1000", "CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1003"]
+    return ["CVE-2020-1000", "CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1003", "CVE-2020-1004", "CVE-2020-1005"]
 
 @pytest.fixture
 def test_cve_list_fixable():
-    return ["CVE-2020-1001", "CVE-2020-1003"]
+    return ["CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1005"]
 
 @pytest.fixture
 def default_cve_scanner(test_cve_list_all, test_cve_list_fixable):

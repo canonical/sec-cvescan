@@ -1,16 +1,19 @@
+import apt_pkg
 import cvescan.constants as const
 import cvescan.downloader as downloader
 from cvescan.errors import OpenSCAPError
+import json
 import os
+import re
 from shutil import copyfile
 import sys
 
-OVAL_LOG = "oval.log"
-REPORT = "report.htm"
-RESULTS = "results.xml"
+ESM_VERSION_RE = re.compile(r"[+~]esm\d+")
 
 class CVEScanner:
     def __init__(self, sysinfo, logger):
+        apt_pkg.init_system()
+
         self.sysinfo = sysinfo
         self.logger = logger
 
@@ -75,10 +78,25 @@ class CVEScanner:
         if opt.download_oval_file:
             self._retrieve_oval_file(opt)
 
-        (cve_list_all_filtered, cve_list_fixable_filtered) = \
-            self._scan_for_cves(opt)
+        with open(opt.oval_file) as oval_file:
+            cve_status = json.load(oval_file)
 
-        self.logger.debug("Full HTML report available in %s/%s" % (self.sysinfo.scriptdir, REPORT))
+        affected_cves = self._scan_for_cves(cve_status, opt)
+        # TODO: get correct priority filter
+        (cve_list_all_filtered, cve_list_fixable_filtered) = \
+                self.apply_filters(affected_cves, opt)
+
+        cve_list_all_filtered = [cve[0] for cve in cve_list_all_filtered]
+        cve_list_fixable_filtered = [cve[0] for cve in cve_list_fixable_filtered]
+
+        # TODO: This removes duplicates. It can go away once output is overhauled.
+        cve_list_all_filtered = list(set(cve_list_all_filtered))
+        cve_list_fixable_filtered = list(set(cve_list_fixable_filtered))
+
+        # TODO: This should be handled by whatever handles the output. It should
+        #       also sort numerically so that CVE-2020-12826 is after CVE-2020-1747.
+        cve_list_all_filtered.sort()
+        cve_list_fixable_filtered.sort()
 
         return _analyze_results(cve_list_all_filtered, cve_list_fixable_filtered, opt, package_count)
 
@@ -89,56 +107,48 @@ class CVEScanner:
         self.logger.debug("Unzipping %s" % opt.oval_zip)
         downloader.bz2decompress(opt.oval_zip, opt.oval_file)
 
-    def _scan_for_cves(self, opt):
-        self._run_oscap_eval(opt)
+    def _scan_for_cves(self, cve_status, opt):
+        affected_cves = list()
 
-        cve_list_all_filtered = self._run_xsltproc_all(opt)
-        self.logger.debug("%d vulnerabilities found with priority of %s or higher:" % (len(cve_list_all_filtered), opt.priority))
-        self.logger.debug(cve_list_all_filtered)
+        for (cve_id, uct_record) in cve_status.items():
+            if self.sysinfo.distrib_codename not in uct_record["releases"]:
+                continue
 
-        cve_list_fixable_filtered = self._run_xsltproc_fixable(opt)
-        self.logger.debug("%s CVEs found with priority of %s or higher that can be " \
-                "fixed with package updates:" % (len(cve_list_fixable_filtered), opt.priority))
-        self.logger.debug(cve_list_fixable_filtered)
+            for (src_pkg, src_pkg_record) in uct_record["releases"][self.sysinfo.distrib_codename].items():
+                if src_pkg_record["status"][0] in {"DNE", "not-affected"}:
+                    continue
+
+                for b in src_pkg_record["binaries"]:
+                    if b not in self.sysinfo.installed_packages:
+                        continue
+
+                    if src_pkg_record["status"][0] in ["released", "released-esm"]:
+                        vc = apt_pkg.version_compare(self.sysinfo.installed_packages[b], src_pkg_record["status"][1])
+                        if vc >= 0:
+                            continue
+
+                        fixed_version = src_pkg_record["status"][1]
+                        repository = src_pkg_record['repository']
+                    else:
+                        fixed_version = "Unresolved"
+                        repository = "N/A"
+
+                    affected_cves.append([cve_id, uct_record['priority'], b, fixed_version, repository])
+
+        return affected_cves
+
+    def apply_filters(self, affected_cves, opt):
+        priority_filter = {"untriaged", "negligible", "low", "medium", "high", "critical"}
+
+        cve_list_all_filtered = []
+        cve_list_fixable_filtered = []
+        for cve in affected_cves:
+            if cve[1] in priority_filter:
+                cve_list_all_filtered.append(cve)
+                if cve[3] is not "Unresolved":
+                    cve_list_fixable_filtered.append(cve)
 
         return (cve_list_all_filtered, cve_list_fixable_filtered)
-
-    def _run_oscap_eval(self, opt):
-        cmd = ("oscap oval eval %s --results \"%s\" --report \"%s\" \"%s\" >%s 2>&1"
-                % (opt.verbose_oscap_options, RESULTS, REPORT, opt.oval_file, OVAL_LOG))
-        self.logger.debug("Running '%s'" % cmd)
-        self.logger.debug("Output logged to %s/%s" % (self.sysinfo.scriptdir, OVAL_LOG))
-
-        # TODO: use openscap python binding instead of os.system
-        return_val = os.system(cmd)
-        if return_val != 0:
-            # TODO: improve error message
-            raise OpenSCAPError("Failed to run oval scan: returned %d" % return_val)
-
-    # TODO: Use python libxml2 bindings instead of os.popen()
-    def _run_xsltproc_all(self, opt):
-        self.logger.debug("Running xsltproc to generate CVE list - fixable/unfixable and filtered by priority")
-
-        cmd = "xsltproc --stringparam showAll true --stringparam priority \"%s\"" \
-              " \"%s\" \"%s\" | sed -e /^$/d %s" % (opt.priority, self.sysinfo.xslt_file, RESULTS, opt.extra_sed)
-        cve_list_all_filtered = os.popen(cmd).read().split('\n')
-
-        while("" in cve_list_all_filtered):
-            cve_list_all_filtered.remove("")
-
-        return cve_list_all_filtered
-
-    def _run_xsltproc_fixable(self, opt):
-        self.logger.debug("Running xsltproc to generate CVE list - fixable and filtered by priority")
-
-        cmd = "xsltproc --stringparam showAll false --stringparam priority \"%s\"" \
-              " \"%s\" \"%s\" | sed -e /^$/d %s" % (opt.priority, self.sysinfo.xslt_file, RESULTS, opt.extra_sed)
-        cve_list_fixable_filtered = os.popen(cmd).read().split('\n')
-
-        while("" in cve_list_fixable_filtered):
-            cve_list_fixable_filtered.remove("")
-
-        return cve_list_fixable_filtered
 
 def _count_packages_in_manifest_file(manifest_file):
     with open(manifest_file) as mf:

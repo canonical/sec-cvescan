@@ -132,13 +132,6 @@ def main():
         except:
             error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
 
-    # TODO: Consider moving this check to SysInfo, though it may be moot if we
-    #       can use python bindings for oscap and xsltproc
-    if not sysinfo.is_snap:
-        for i in [["oscap", "libopenscap8"], ["xsltproc", "xsltproc"]]:
-            if which(i[0]) == None:
-                error_exit("Missing %s command. Run 'sudo apt install %s'" % (i[0], i[1]), error_exit_code)
-
     # TODO: Consider moving this check into SysInfo, but it may be moot if we
     #       use python to get rid of the xslt file.
     if not os.path.isfile(sysinfo.xslt_file):
