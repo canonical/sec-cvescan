@@ -31,8 +31,6 @@ class Options:
         self.cve = args.cve
         self.priority = args.priority
         self.all_cve = not args.updates
-        # TODO: Find a better solution than this
-        self.extra_sed = "" if args.list else "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 
     def _set_mode(self, args):
         self.manifest_mode = True if args.manifest else False
