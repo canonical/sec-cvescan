@@ -80,20 +80,6 @@ def null_logger():
 
     return logger
 
-def test_scriptdir(monkeypatch, null_logger):
-    mock_responses = MockResponses()
-    apply_mock_responses(monkeypatch, mock_responses)
-
-    sysinfo = SysInfo(null_logger)
-    assert sysinfo.scriptdir == "/test"
-
-def test_xslt_file(monkeypatch, null_logger):
-    mock_responses = MockResponses()
-    apply_mock_responses(monkeypatch, mock_responses)
-
-    sysinfo = SysInfo(null_logger)
-    assert sysinfo.xslt_file == "/test/text.xsl"
-
 def test_is_snap_false(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)

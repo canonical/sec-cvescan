@@ -86,9 +86,7 @@ def log_system_info(sysinfo):
         ["Local Ubuntu Codename", sysinfo.distrib_codename],
         ["Installed Package Count", sysinfo.package_count],
         ["CVEScan is a Snap", sysinfo.is_snap],
-        ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
-        ["Scripts Directory", sysinfo.scriptdir],
-        ["XSLT File", sysinfo.xslt_file]]
+        ["$SNAP_USER_COMMON", sysinfo.snap_user_common]]
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
@@ -129,12 +127,6 @@ def main():
             os.chdir(sysinfo.snap_user_common)
         except:
             error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
-
-    # TODO: Consider moving this check into SysInfo, but it may be moot if we
-    #       use python to get rid of the xslt file.
-    if not os.path.isfile(sysinfo.xslt_file):
-        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan"
-                % sysinfo.xslt_file, error_exit_code)
 
     try:
         cve_scanner = CVEScanner(sysinfo, LOGGER)

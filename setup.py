@@ -37,6 +37,5 @@ setuptools.setup(
         'pytest-cov',
     ],
     entry_points={'console_scripts': ['cvescan=cvescan.__main__:main']},
-    #package_data={'cvescan': ['text.xsl']}
 )
 
