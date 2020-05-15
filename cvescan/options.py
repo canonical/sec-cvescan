@@ -13,7 +13,6 @@ FMT_NAGIOS_OPTION = "-n|--nagios"
 FMT_OVAL_FILE_OPTION = "-o|--oval_file"
 FMT_PRIORITY_OPTION = "-p|priority"
 FMT_SILENT_OPTION = "-s|--silent"
-FMT_TEST_OPTION = "-t|--test"
 FMT_UPDATES_OPTION = "-u|--updates"
 FMT_VERBOSE_OPTION = "-v|--verbose"
 
@@ -30,15 +29,14 @@ class Options:
         self._set_output_verbosity(args)
 
         self.cve = args.cve
-        self.priority = "all" if self.test_mode else args.priority
+        self.priority = args.priority
         self.all_cve = not args.updates
         # TODO: Find a better solution than this
-        self.extra_sed = "" if (args.list or self.test_mode) else "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
+        self.extra_sed = "" if args.list else "-e s@^@http://people.canonical.com/~ubuntu-security/cve/@"
 
     def _set_mode(self, args):
         self.manifest_mode = True if args.manifest else False
         self.experimental_mode = args.experimental
-        self.test_mode = args.test
         self.nagios_mode = args.nagios
 
     def _set_distrib_codename(self, args, sysinfo):
@@ -49,10 +47,6 @@ class Options:
 
     def _set_oval_file_options(self, args, sysinfo):
         self.oval_base_url = None
-
-        if self.test_mode:
-            self.oval_file = "%s/com.ubuntu.test.cve.oval.xml" % sysinfo.scriptdir
-            return
 
         if args.oval_file:
             self.oval_file = args.oval_file
@@ -100,13 +94,9 @@ def raise_on_invalid_cve(args):
 def raise_on_invalid_combinations(args):
     raise_on_invalid_manifest_options(args)
     raise_on_invalid_nagios_options(args)
-    raise_on_invalid_test_options(args)
     raise_on_invalid_silent_options(args)
 
 def raise_on_invalid_manifest_options(args):
-    if args.manifest and args.test:
-        raise_incompatible_arguments_error(FMT_MANIFEST_OPTION, FMT_TEST_OPTION)
-
     if args.file and not args.manifest:
         raise ArgumentError("Cannot specify -f|--file argument without -m|--manifest.")
 
@@ -122,34 +112,6 @@ def raise_on_invalid_nagios_options(args):
 
     if args.updates:
         raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UPDATES_OPTION)
-
-def raise_on_invalid_test_options(args):
-    if not args.test:
-        return
-
-    if args.cve:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_CVE_OPTION)
-
-    if args.experimental:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_EXPERIMENTAL_OPTION)
-
-    if args.file:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_FILE_OPTION)
-
-    if args.manifest:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_MANIFEST_OPTION)
-
-    if args.nagios:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_NAGIOS_OPTION)
-
-    if args.oval_file:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_OVAL_FILE_OPTION)
-
-    if args.silent:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_SILENT_OPTION)
-
-    if args.updates:
-        raise_incompatible_arguments_error(FMT_TEST_OPTION, FMT_UPDATES_OPTION)
 
 def raise_on_invalid_silent_options(args):
     if not args.silent:

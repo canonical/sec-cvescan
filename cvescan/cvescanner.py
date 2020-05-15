@@ -18,49 +18,10 @@ class CVEScanner:
         self.logger = logger
 
     def scan(self, opt):
-        if opt.test_mode:
-            return self._run_test_mode(opt)
-
         if opt.manifest_mode:
             return self._run_manifest_mode(opt)
 
         return self._run_cvescan(opt, self.sysinfo.package_count)
-
-    def _run_test_mode(self, opt):
-        self.logger.info("Running in test mode.")
-
-        if not os.path.isfile(opt.oval_file):
-            raise FileNotFoundError("Missing test OVAL file at '%s', this file " \
-                    "should have installed with cvescan" % oval_file)
-
-        (cve_list_all_filtered, cve_list_fixable_filtered) = self._scan_for_cves(opt)
-
-        (results_1, success_1) = self._test_filter_active_cves(cve_list_all_filtered)
-        (results_2, success_2) = self._test_identify_fixable_cves(cve_list_fixable_filtered)
-
-        results = "%s\n%s" % (results_1, results_2)
-
-        if not (success_1 and success_2):
-            return (results, const.ERROR_RETURN_CODE)
-
-        return (results, 0)
-
-    def _test_filter_active_cves(self, cve_list_all_filtered):
-        if ((len(cve_list_all_filtered) == 2)
-                and ("CVE-1970-0300" in cve_list_all_filtered)
-                and ("CVE-1970-0400" in cve_list_all_filtered)
-                and ("CVE-1970-0200" not in cve_list_all_filtered)
-                and ("CVE-1970-0500" not in cve_list_all_filtered)):
-            return ("SUCCESS: Filter Active CVEs", True)
-
-        return ("FAILURE: Filter Active CVEs", False)
-
-    def _test_identify_fixable_cves(self, cve_list_fixable_filtered):
-        if ((len(cve_list_fixable_filtered) == 1)
-                and ("CVE-1970-0400" in cve_list_fixable_filtered)):
-            return ("SUCCESS: Identify Fixable/Updatable CVEs", True)
-
-        return ("FAILURE: Identify Fixable/Updatable CVEs", False)
 
     def _run_manifest_mode(self, opt):
         if not opt.manifest_file:

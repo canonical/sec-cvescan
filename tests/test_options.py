@@ -40,7 +40,6 @@ def test_set_no_modes(mock_args, mock_sysinfo):
     assert opt.experimental_mode == False
     assert opt.manifest_mode == False
     assert opt.nagios_mode == False
-    assert opt.test_mode == False
 
 def test_set_experimental(mock_args, mock_sysinfo):
     mock_args.experimental = True
@@ -49,7 +48,6 @@ def test_set_experimental(mock_args, mock_sysinfo):
     assert opt.experimental_mode == True
     assert opt.manifest_mode == False
     assert opt.nagios_mode == False
-    assert opt.test_mode == False
 
 def test_set_manifest_mode(mock_args, mock_sysinfo):
     mock_args.manifest = True
@@ -58,7 +56,6 @@ def test_set_manifest_mode(mock_args, mock_sysinfo):
     assert opt.experimental_mode == False
     assert opt.manifest_mode == True
     assert opt.nagios_mode == False
-    assert opt.test_mode == False
 
 def test_set_nagios_mode(mock_args, mock_sysinfo):
     mock_args.nagios = True
@@ -67,16 +64,6 @@ def test_set_nagios_mode(mock_args, mock_sysinfo):
     assert opt.experimental_mode == False
     assert opt.manifest_mode == False
     assert opt.nagios_mode == True
-    assert opt.test_mode == False
-
-def test_set_test_mode(mock_args, mock_sysinfo):
-    mock_args.test = True
-    opt = Options(mock_args, mock_sysinfo)
-
-    assert opt.experimental_mode == False
-    assert opt.manifest_mode == False
-    assert opt.nagios_mode == False
-    assert opt.test_mode == True
 
 def test_set_experimental_nagios_manifest(mock_args, mock_sysinfo):
     mock_args.experimental = True
@@ -87,7 +74,6 @@ def test_set_experimental_nagios_manifest(mock_args, mock_sysinfo):
     assert opt.experimental_mode == True
     assert opt.manifest_mode == True
     assert opt.nagios_mode == True
-    assert opt.test_mode == False
 
 def test_set_distrib_codename(mock_args, mock_sysinfo):
     opt = Options(mock_args, mock_sysinfo)
@@ -104,12 +90,6 @@ def test_set_oval_file_default(monkeypatch, mock_args, mock_sysinfo):
     opt = Options(mock_args, mock_sysinfo)
 
     assert opt.oval_file == "com.ubuntu.focal.cve.oval.xml"
-
-def test_set_oval_file_test(mock_args, mock_sysinfo):
-    mock_args.test = True
-    opt = Options(mock_args, mock_sysinfo)
-
-    assert opt.oval_file == SCRIPTDIR + "/com.ubuntu.test.cve.oval.xml"
 
 def test_set_oval_file_user_specified(monkeypatch, mock_args, mock_sysinfo):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
@@ -143,12 +123,6 @@ def test_set_oval_url_default(monkeypatch, mock_args, mock_sysinfo):
 
     assert opt.oval_base_url == BASE_URL
 
-def test_set_oval_url_test(mock_args, mock_sysinfo):
-    mock_args.test = True
-    opt = Options(mock_args, mock_sysinfo)
-
-    assert opt.oval_base_url == None
-
 def test_set_oval_url_user_specified(monkeypatch, mock_args, mock_sysinfo):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
 
@@ -180,12 +154,6 @@ def test_set_download_oval_file_default(monkeypatch, mock_args, mock_sysinfo):
     opt = Options(mock_args, mock_sysinfo)
 
     assert opt.download_oval_file == True
-
-def test_set_download_oval_file_test(mock_args, mock_sysinfo):
-    mock_args.test = True
-    opt = Options(mock_args, mock_sysinfo)
-
-    assert opt.download_oval_file == False
 
 def test_set_download_oval_file_user_specified(monkeypatch, mock_args, mock_sysinfo):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
@@ -277,13 +245,6 @@ def test_set_priority(mock_args, mock_sysinfo):
 
     assert opt.priority == "low"
 
-def test_set_priority_testmode(mock_args, mock_sysinfo):
-    mock_args.priority = "low"
-    mock_args.test = True
-    opt = Options(mock_args, mock_sysinfo)
-
-    assert opt.priority == "all"
-
 def test_set_all_cve_false(mock_args, mock_sysinfo):
     mock_args.updates = True
     opt = Options(mock_args, mock_sysinfo)
@@ -312,14 +273,6 @@ def test_invalid_manifest_file_missing_manifest(monkeypatch, mock_args, mock_sys
 
     assert "Cannot specify" in str(ae)
 
-def test_invalid_manifest_and_test(mock_args, mock_sysinfo):
-    with pytest.raises(ArgumentError) as ae:
-        mock_args.test = True
-        mock_args.manifest = "bionic"
-        Options(mock_args, mock_sysinfo)
-
-    assert "options are incompatible" in str(ae)
-
 def test_invalid_nagios_and_cve(mock_args, mock_sysinfo):
     with pytest.raises(ArgumentError) as ae:
         mock_args.nagios = True
@@ -343,74 +296,6 @@ def test_invalid_nagios_and_updates(mock_args, mock_sysinfo):
         Options(mock_args, mock_sysinfo)
 
     assert "options are incompatible" in str(ae)
-
-def test_invalid_test_and_cve(mock_args, mock_sysinfo):
-    with pytest.raises(ArgumentError) as ae:
-        mock_args.test = True
-        mock_args.cve = "CVE-2020-1234"
-        Options(mock_args, mock_sysinfo)
-
-    assert "options are incompatible" in str(ae)
-
-def test_invalid_test_and_silent(mock_args, mock_sysinfo):
-    with pytest.raises(ArgumentError) as ae:
-        mock_args.test = True
-        mock_args.silent = True
-        Options(mock_args, mock_sysinfo)
-
-def test_invalid_test_and_experimental(mock_args, mock_sysinfo):
-    with pytest.raises(ArgumentError) as ae:
-        mock_args.test = True
-        mock_args.experimental = True
-        Options(mock_args, mock_sysinfo)
-
-    assert "options are incompatible" in str(ae)
-
-def test_invalid_test_and_manifest_file(monkeypatch, mock_args, mock_sysinfo):
-    monkeypatch.setattr(os.path, "isfile", lambda x: True)
-
-    with pytest.raises(ArgumentError) as ae:
-        mock_args.test = True
-        mock_args.manifest = True
-        mock_args.file = "test"
-        Options(mock_args, mock_sysinfo)
-
-    assert "options are incompatible" in str(ae)
-
-def test_invalid_test_and_manifest(mock_args, mock_sysinfo):
-    with pytest.raises(ArgumentError) as ae:
-        mock_args.test = True
-        mock_args.manifest = True
-        Options(mock_args, mock_sysinfo)
-
-    assert "options are incompatible" in str(ae)
-
-def test_invalid_test_and_nagios(mock_args, mock_sysinfo):
-    with pytest.raises(ArgumentError) as ae:
-        mock_args.test = True
-        mock_args.nagios = True
-        Options(mock_args, mock_sysinfo)
-
-    assert "options are incompatible" in str(ae)
-
-def test_invalid_test_and_oval_file(monkeypatch, mock_args, mock_sysinfo):
-    monkeypatch.setattr(os.path, "isfile", lambda x: True)
-
-    with pytest.raises(ArgumentError) as ae:
-        mock_args.test = True
-        mock_args.oval_file = "test"
-        Options(mock_args, mock_sysinfo)
-
-    assert "options are incompatible" in str(ae)
-
-def test_invalid_test_and_updates(mock_args, mock_sysinfo):
-    with pytest.raises(ArgumentError) as ae:
-        mock_args.test = True
-        mock_args.updates = True
-        Options(mock_args, mock_sysinfo)
-
-    assert "options are incompatible" in str(ae)
-
 
 def test_invalid_silent_without_cve(monkeypatch, mock_args, mock_sysinfo):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)

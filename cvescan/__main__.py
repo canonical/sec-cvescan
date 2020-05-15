@@ -56,7 +56,6 @@ def parse_args():
     cvescan_ap.add_argument("-f", "--file", metavar="manifest-file", help=const.FILE_HELP)
     cvescan_ap.add_argument("-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP)
     cvescan_ap.add_argument("-l", "--list", action="store_true", default=False, help=const.LIST_HELP)
-    cvescan_ap.add_argument("-t", "--test", action="store_true", default=False, help=const.TEST_HELP)
     cvescan_ap.add_argument("-u", "--updates", action="store_true", default=False, help=const.UPDATES_HELP)
     cvescan_ap.add_argument("-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP)
     cvescan_ap.add_argument("-x", "--experimental", action="store_true", default=False, help=const.EXPERIMENTAL_HELP)
@@ -66,7 +65,6 @@ def parse_args():
 def log_config_options(opt):
     LOGGER.debug("Config Options")
     table = [
-        ["Test Mode", opt.test_mode],
         ["Manifest Mode", opt.manifest_mode],
         ["Experimental Mode", opt.experimental_mode],
         ["Nagios Output Mode", opt.nagios_mode],
