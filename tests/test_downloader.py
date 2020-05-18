@@ -1,9 +1,12 @@
-import cvescan.downloader as downloader
-from cvescan.errors import BZ2Error, DownloadError
 import hashlib
+import tempfile
+
 import pycurl
 import pytest
-import tempfile
+
+import cvescan.downloader as downloader
+from cvescan.errors import BZ2Error, DownloadError
+
 
 class MockCurl():
     def setopt(*args, **kwargs):

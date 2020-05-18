@@ -1,6 +1,9 @@
 import bz2
-from cvescan.errors import BZ2Error, DownloadError
+
 import pycurl
+
+from cvescan.errors import BZ2Error, DownloadError
+
 
 def download(download_url, filename):
     try:

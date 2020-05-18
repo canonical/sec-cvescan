@@ -15,4 +15,3 @@ class OpenSCAPError(Exception):
 
 class PkgCountError(Exception):
     pass
-

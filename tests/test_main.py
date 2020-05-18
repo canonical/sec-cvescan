@@ -1,7 +1,9 @@
 import collections
-from cvescan import __main__ as main
 import logging
+
 import pytest
+
+from cvescan import __main__ as main
 
 Args = collections.namedtuple('Args', 'silent, verbose')
 

@@ -1,12 +1,14 @@
-import apt_pkg
-import cvescan.constants as const
-import cvescan.downloader as downloader
-from cvescan.errors import OpenSCAPError
 import json
 import os
 import re
-from shutil import copyfile
 import sys
+from shutil import copyfile
+
+import apt_pkg
+
+import cvescan.constants as const
+import cvescan.downloader as downloader
+from cvescan.errors import OpenSCAPError
 
 ESM_VERSION_RE = re.compile(r"[+~]esm\d+")
 

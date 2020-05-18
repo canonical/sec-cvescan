@@ -1,11 +1,13 @@
-import cvescan.constants as const
-from cvescan.errors import DistribIDError, PkgCountError
 import configparser
 import math
 import os
 import re
 import subprocess
 import sys
+
+import cvescan.constants as const
+from cvescan.errors import DistribIDError, PkgCountError
+
 
 class SysInfo:
     def __init__(self, logger):

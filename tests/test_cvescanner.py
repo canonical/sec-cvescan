@@ -1,7 +1,10 @@
+import logging
+
+import pytest
+
 import cvescan.constants as const
 from cvescan.cvescanner import CVEScanner
-import logging
-import pytest
+
 
 def null_logger():
     logger = logging.getLogger("cvescan.null")

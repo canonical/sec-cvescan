@@ -1,4 +1,5 @@
 import os
+
 import setuptools
 
 with open("README.md", "r") as fh:
@@ -38,4 +39,3 @@ setuptools.setup(
     ],
     entry_points={'console_scripts': ['cvescan=cvescan.__main__:main']},
 )
-

@@ -1,9 +1,10 @@
-import cvescan.constants as const
-from cvescan.errors import ArgumentError
 import logging
 import os
 import re
 import sys
+
+import cvescan.constants as const
+from cvescan.errors import ArgumentError
 
 FMT_CVE_OPTION = "-c|--cve"
 FMT_EXPERIMENTAL_OPTION = "-x|--experimental"

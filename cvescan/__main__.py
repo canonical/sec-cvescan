@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
 import argparse as ap
+import logging
+import os
+import sys
+from shutil import which
+
+from tabulate import tabulate
+
 import cvescan.constants as const
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import *
 from cvescan.options import Options
 from cvescan.sysinfo import SysInfo
-import logging
-import os
-from shutil import which
-import sys
-from tabulate import tabulate
+
 
 def set_output_verbosity(args):
     if args.silent:

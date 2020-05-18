@@ -1,7 +1,9 @@
+import os
+
+import pytest
+
 from cvescan.errors import ArgumentError
 from cvescan.options import Options
-import os
-import pytest
 
 SCRIPTDIR = "fakedir/"
 BASE_URL = "https://people.canonical.com/~ubuntu-security/oval"

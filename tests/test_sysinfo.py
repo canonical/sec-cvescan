@@ -1,13 +1,16 @@
+import io
+import logging
+import os
+import subprocess
+import sys
+
+import lsb_release
+import pytest
+
 import cvescan.constants as const
 from cvescan.errors import DistribIDError, PkgCountError
 from cvescan.sysinfo import SysInfo
-import io
-import lsb_release
-import logging
-import os
-import pytest
-import subprocess
-import sys
+
 
 class MockSubprocess:
     def __init__(self):
