@@ -10,7 +10,10 @@ os.umask(0o022)
 setuptools.setup(
     name="cvescan",
     version="2.0.0",
-    author="Mark Morlino <mark.morlino@canonical.com>, Mike Salvatore <mike.salvatore@canonical.com>",
+    author=(
+        "Mark Morlino <mark.morlino@canonical.com>,"
+        "Mike Salvatore <mike.salvatore@canonical.com>"
+    ),
     description="A utility for using the Ubuntu Security Team's OVAL files to"
     "determine which CVEs affect an Ubuntu system.",
     long_description=long_description,
@@ -25,7 +28,7 @@ setuptools.setup(
     ],
     install_requires=["argparse", "configparser", "pycurl", "tabulate"],
     python_requires=">=3.5",
-    setup_requires=["pytest-runner",],
-    tests_require=["pytest", "pytest-cov",],
+    setup_requires=["pytest-runner"],
+    tests_require=["pytest", "pytest-cov"],
     entry_points={"console_scripts": ["cvescan=cvescan.__main__:main"]},
 )

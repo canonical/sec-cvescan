@@ -1,9 +1,7 @@
 import configparser
-import math
 import os
 import re
 import subprocess
-import sys
 
 import cvescan.constants as const
 from cvescan.errors import DistribIDError, PkgCountError
@@ -48,7 +46,7 @@ class SysInfo:
             distro = lsb_release.get_distro_information()
 
             return (distro.get("ID", "UNKNOWN"), distro.get("CODENAME", "UNKNOWN"))
-        except:
+        except Exception:
             self.logger.debug(
                 "The lsb_release python module is not installed or has failed"
             )

@@ -44,36 +44,36 @@ def mock_sysinfo():
 def test_set_no_modes(mock_args, mock_sysinfo):
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.experimental_mode == False
-    assert opt.manifest_mode == False
-    assert opt.nagios_mode == False
+    assert opt.experimental_mode is False
+    assert opt.manifest_mode is False
+    assert opt.nagios_mode is False
 
 
 def test_set_experimental(mock_args, mock_sysinfo):
     mock_args.experimental = True
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.experimental_mode == True
-    assert opt.manifest_mode == False
-    assert opt.nagios_mode == False
+    assert opt.experimental_mode is True
+    assert opt.manifest_mode is False
+    assert opt.nagios_mode is False
 
 
 def test_set_manifest_mode(mock_args, mock_sysinfo):
     mock_args.manifest = True
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.experimental_mode == False
-    assert opt.manifest_mode == True
-    assert opt.nagios_mode == False
+    assert opt.experimental_mode is False
+    assert opt.manifest_mode is True
+    assert opt.nagios_mode is False
 
 
 def test_set_nagios_mode(mock_args, mock_sysinfo):
     mock_args.nagios = True
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.experimental_mode == False
-    assert opt.manifest_mode == False
-    assert opt.nagios_mode == True
+    assert opt.experimental_mode is False
+    assert opt.manifest_mode is False
+    assert opt.nagios_mode is True
 
 
 def test_set_experimental_nagios_manifest(mock_args, mock_sysinfo):
@@ -82,9 +82,9 @@ def test_set_experimental_nagios_manifest(mock_args, mock_sysinfo):
     mock_args.nagios = True
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.experimental_mode == True
-    assert opt.manifest_mode == True
-    assert opt.nagios_mode == True
+    assert opt.experimental_mode is True
+    assert opt.manifest_mode is True
+    assert opt.nagios_mode is True
 
 
 def test_set_distrib_codename(mock_args, mock_sysinfo):
@@ -177,7 +177,7 @@ def test_set_oval_url_experimental_manifest(mock_args, mock_sysinfo):
 def test_set_download_oval_file_default(monkeypatch, mock_args, mock_sysinfo):
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.download_oval_file == True
+    assert opt.download_oval_file is True
 
 
 def test_set_download_oval_file_user_specified(monkeypatch, mock_args, mock_sysinfo):
@@ -186,21 +186,21 @@ def test_set_download_oval_file_user_specified(monkeypatch, mock_args, mock_sysi
     mock_args.oval_file = "/my/path/fakefile.xml"
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.download_oval_file == False
+    assert opt.download_oval_file is False
 
 
 def test_set_download_oval_file_manifest(mock_args, mock_sysinfo):
     mock_args.manifest = "xenial"
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.download_oval_file == True
+    assert opt.download_oval_file is True
 
 
 def test_set_download_oval_file_experimental(mock_args, mock_sysinfo):
     mock_args.experimental = True
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.download_oval_file == True
+    assert opt.download_oval_file is True
 
 
 def test_set_download_oval_file_experimental_manifest(mock_args, mock_sysinfo):
@@ -208,20 +208,20 @@ def test_set_download_oval_file_experimental_manifest(mock_args, mock_sysinfo):
     mock_args.manifest = "focal"
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.download_oval_file == True
+    assert opt.download_oval_file is True
 
 
 def test_set_manifest_file(mock_args, mock_sysinfo):
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.manifest_file == None
+    assert opt.manifest_file is None
 
 
 def test_set_manifest_file_default(mock_args, mock_sysinfo):
     mock_args.manifest = "bionic"
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.manifest_file == None
+    assert opt.manifest_file is None
 
 
 def test_set_manifest_file_user_specified(monkeypatch, mock_args, mock_sysinfo):
@@ -288,14 +288,14 @@ def test_set_all_cve_false(mock_args, mock_sysinfo):
     mock_args.updates = True
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.all_cve == False
+    assert opt.all_cve is False
 
 
 def test_set_all_cve_true(mock_args, mock_sysinfo):
     mock_args.updates = False
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.all_cve == True
+    assert opt.all_cve is True
 
 
 @pytest.mark.parametrize(
@@ -355,7 +355,7 @@ def test_invalid_silent_without_cve(monkeypatch, mock_args, mock_sysinfo):
 
 
 def test_invalid_verbose_and_silent(mock_args, mock_sysinfo):
-    with pytest.raises(ArgumentError) as ae:
+    with pytest.raises(ArgumentError):
         mock_args.cve = "CVE-2020-1234"
         mock_args.verbose = True
         mock_args.silent = True

@@ -4,13 +4,12 @@ import argparse as ap
 import logging
 import os
 import sys
-from shutil import which
 
 from tabulate import tabulate
 
 import cvescan.constants as const
 from cvescan.cvescanner import CVEScanner
-from cvescan.errors import *
+from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.options import Options
 from cvescan.sysinfo import SysInfo
 
@@ -51,7 +50,8 @@ def error_exit(msg, code=const.ERROR_RETURN_CODE):
 
 
 def parse_args():
-    # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
+    # TODO: Consider a more flexible solution than storing this in code
+    #       (e.g. config file or launchpad query)
     acceptable_codenames = ["xenial", "bionic", "eoan", "focal"]
 
     cvescan_ap = ap.ArgumentParser(
@@ -176,7 +176,7 @@ def main():
 
         try:
             os.chdir(sysinfo.snap_user_common)
-        except:
+        except Exception:
             error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
 
     try:

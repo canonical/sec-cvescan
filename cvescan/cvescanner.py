@@ -1,14 +1,12 @@
 import json
 import os
 import re
-import sys
 from shutil import copyfile
 
 import apt_pkg
 
 import cvescan.constants as const
 import cvescan.downloader as downloader
-from cvescan.errors import OpenSCAPError
 
 ESM_VERSION_RE = re.compile(r"[+~]esm\d+")
 
@@ -126,7 +124,7 @@ class CVEScanner:
         for cve in affected_cves:
             if cve[1] in priority_filter:
                 cve_list_all_filtered.append(cve)
-                if cve[3] is not "Unresolved":
+                if cve[3] != "Unresolved":
                     cve_list_fixable_filtered.append(cve)
 
         return (cve_list_all_filtered, cve_list_fixable_filtered)

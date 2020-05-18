@@ -1,7 +1,5 @@
-import logging
 import os
 import re
-import sys
 
 import cvescan.constants as const
 from cvescan.errors import ArgumentError
