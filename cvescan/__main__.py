@@ -8,6 +8,7 @@ import sys
 from tabulate import tabulate
 
 import cvescan.constants as const
+from cvescan.cli_output_formatter import CLIOutputFormatter
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.options import Options
@@ -133,6 +134,10 @@ def log_system_info(sysinfo):
     LOGGER.debug("")
 
 
+def load_output_formatter(opt, sysinfo):
+    return CLIOutputFormatter(opt, sysinfo, LOGGER)
+
+
 def main():
     global LOGGER
 
@@ -165,6 +170,8 @@ def main():
     log_config_options(opt)
     log_system_info(sysinfo)
 
+    output_formatter = load_output_formatter(opt, sysinfo)
+
     if sysinfo.is_snap:
         LOGGER.debug(
             "Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common
@@ -181,7 +188,8 @@ def main():
 
     try:
         cve_scanner = CVEScanner(sysinfo, LOGGER)
-        (results, return_code) = cve_scanner.scan(opt)
+        scan_results = cve_scanner.scan(opt)
+        (results, return_code) = output_formatter.format_output(scan_results)
     except Exception as ex:
         error_exit(
             "An unexpected error occurred while running CVEScan: %s" % ex,

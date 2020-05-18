@@ -73,6 +73,10 @@ DEBUG_LOG = "debug.log"
 DEFAULT_MANIFEST_FILE = "manifest"
 LSB_RELEASE_FILE = "/etc/lsb-release"
 
+ARCHIVE = "Ubuntu Archive"
+UA_APPS = "UA for Apps"
+UA_INFRA = "UA for Infra"
+
 SUCCESS_RETURN_CODE = 0
 ERROR_RETURN_CODE = 1
 CLI_ERROR_RETURN_CODE = 2
