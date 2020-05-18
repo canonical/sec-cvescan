@@ -1,9 +1,8 @@
-import cvescan.constants as const
-from cvescan.errors import ArgumentError
-import logging
 import os
 import re
-import sys
+
+import cvescan.constants as const
+from cvescan.errors import ArgumentError
 
 FMT_CVE_OPTION = "-c|--cve"
 FMT_EXPERIMENTAL_OPTION = "-x|--experimental"
@@ -16,7 +15,10 @@ FMT_SILENT_OPTION = "-s|--silent"
 FMT_UPDATES_OPTION = "-u|--updates"
 FMT_VERBOSE_OPTION = "-v|--verbose"
 
-MANIFEST_URL_TEMPLATE = "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
+MANIFEST_URL_TEMPLATE = (
+    "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
+)
+
 
 class Options:
     def __init__(self, args, sysinfo):
@@ -63,20 +65,28 @@ class Options:
         self.oval_zip = "%s.bz2" % self.oval_file
 
     def _set_manifest_file_options(self, args):
-        manifest_url_tmp = MANIFEST_URL_TEMPLATE % (self.distrib_codename, self.distrib_codename)
+        manifest_url_tmp = MANIFEST_URL_TEMPLATE % (
+            self.distrib_codename,
+            self.distrib_codename,
+        )
 
         self.manifest_file = os.path.abspath(args.file) if args.file else None
-        self.manifest_url = manifest_url_tmp if (self.manifest_mode and not args.file) else None
+        self.manifest_url = (
+            manifest_url_tmp if (self.manifest_mode and not args.file) else None
+        )
 
     def _set_output_verbosity(self, args):
         self.verbose_oscap_options = ""
 
         if args.verbose:
-            self.verbose_oscap_options = "--verbose WARNING --verbose-log-file %s" % const.DEBUG_LOG
+            self.verbose_oscap_options = (
+                "--verbose WARNING --verbose-log-file %s" % const.DEBUG_LOG
+            )
 
     @property
     def download_oval_file(self):
         return self.oval_base_url is not None
+
 
 def raise_on_invalid_args(args):
     raise_on_invalid_cve(args)
@@ -84,19 +94,23 @@ def raise_on_invalid_args(args):
     raise_on_missing_manifest_file(args)
     raise_on_missing_oval_file(args)
 
+
 def raise_on_invalid_cve(args):
     cve_regex = r"^CVE-[0-9]{4}-[0-9]{4,}$"
     if (args.cve is not None) and (not re.match(cve_regex, args.cve)):
         raise ValueError("Invalid CVE ID (%s)" % args.cve)
+
 
 def raise_on_invalid_combinations(args):
     raise_on_invalid_manifest_options(args)
     raise_on_invalid_nagios_options(args)
     raise_on_invalid_silent_options(args)
 
+
 def raise_on_invalid_manifest_options(args):
     if args.file and not args.manifest:
         raise ArgumentError("Cannot specify -f|--file argument without -m|--manifest.")
+
 
 def raise_on_invalid_nagios_options(args):
     if not args.nagios:
@@ -111,25 +125,35 @@ def raise_on_invalid_nagios_options(args):
     if args.updates:
         raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UPDATES_OPTION)
 
+
 def raise_on_invalid_silent_options(args):
     if not args.silent:
         return
 
     if not args.cve:
-        raise ArgumentError("Cannot specify %s argument without %s." % (FMT_SILENT_OPTION, FMT_CVE_OPTION))
+        raise ArgumentError(
+            "Cannot specify %s argument without %s."
+            % (FMT_SILENT_OPTION, FMT_CVE_OPTION)
+        )
 
     if args.verbose:
         raise_incompatible_arguments_error(FMT_SILENT_OPTION, FMT_VERBOSE_OPTION)
 
+
 def raise_incompatible_arguments_error(arg1, arg2):
-    raise ArgumentError("The %s and %s options are incompatible and may not " \
-            "be specified together." % (arg1, arg2))
+    raise ArgumentError(
+        "The %s and %s options are incompatible and may not "
+        "be specified together." % (arg1, arg2)
+    )
+
 
 def raise_on_missing_manifest_file(args):
     raise_on_missing_file(args.file)
 
+
 def raise_on_missing_oval_file(args):
     raise_on_missing_file(args.oval_file)
+
 
 def raise_on_missing_file(file_path):
     if not file_path:
@@ -138,5 +162,7 @@ def raise_on_missing_file(file_path):
     file_abs_path = os.path.abspath(file_path)
     if not os.path.isfile(file_abs_path):
         # TODO: mention snap confinement in error message
-        raise ArgumentError("Cannot find file \"%s\". Current "
-                "working directory is \"%s\"." % (file_abs_path, os.getcwd()))
+        raise ArgumentError(
+            'Cannot find file "%s". Current '
+            'working directory is "%s".' % (file_abs_path, os.getcwd())
+        )

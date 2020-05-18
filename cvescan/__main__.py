@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
 import argparse as ap
-import cvescan.constants as const
-from cvescan.cvescanner import CVEScanner
-from cvescan.errors import *
-from cvescan.options import Options
-from cvescan.sysinfo import SysInfo
 import logging
 import os
-from shutil import which
 import sys
+
 from tabulate import tabulate
+
+import cvescan.constants as const
+from cvescan.cvescanner import CVEScanner
+from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
+from cvescan.options import Options
+from cvescan.sysinfo import SysInfo
+
 
 def set_output_verbosity(args):
     if args.silent:
@@ -30,6 +32,7 @@ def set_output_verbosity(args):
 
     return logger
 
+
 def get_null_logger():
     logger = logging.getLogger("cvescan.null")
     if not logger.hasHandlers():
@@ -37,30 +40,65 @@ def get_null_logger():
 
     return logger
 
+
 LOGGER = get_null_logger()
+
 
 def error_exit(msg, code=const.ERROR_RETURN_CODE):
     print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
 
-def parse_args():
-    # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
-    acceptable_codenames = ["xenial","bionic","eoan","focal"]
 
-    cvescan_ap = ap.ArgumentParser(description=const.CVESCAN_DESCRIPTION, formatter_class=ap.RawTextHelpFormatter)
-    cvescan_ap.add_argument("-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP)
-    cvescan_ap.add_argument("-p", "--priority", help=const.PRIORITY_HELP, choices=["critical","high","medium","all"], default="high")
-    cvescan_ap.add_argument("-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP)
+def parse_args():
+    # TODO: Consider a more flexible solution than storing this in code
+    #       (e.g. config file or launchpad query)
+    acceptable_codenames = ["xenial", "bionic", "eoan", "focal"]
+
+    cvescan_ap = ap.ArgumentParser(
+        description=const.CVESCAN_DESCRIPTION, formatter_class=ap.RawTextHelpFormatter
+    )
+    cvescan_ap.add_argument(
+        "-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP
+    )
+    cvescan_ap.add_argument(
+        "-p",
+        "--priority",
+        help=const.PRIORITY_HELP,
+        choices=["critical", "high", "medium", "all"],
+        default="high",
+    )
+    cvescan_ap.add_argument(
+        "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
+    )
     cvescan_ap.add_argument("-o", "--oval-file", help=const.OVAL_FILE_HELP)
-    cvescan_ap.add_argument("-m", "--manifest", help=const.MANIFEST_HELP,choices=acceptable_codenames)
-    cvescan_ap.add_argument("-f", "--file", metavar="manifest-file", help=const.FILE_HELP)
-    cvescan_ap.add_argument("-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP)
-    cvescan_ap.add_argument("-l", "--list", action="store_true", default=False, help=const.LIST_HELP)
-    cvescan_ap.add_argument("-u", "--updates", action="store_true", default=False, help=const.UPDATES_HELP)
-    cvescan_ap.add_argument("-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP)
-    cvescan_ap.add_argument("-x", "--experimental", action="store_true", default=False, help=const.EXPERIMENTAL_HELP)
+    cvescan_ap.add_argument(
+        "-m", "--manifest", help=const.MANIFEST_HELP, choices=acceptable_codenames
+    )
+    cvescan_ap.add_argument(
+        "-f", "--file", metavar="manifest-file", help=const.FILE_HELP
+    )
+    cvescan_ap.add_argument(
+        "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
+    )
+    cvescan_ap.add_argument(
+        "-l", "--list", action="store_true", default=False, help=const.LIST_HELP
+    )
+    cvescan_ap.add_argument(
+        "-u", "--updates", action="store_true", default=False, help=const.UPDATES_HELP
+    )
+    cvescan_ap.add_argument(
+        "-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP
+    )
+    cvescan_ap.add_argument(
+        "-x",
+        "--experimental",
+        action="store_true",
+        default=False,
+        help=const.EXPERIMENTAL_HELP,
+    )
 
     return cvescan_ap.parse_args()
+
 
 def log_config_options(opt):
     LOGGER.debug("Config Options")
@@ -75,10 +113,12 @@ def log_config_options(opt):
         ["Manifest URL", opt.manifest_url],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
-        ["Only Show Updates Available", (not opt.all_cve)]]
+        ["Only Show Updates Available", (not opt.all_cve)],
+    ]
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
+
 
 def log_system_info(sysinfo):
     LOGGER.debug("System Info")
@@ -86,10 +126,12 @@ def log_system_info(sysinfo):
         ["Local Ubuntu Codename", sysinfo.distrib_codename],
         ["Installed Package Count", sysinfo.package_count],
         ["CVEScan is a Snap", sysinfo.is_snap],
-        ["$SNAP_USER_COMMON", sysinfo.snap_user_common]]
+        ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
+    ]
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
+
 
 def main():
     global LOGGER
@@ -104,7 +146,10 @@ def main():
     except (FileNotFoundError, PermissionError) as err:
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
-        error_exit("Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s" % di)
+        error_exit(
+            "Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s"
+            % di
+        )
     except PkgCountError as pke:
         error_exit("Failed to determine the local package count: %s" % pke)
 
@@ -113,29 +158,39 @@ def main():
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
 
-    error_exit_code = const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
+    error_exit_code = (
+        const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
+    )
 
     log_config_options(opt)
     log_system_info(sysinfo)
 
     if sysinfo.is_snap:
-        LOGGER.debug("Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common)
-        LOGGER.debug("Downloaded files, log files and temporary reports will " \
-                "be in '%s'" % sysinfo.snap_user_common)
+        LOGGER.debug(
+            "Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common
+        )
+        LOGGER.debug(
+            "Downloaded files, log files and temporary reports will "
+            "be in '%s'" % sysinfo.snap_user_common
+        )
 
         try:
             os.chdir(sysinfo.snap_user_common)
-        except:
+        except Exception:
             error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
 
     try:
         cve_scanner = CVEScanner(sysinfo, LOGGER)
         (results, return_code) = cve_scanner.scan(opt)
     except Exception as ex:
-        error_exit("An unexpected error occurred while running CVEScan: %s" % ex, error_exit_code)
+        error_exit(
+            "An unexpected error occurred while running CVEScan: %s" % ex,
+            error_exit_code,
+        )
 
     LOGGER.info(results)
     sys.exit(return_code)
+
 
 if __name__ == "__main__":
     main()

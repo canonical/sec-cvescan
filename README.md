@@ -91,7 +91,15 @@ version of CVEScan by running
 
 You can install CVEScan locally by running
 
-    pip install --user .
+    pip3 install --user .
+
+## Development
+
+### Installing precommit hooks
+To install the precommit hooks, run
+
+    pip3 install --user pre-commit
+    ~/.local/bin/pre-commit install
 
 ### Running the test suite
 You can run the automated test suite by running
