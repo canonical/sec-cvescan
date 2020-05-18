@@ -16,6 +16,7 @@ def download(download_url, filename):
     except Exception as ex:
         raise DownloadError("Downloading %s failed: %s" % (download_url, ex))
 
+
 def bz2decompress(bz2_archive, target):
     try:
         with open(bz2_archive, "rb") as archive:

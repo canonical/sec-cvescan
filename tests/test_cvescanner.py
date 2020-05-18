@@ -13,18 +13,23 @@ def null_logger():
 
     return logger
 
+
 class MockSysInfo:
     def __init__(self):
         self.distrib_codename = "bionic"
         self.package_count = 100
         self.scriptdir = "."
-        self.installed_packages = {"pkg1": "1:1.2.3-4+deb9u2ubuntu0.1",
-                                   "pkg2": "1:1.2.3-4+deb9u2ubuntu0.1",
-                                   "pkg3": "10.2.3-2",
-                                   "pkg4": "2.0.0+dfsg-1ubuntu1",
-                                   "pkg5": "2.0.0+dfsg-1ubuntu1",
-                                   "pkg6": "2.0.0+dfsg-1ubuntu1",
-                                   "pkg7": "1.2.0-1"}
+        self.installed_packages = {
+            "pkg1": "1:1.2.3-4+deb9u2ubuntu0.1",
+            "pkg2": "1:1.2.3-4+deb9u2ubuntu0.1",
+            "pkg3": "10.2.3-2",
+            "pkg4": "2.0.0+dfsg-1ubuntu1",
+            "pkg5": "2.0.0+dfsg-1ubuntu1",
+            "pkg6": "2.0.0+dfsg-1ubuntu1",
+            "pkg7": "1.2.0-1",
+        }
+
+
 class MockOpt:
     def __init__(self):
         self.test_mode = False
@@ -37,6 +42,7 @@ class MockOpt:
         self.all_cve = True
         self.priority = "all"
 
+
 class MockCVEScanner(CVEScanner):
     def __init__(self, cve_list_all, cve_list_fixable):
         super().__init__(MockSysInfo(), null_logger())
@@ -46,17 +52,28 @@ class MockCVEScanner(CVEScanner):
     def _retrieve_oval_file(self, opt):
         pass
 
+
 @pytest.fixture
 def test_cve_list_all():
-    return ["CVE-2020-1000", "CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1003", "CVE-2020-1004", "CVE-2020-1005"]
+    return [
+        "CVE-2020-1000",
+        "CVE-2020-1001",
+        "CVE-2020-1002",
+        "CVE-2020-1003",
+        "CVE-2020-1004",
+        "CVE-2020-1005",
+    ]
+
 
 @pytest.fixture
 def test_cve_list_fixable():
     return ["CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1005"]
 
+
 @pytest.fixture
 def default_cve_scanner(test_cve_list_all, test_cve_list_fixable):
     return MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
+
 
 def test_no_cves():
     cve_scanner = MockCVEScanner(list(), list())
@@ -64,6 +81,7 @@ def test_no_cves():
 
     assert "No CVEs" in results_msg
     assert return_code == const.SUCCESS_RETURN_CODE
+
 
 def test_all_cves_no_fixable(test_cve_list_all):
     cve_scanner = MockCVEScanner(test_cve_list_all, list())
@@ -73,6 +91,7 @@ def test_all_cves_no_fixable(test_cve_list_all):
     assert "can be fixed by installing" not in results_msg
     assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
 
+
 def test_all_cves_fixable(test_cve_list_all, test_cve_list_fixable):
     cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
     (results_msg, return_code) = cve_scanner.scan(MockOpt())
@@ -80,6 +99,7 @@ def test_all_cves_fixable(test_cve_list_all, test_cve_list_fixable):
     assert "All CVEs" in results_msg
     assert "can be fixed by installing" in results_msg
     assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
+
 
 def test_updates_no_cves():
     cve_scanner = MockCVEScanner(list(), list())
@@ -90,6 +110,7 @@ def test_updates_no_cves():
     assert "No CVEs" in results_msg
     assert return_code == const.SUCCESS_RETURN_CODE
 
+
 def test_updates_no_fixable(test_cve_list_all):
     cve_scanner = MockCVEScanner(test_cve_list_all, list())
     opt = MockOpt()
@@ -98,6 +119,7 @@ def test_updates_no_fixable(test_cve_list_all):
 
     assert "All CVEs" not in results_msg
     assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
+
 
 def test_updates_fixable(test_cve_list_all, test_cve_list_fixable):
     cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
@@ -109,6 +131,7 @@ def test_updates_fixable(test_cve_list_all, test_cve_list_fixable):
     assert "can be fixed by installing" in results_msg
     assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
 
+
 def test_specific_cve_not_vulnerable(test_cve_list_all, test_cve_list_fixable):
     cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
     opt = MockOpt()
@@ -116,6 +139,7 @@ def test_specific_cve_not_vulnerable(test_cve_list_all, test_cve_list_fixable):
     (results_msg, return_code) = cve_scanner.scan(opt)
 
     assert return_code == const.SUCCESS_RETURN_CODE
+
 
 def test_specific_cve_vulnerable(test_cve_list_all, test_cve_list_fixable):
     cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
@@ -125,6 +149,7 @@ def test_specific_cve_vulnerable(test_cve_list_all, test_cve_list_fixable):
 
     assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
 
+
 def test_specific_cve_fixable(test_cve_list_all, test_cve_list_fixable):
     cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
     opt = MockOpt()
@@ -132,6 +157,7 @@ def test_specific_cve_fixable(test_cve_list_all, test_cve_list_fixable):
     (results_msg, return_code) = cve_scanner.scan(opt)
 
     assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
+
 
 def test_nagios_no_cves():
     cve_scanner = MockCVEScanner(list(), list())
@@ -141,6 +167,7 @@ def test_nagios_no_cves():
 
     assert return_code == const.NAGIOS_OK_RETURN_CODE
 
+
 def test_nagios_no_fixable_cves(test_cve_list_all):
     cve_scanner = MockCVEScanner(test_cve_list_all, list())
     opt = MockOpt()
@@ -148,6 +175,7 @@ def test_nagios_no_fixable_cves(test_cve_list_all):
     (results_msg, return_code) = cve_scanner.scan(opt)
 
     assert return_code == const.NAGIOS_WARNING_RETURN_CODE
+
 
 def test_nagios_fixable_cves(test_cve_list_all, test_cve_list_fixable):
     cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)

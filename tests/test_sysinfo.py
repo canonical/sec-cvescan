@@ -43,6 +43,7 @@ in  alsa-tools-gui                                  1.1.7-1                     
     def communicate(self):
         return (self.out, self.error)
 
+
 class MockResponses:
     def __init__(self):
         self.sys_argv = list("cvescan")
@@ -54,8 +55,9 @@ class MockResponses:
         self.lsb_release_file = "tests/assets/lsb-release"
         self.dpkg_popen = MockSubprocess()
 
+
 def apply_mock_responses(monkeypatch, mock_responses):
-    monkeypatch.setattr(sys, "argv",  mock_responses.sys_argv)
+    monkeypatch.setattr(sys, "argv", mock_responses.sys_argv)
     monkeypatch.setattr(os.path, "dirname", lambda x: mock_responses.os_path_dirname)
     monkeypatch.setattr(os.path, "abspath", lambda x: mock_responses.os_path_abspath)
     if mock_responses.environ_snap_user_common == None:
@@ -66,10 +68,17 @@ def apply_mock_responses(monkeypatch, mock_responses):
     if mock_responses.get_distro_information_raises == True:
         monkeypatch.setattr(lsb_release, "get_distro_information", raise_mock_exception)
     else:
-        monkeypatch.setattr(lsb_release, "get_distro_information", lambda: mock_responses.get_distro_information)
+        monkeypatch.setattr(
+            lsb_release,
+            "get_distro_information",
+            lambda: mock_responses.get_distro_information,
+        )
 
     monkeypatch.setattr(const, "LSB_RELEASE_FILE", mock_responses.lsb_release_file)
-    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: mock_responses.dpkg_popen)
+    monkeypatch.setattr(
+        subprocess, "Popen", lambda *args, **kwargs: mock_responses.dpkg_popen
+    )
+
 
 def raise_mock_exception():
     raise Exception("Mock Exception")
@@ -83,6 +92,7 @@ def null_logger():
 
     return logger
 
+
 def test_is_snap_false(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
@@ -90,6 +100,7 @@ def test_is_snap_false(monkeypatch, null_logger):
     sysinfo = SysInfo(null_logger)
     assert not sysinfo.is_snap
     assert sysinfo.snap_user_common is None
+
 
 def test_is_snap_true(monkeypatch, null_logger):
     mock_responses = MockResponses()
@@ -100,12 +111,14 @@ def test_is_snap_true(monkeypatch, null_logger):
     assert sysinfo.is_snap
     assert sysinfo.snap_user_common == "/home/test/snap"
 
+
 def test_get_codename_lsb_module(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
 
     sysinfo = SysInfo(null_logger)
     assert sysinfo.distrib_codename == "trusty"
+
 
 def test_get_codename_lsb_module_empty(monkeypatch, null_logger):
     mock_responses = MockResponses()
@@ -117,6 +130,7 @@ def test_get_codename_lsb_module_empty(monkeypatch, null_logger):
 
     assert "UNKNOWN" in str(di)
 
+
 def test_get_codename_lsb_module_other(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.get_distro_information = {"ID": "something_else"}
@@ -127,6 +141,7 @@ def test_get_codename_lsb_module_other(monkeypatch, null_logger):
 
     assert "something_else" in str(di)
 
+
 def test_get_codename_from_file(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.get_distro_information_raises = True
@@ -135,10 +150,11 @@ def test_get_codename_from_file(monkeypatch, null_logger):
     sysinfo = SysInfo(null_logger)
     assert sysinfo.distrib_codename == "trusty"
 
+
 def test_get_codename_from_not_ubuntu(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.get_distro_information_raises = True
-    #mock_responses.lsb_file_contents = "DISTRIB_ID=something_else\nDISTRIB_CODENAME=trusty"
+    # mock_responses.lsb_file_contents = "DISTRIB_ID=something_else\nDISTRIB_CODENAME=trusty"
     mock_responses.lsb_release_file = "tests/assets/lsb-release-not-ubuntu"
     apply_mock_responses(monkeypatch, mock_responses)
 
@@ -147,12 +163,14 @@ def test_get_codename_from_not_ubuntu(monkeypatch, null_logger):
 
     assert "not-ubuntu" in str(di)
 
+
 def test_package_count(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
 
     sysinfo = SysInfo(null_logger)
     assert sysinfo.package_count == 14
+
 
 def test_package_count_error(monkeypatch, null_logger):
     mock_responses = MockResponses()
@@ -164,12 +182,14 @@ def test_package_count_error(monkeypatch, null_logger):
     with pytest.raises(PkgCountError) as pce:
         sysinfo = SysInfo(null_logger)
 
+
 def test_installed_packages_list(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
 
     sysinfo = SysInfo(null_logger)
-    expected_installed_packages = {"2to3": "3.7.5-1",
+    expected_installed_packages = {
+        "2to3": "3.7.5-1",
         "accountsservice": "0.6.55-0ubuntu10",
         "accountwizard": "4:19.04.3-0ubuntu1",
         "acl": "2.2.53-4",
@@ -182,5 +202,6 @@ def test_installed_packages_list(monkeypatch, null_logger):
         "afl-doc": "2.52b-5ubuntu1",
         "akonadi-backend-mysql": "4:19.04.3-0ubuntu3",
         "akonadi-server": "4:19.04.3-0ubuntu3",
-        "akregator": "4:19.04.3-0ubuntu1"}
+        "akregator": "4:19.04.3-0ubuntu1",
+    }
     assert sysinfo.installed_packages == expected_installed_packages
