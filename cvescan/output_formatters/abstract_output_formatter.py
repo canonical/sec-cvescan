@@ -12,5 +12,5 @@ class AbstractOutputFormatter(ABC):
         super().__init__()
 
     @abstractmethod
-    def format_output(self, cvescan_results: List[ScanResult]):
+    def format_output(self, cvescan_results: List[ScanResult]) -> (str, int):
         pass
