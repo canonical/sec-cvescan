@@ -34,11 +34,6 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return (cve_list_all_filtered, cve_list_fixable_filtered)
 
     def _analyze_results(self, cve_list_all_filtered, cve_list_fixable_filtered):
-        if self.opt.nagios_mode:
-            return self._analyze_nagios_results(
-                cve_list_all_filtered, cve_list_fixable_filtered, self.opt.priority
-            )
-
         if self.opt.cve:
             return self._analyze_single_cve_results(
                 cve_list_all_filtered, cve_list_fixable_filtered, self.opt.cve
@@ -47,39 +42,6 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return self._analyze_cve_list_results(
             cve_list_all_filtered, cve_list_fixable_filtered
         )
-
-    def _analyze_nagios_results(
-        self, cve_list_all_filtered, cve_list_fixable_filtered, priority
-    ):
-        if len(cve_list_all_filtered) == 0:
-            results_msg = (
-                "OK: no known %s or higher CVEs that can be fixed by updating"
-                % priority
-            )
-            return_code = const.NAGIOS_OK_RETURN_CODE
-        elif len(cve_list_all_filtered) != 0 and len(cve_list_fixable_filtered) == 0:
-            results_msg = (
-                "WARNING: %s CVEs with priority %s or higher affect this system\n%s"
-                % (
-                    len(cve_list_all_filtered),
-                    priority,
-                    "\n".join(cve_list_all_filtered),
-                )
-            )
-            return_code = const.NAGIOS_WARNING_RETURN_CODE
-        else:
-            results_msg = (
-                "CRITICAL: %d CVEs with priority %s or higher affect "
-                "this system and can be fixed with package updates\n%s"
-                % (
-                    len(cve_list_fixable_filtered),
-                    priority,
-                    "\n".join(cve_list_fixable_filtered),
-                )
-            )
-            return_code = const.NAGIOS_CRITICAL_RETURN_CODE
-
-        return (results_msg, return_code)
 
     def _analyze_single_cve_results(
         self, cve_list_all_filtered, cve_list_fixable_filtered, cve

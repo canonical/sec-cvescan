@@ -11,7 +11,7 @@ import cvescan.constants as const
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.options import Options
-from cvescan.output_formatters import CLIOutputFormatter
+from cvescan.output_formatters import CLIOutputFormatter, NagiosOutputFormatter
 from cvescan.sysinfo import SysInfo
 
 
@@ -135,6 +135,9 @@ def log_system_info(sysinfo):
 
 
 def load_output_formatter(opt, sysinfo):
+    if opt.nagios_mode:
+        return NagiosOutputFormatter(opt, sysinfo, LOGGER)
+
     return CLIOutputFormatter(opt, sysinfo, LOGGER)
 
 

@@ -202,18 +202,6 @@ def test_specific_cve_fixable():
 #    assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
 
 
-def test_nagios_no_cves():
-    pass
-
-
-#    cve_scanner = MockCVEScanner(list(), list())
-#    opt = MockOpt()
-#    opt.nagios_mode = True
-#    (results_msg, return_code) = cve_scanner.scan(opt)
-
-#    assert return_code == const.NAGIOS_OK_RETURN_CODE
-
-
 def test_nagios_no_fixable_cves():
     pass
 
