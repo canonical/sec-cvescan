@@ -65,7 +65,7 @@ def parse_args():
         "-p",
         "--priority",
         help=const.PRIORITY_HELP,
-        choices=["critical", "high", "medium", "all"],
+        choices=[const.CRITICAL, const.HIGH, const.MEDIUM, const.ALL],
         default="high",
     )
     cvescan_ap.add_argument(

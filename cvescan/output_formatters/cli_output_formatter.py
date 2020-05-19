@@ -7,10 +7,20 @@ from cvescan.scan_result import ScanResult
 
 class CLIOutputFormatter(AbstractOutputFormatter):
     def format_output(self, scan_results: List[ScanResult]) -> (str, int):
-        # TODO: get correct priority filter
-        (cve_list_all_filtered, cve_list_fixable_filtered) = self.apply_filters(
+        (cve_list_all_filtered, cve_list_fixable_filtered) = self._apply_filters(
             scan_results
         )
+
+        return self._analyze_results(cve_list_all_filtered, cve_list_fixable_filtered)
+
+    def _apply_filters(self, scan_results):
+        priority_filtered_scan_results = self._filter_on_priority(scan_results)
+        fixable_filtered_scan_results = self._filter_on_fixable(
+            priority_filtered_scan_results
+        )
+
+        cve_list_all_filtered = [sr.cve_id for sr in priority_filtered_scan_results]
+        cve_list_fixable_filtered = [sr.cve_id for sr in fixable_filtered_scan_results]
 
         # TODO: This removes duplicates. It can go away once output is overhauled.
         cve_list_all_filtered = list(set(cve_list_all_filtered))
@@ -21,29 +31,8 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         cve_list_all_filtered.sort()
         cve_list_fixable_filtered.sort()
 
-        return self._analyze_results(cve_list_all_filtered, cve_list_fixable_filtered)
-
-    def apply_filters(self, scan_results):
-        priority_filter = {
-            "untriaged",
-            "negligible",
-            "low",
-            "medium",
-            "high",
-            "critical",
-        }
-
-        cve_list_all_filtered = []
-        cve_list_fixable_filtered = []
-        for result in scan_results:
-            if result.priority in priority_filter:
-                cve_list_all_filtered.append(result.cve_id)
-                if result.fixed_version is not None:
-                    cve_list_fixable_filtered.append(result.cve_id)
-
         return (cve_list_all_filtered, cve_list_fixable_filtered)
 
-    # TODO: create a new module that is responsible for analyzing and formatting output
     def _analyze_results(self, cve_list_all_filtered, cve_list_fixable_filtered):
         if self.opt.nagios_mode:
             return self._analyze_nagios_results(
