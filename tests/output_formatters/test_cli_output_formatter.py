@@ -60,18 +60,6 @@ def scan_results():
     ]
 
 
-@pytest.fixture
-def priority_scan_results():
-    return [
-        ScanResult("CVE-2020-1000", const.MEDIUM, "pkg4", None, None),
-        ScanResult("CVE-2020-1001", const.NEGLIGIBLE, "pkg5", None, None),
-        ScanResult("CVE-2020-1002", const.CRITICAL, "pkg6", None, None),
-        ScanResult("CVE-2020-1003", const.UNTRIAGED, "pkg7", None, None),
-        ScanResult("CVE-2020-1004", const.LOW, "pkg1", None, None),
-        ScanResult("CVE-2020-1005", const.HIGH, "pkg2", None, None),
-    ]
-
-
 def filter_scan_results_by_cve_ids(scan_results, cve_ids):
     return [sr for sr in scan_results if sr.cve_id in cve_ids]
 
@@ -99,88 +87,28 @@ def test_all_cves_no_fixable(cli_output_formatter, scan_results):
     assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
 
 
-def test_priority_filter_all(priority_scan_results):
-    opt = MockOpt()
-    opt.priority = const.ALL
-    cof = CLIOutputFormatter(opt, MockSysInfo(), null_logger())
-    (results_msg, return_code) = cof.format_output(priority_scan_results)
-
-    assert priority_scan_results[0].cve_id in results_msg
-    assert priority_scan_results[1].cve_id in results_msg
-    assert priority_scan_results[2].cve_id in results_msg
-    assert priority_scan_results[3].cve_id in results_msg
-    assert priority_scan_results[4].cve_id in results_msg
-    assert priority_scan_results[5].cve_id in results_msg
+def test_priority_filter_all(run_priority_filter_all_test):
+    run_priority_filter_all_test(CLIOutputFormatter)
 
 
-def test_priority_filter_negligible(priority_scan_results):
-    opt = MockOpt()
-    opt.priority = const.NEGLIGIBLE
-    cof = CLIOutputFormatter(opt, MockSysInfo(), null_logger())
-    (results_msg, return_code) = cof.format_output(priority_scan_results)
-
-    assert priority_scan_results[0].cve_id in results_msg
-    assert priority_scan_results[1].cve_id in results_msg
-    assert priority_scan_results[2].cve_id in results_msg
-    assert priority_scan_results[3].cve_id not in results_msg
-    assert priority_scan_results[4].cve_id in results_msg
-    assert priority_scan_results[5].cve_id in results_msg
+def test_priority_filter_negligible(run_priority_filter_negligible_test):
+    run_priority_filter_negligible_test(CLIOutputFormatter)
 
 
-def test_priority_filter_low(priority_scan_results):
-    opt = MockOpt()
-    opt.priority = const.LOW
-    cof = CLIOutputFormatter(opt, MockSysInfo(), null_logger())
-    (results_msg, return_code) = cof.format_output(priority_scan_results)
-
-    assert priority_scan_results[0].cve_id in results_msg
-    assert priority_scan_results[1].cve_id not in results_msg
-    assert priority_scan_results[2].cve_id in results_msg
-    assert priority_scan_results[3].cve_id not in results_msg
-    assert priority_scan_results[4].cve_id in results_msg
-    assert priority_scan_results[5].cve_id in results_msg
+def test_priority_filter_low(run_priority_filter_low_test):
+    run_priority_filter_low_test(CLIOutputFormatter)
 
 
-def test_priority_filter_medium(priority_scan_results):
-    opt = MockOpt()
-    opt.priority = const.MEDIUM
-    cof = CLIOutputFormatter(opt, MockSysInfo(), null_logger())
-    (results_msg, return_code) = cof.format_output(priority_scan_results)
-
-    assert priority_scan_results[0].cve_id in results_msg
-    assert priority_scan_results[1].cve_id not in results_msg
-    assert priority_scan_results[2].cve_id in results_msg
-    assert priority_scan_results[3].cve_id not in results_msg
-    assert priority_scan_results[4].cve_id not in results_msg
-    assert priority_scan_results[5].cve_id in results_msg
+def test_priority_filter_medium(run_priority_filter_medium_test):
+    run_priority_filter_medium_test(CLIOutputFormatter)
 
 
-def test_priority_filter_high(priority_scan_results):
-    opt = MockOpt()
-    opt.priority = const.HIGH
-    cof = CLIOutputFormatter(opt, MockSysInfo(), null_logger())
-    (results_msg, return_code) = cof.format_output(priority_scan_results)
-
-    assert priority_scan_results[0].cve_id not in results_msg
-    assert priority_scan_results[1].cve_id not in results_msg
-    assert priority_scan_results[2].cve_id in results_msg
-    assert priority_scan_results[3].cve_id not in results_msg
-    assert priority_scan_results[4].cve_id not in results_msg
-    assert priority_scan_results[5].cve_id in results_msg
+def test_priority_filter_high(run_priority_filter_high_test):
+    run_priority_filter_high_test(CLIOutputFormatter)
 
 
-def test_priority_filter_critical(priority_scan_results):
-    opt = MockOpt()
-    opt.priority = const.CRITICAL
-    cof = CLIOutputFormatter(opt, MockSysInfo(), null_logger())
-    (results_msg, return_code) = cof.format_output(priority_scan_results)
-
-    assert priority_scan_results[0].cve_id not in results_msg
-    assert priority_scan_results[1].cve_id not in results_msg
-    assert priority_scan_results[2].cve_id in results_msg
-    assert priority_scan_results[3].cve_id not in results_msg
-    assert priority_scan_results[4].cve_id not in results_msg
-    assert priority_scan_results[5].cve_id not in results_msg
+def test_priority_filter_critical(run_priority_filter_critical_test):
+    run_priority_filter_critical_test(CLIOutputFormatter)
 
 
 # TODO: Don't spend time making the rest of these tests pass since we're going to
