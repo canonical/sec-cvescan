@@ -6,11 +6,6 @@ from cvescan.scan_result import ScanResult
 
 
 class CLIOutputFormatter(AbstractOutputFormatter):
-    def __init__(self, opt, sysinfo, logger):
-        self.opt = opt
-        self.sysinfo = sysinfo
-        self.logger = logger
-
     def format_output(self, scan_results: List[ScanResult]):
         # TODO: get correct priority filter
         (cve_list_all_filtered, cve_list_fixable_filtered) = self.apply_filters(
