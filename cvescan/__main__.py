@@ -8,10 +8,10 @@ import sys
 from tabulate import tabulate
 
 import cvescan.constants as const
-from cvescan.cli_output_formatter import CLIOutputFormatter
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.options import Options
+from cvescan.output_formatters import CLIOutputFormatter
 from cvescan.sysinfo import SysInfo
 
 

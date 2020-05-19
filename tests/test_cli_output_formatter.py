@@ -3,7 +3,7 @@ import logging
 import pytest
 
 import cvescan.constants as const
-from cvescan.cli_output_formatter import CLIOutputFormatter
+from cvescan.output_formatters import CLIOutputFormatter
 from cvescan.scan_result import ScanResult
 
 

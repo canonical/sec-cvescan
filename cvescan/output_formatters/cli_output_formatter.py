@@ -1,7 +1,7 @@
 from typing import List
 
 import cvescan.constants as const
-from cvescan.abstract_output_formatter import AbstractOutputFormatter
+from cvescan.output_formatters import AbstractOutputFormatter
 from cvescan.scan_result import ScanResult
 
 
