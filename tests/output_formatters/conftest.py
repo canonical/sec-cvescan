@@ -25,7 +25,7 @@ class MockOpt:
         self.manifest_mode = False
         self.manifest_file = None
         self.cve = None
-        self.all_cve = True
+        self.unresolved = True
         self.priority = "all"
 
 

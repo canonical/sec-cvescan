@@ -82,7 +82,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
                 % (inspected_msg, len(cve_list_all_filtered), self.opt.priority,)
             )
 
-            if self.opt.all_cve:
+            if self.opt.unresolved:
                 results_msg = "%s\n\nAll CVEs affecting this system:\n\t%s" % (
                     results_msg,
                     "\n\t".join(cve_list_all_filtered),

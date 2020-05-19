@@ -12,7 +12,7 @@ FMT_NAGIOS_OPTION = "-n|--nagios"
 FMT_OVAL_FILE_OPTION = "-o|--oval_file"
 FMT_PRIORITY_OPTION = "-p|priority"
 FMT_SILENT_OPTION = "-s|--silent"
-FMT_UPDATES_OPTION = "-u|--updates"
+FMT_UNRESOLVED_OPTION = "--unresolved"
 FMT_VERBOSE_OPTION = "-v|--verbose"
 
 MANIFEST_URL_TEMPLATE = (
@@ -32,7 +32,7 @@ class Options:
 
         self.cve = args.cve
         self.priority = args.priority
-        self.all_cve = not args.updates
+        self.unresolved = args.unresolved
 
     def _set_mode(self, args):
         self.manifest_mode = True if args.manifest else False
@@ -105,6 +105,7 @@ def raise_on_invalid_combinations(args):
     raise_on_invalid_manifest_options(args)
     raise_on_invalid_nagios_options(args)
     raise_on_invalid_silent_options(args)
+    raise_on_invalid_unresolved_options(args)
 
 
 def raise_on_invalid_manifest_options(args):
@@ -122,8 +123,8 @@ def raise_on_invalid_nagios_options(args):
     if args.silent:
         raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_SILENT_OPTION)
 
-    if args.updates:
-        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UPDATES_OPTION)
+    if args.unresolved:
+        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UNRESOLVED_OPTION)
 
 
 def raise_on_invalid_silent_options(args):
@@ -138,6 +139,14 @@ def raise_on_invalid_silent_options(args):
 
     if args.verbose:
         raise_incompatible_arguments_error(FMT_SILENT_OPTION, FMT_VERBOSE_OPTION)
+
+
+def raise_on_invalid_unresolved_options(args):
+    if args.unresolved and args.cve:
+        raise_incompatible_arguments_error(FMT_UNRESOLVED_OPTION, FMT_CVE_OPTION)
+
+    if args.unresolved and args.nagios:
+        raise_incompatible_arguments_error(FMT_UNRESOLVED_OPTION, FMT_NAGIOS_OPTION)
 
 
 def raise_incompatible_arguments_error(arg1, arg2):

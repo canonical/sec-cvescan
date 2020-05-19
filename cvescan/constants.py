@@ -54,11 +54,7 @@ TEST_HELP = (
     "are\n working as expected. In test mode, oval files are not downloaded."
 )
 
-UPDATES_HELP = (
-    "Only show CVEs affecting packages if there is an update "
-    "available.\nDefault: show only CVEs affecting this system or "
-    "manifest file."
-)
+UNRESOLVED_HELP = "Show CVEs that have not yet been resolved."
 
 VERBOSE_HELP = "Enable verbose messages."
 

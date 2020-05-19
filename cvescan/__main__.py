@@ -85,7 +85,7 @@ def parse_args():
         "-l", "--list", action="store_true", default=False, help=const.LIST_HELP
     )
     cvescan_ap.add_argument(
-        "-u", "--updates", action="store_true", default=False, help=const.UPDATES_HELP
+        "--unresolved", action="store_true", default=False, help=const.UNRESOLVED_HELP
     )
     cvescan_ap.add_argument(
         "-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP
@@ -114,7 +114,7 @@ def log_config_options(opt):
         ["Manifest URL", opt.manifest_url],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
-        ["Only Show Updates Available", (not opt.all_cve)],
+        ["Show Unresolved CVEs", opt.unresolved],
     ]
 
     LOGGER.debug(tabulate(table))

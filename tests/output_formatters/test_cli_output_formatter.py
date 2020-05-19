@@ -27,7 +27,7 @@ class MockOpt:
         self.manifest_file = None
         self.nagios_mode = False
         self.cve = None
-        self.all_cve = True
+        self.unresolved = True
         self.priority = "all"
 
 
@@ -76,7 +76,7 @@ def test_no_cves(cli_output_formatter):
     assert return_code == const.SUCCESS_RETURN_CODE
 
 
-def test_all_cves_no_fixable(cli_output_formatter, scan_results):
+def test_unresolved_no_fixable(cli_output_formatter, scan_results):
     sr = filter_scan_results_by_cve_ids(
         scan_results, ["CVE-2020-1000", "CVE-2020-1003"]
     )

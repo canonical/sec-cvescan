@@ -20,7 +20,7 @@ class MockArgs:
         self.nagios = False
         self.list = False
         self.test = False
-        self.updates = False
+        self.unresolved = False
         self.verbose = False
         self.experimental = False
 
@@ -284,18 +284,18 @@ def test_set_priority(mock_args, mock_sysinfo):
     assert opt.priority == "low"
 
 
-def test_set_all_cve_false(mock_args, mock_sysinfo):
-    mock_args.updates = True
+def test_set_unresolved_false(mock_args, mock_sysinfo):
+    mock_args.unresolved = False
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.all_cve is False
+    assert opt.unresolved is False
 
 
-def test_set_all_cve_true(mock_args, mock_sysinfo):
-    mock_args.updates = False
+def test_set_unresolved_true(mock_args, mock_sysinfo):
+    mock_args.unresolved = True
     opt = Options(mock_args, mock_sysinfo)
 
-    assert opt.all_cve is True
+    assert opt.unresolved is True
 
 
 @pytest.mark.parametrize(
@@ -336,10 +336,10 @@ def test_invalid_nagios_and_silent(mock_args, mock_sysinfo):
     assert "options are incompatible" in str(ae)
 
 
-def test_invalid_nagios_and_updates(mock_args, mock_sysinfo):
+def test_invalid_nagios_and_unresolved(mock_args, mock_sysinfo):
     with pytest.raises(ArgumentError) as ae:
         mock_args.nagios = True
-        mock_args.updates = True
+        mock_args.unresolved = True
         Options(mock_args, mock_sysinfo)
 
     assert "options are incompatible" in str(ae)
@@ -381,3 +381,10 @@ def test_invalid_oval_file_not_found(monkeypatch, mock_args, mock_sysinfo):
         Options(mock_args, mock_sysinfo)
 
     assert "Cannot find file" in str(ae)
+
+
+def test_invalid_cve_and_unresolved(mock_args, mock_sysinfo):
+    with pytest.raises(ArgumentError):
+        mock_args.cve = "CVE-2020-1234"
+        mock_args.unresolved = True
+        Options(mock_args, mock_sysinfo)
