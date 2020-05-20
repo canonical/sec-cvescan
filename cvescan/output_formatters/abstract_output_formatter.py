@@ -2,14 +2,18 @@ from abc import ABC, abstractmethod
 from typing import List
 
 import cvescan.constants as const
+from cvescan.output_formatters import AbstractStackableScanResultSorter
 from cvescan.scan_result import ScanResult
 
 
 class AbstractOutputFormatter(ABC):
-    def __init__(self, opt, sysinfo, logger):
+    def __init__(
+        self, opt, sysinfo, logger, sorter: AbstractStackableScanResultSorter = None
+    ):
         self.opt = opt
         self.sysinfo = sysinfo
         self.logger = logger
+        self.sorter = sorter
         super().__init__()
 
     def _filter_on_priority(self, scan_results):
@@ -27,3 +31,10 @@ class AbstractOutputFormatter(ABC):
     @abstractmethod
     def format_output(self, cvescan_results: List[ScanResult]) -> (str, int):
         pass
+
+    # Sorts cvescan_results in place
+    def sort(self, cvescan_results: List[ScanResult]) -> None:
+        if self.sorter is None:
+            return
+
+        self.sorter.sort(cvescan_results)

@@ -3,7 +3,7 @@ import logging
 import pytest
 
 import cvescan.constants as const
-from cvescan.output_formatters import NagiosOutputFormatter
+from cvescan.output_formatters import CVEScanResultSorter, NagiosOutputFormatter
 from cvescan.scan_result import ScanResult
 
 
@@ -151,4 +151,20 @@ def test_nagios_critical_medium():
     (results_msg, return_code) = nof.format_output(sr)
 
     assert '"medium" or higher priority' in results_msg
+    assert return_code == const.NAGIOS_CRITICAL_RETURN_CODE
+
+
+def test_nagios_cves_sorted(shuffled_scan_results):
+    opt = MockOpt()
+    opt.unresolved = True
+    opt.priority = "all"
+
+    cve_list = (
+        "CVE-2020-1000\nCVE-2020-1002\nCVE-2020-1005\nCVE-2020-2000\n" "CVE-2020-10000"
+    )
+
+    nof = NagiosOutputFormatter(opt, None, None, CVEScanResultSorter())
+    (results_msg, return_code) = nof.format_output(shuffled_scan_results)
+
+    assert cve_list in results_msg
     assert return_code == const.NAGIOS_CRITICAL_RETURN_CODE
