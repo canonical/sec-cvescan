@@ -22,7 +22,6 @@ def test_package_scan_descending(shuffled_scan_results):
 
     package_sorter.sort(shuffled_scan_results)
 
-    print(shuffled_scan_results[0].package_name)
     assert shuffled_scan_results[0].package_name == "pkg7"
     assert shuffled_scan_results[1].package_name == "pkg6"
     assert shuffled_scan_results[2].package_name == "pkg5"

@@ -1,9 +1,7 @@
-from typing import List
-
-from cvescan.output_formatters import AbstractScanResultSorter
+from cvescan.output_formatters import AbstractStackableScanResultSorter
 from cvescan.scan_result import ScanResult
 
 
-class PackageScanResultSorter(AbstractScanResultSorter):
-    def sort(self, scan_results: List[ScanResult]) -> None:
-        scan_results.sort(key=lambda sr: sr.package_name, reverse=self.reverse)
+class PackageScanResultSorter(AbstractStackableScanResultSorter):
+    def _key_fn(self, scan_result: ScanResult):
+        return scan_result.package_name

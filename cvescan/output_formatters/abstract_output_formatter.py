@@ -2,12 +2,14 @@ from abc import ABC, abstractmethod
 from typing import List
 
 import cvescan.constants as const
-from cvescan.output_formatters import AbstractScanResultSorter
+from cvescan.output_formatters import AbstractStackableScanResultSorter
 from cvescan.scan_result import ScanResult
 
 
 class AbstractOutputFormatter(ABC):
-    def __init__(self, opt, sysinfo, logger, sorter: AbstractScanResultSorter = None):
+    def __init__(
+        self, opt, sysinfo, logger, sorter: AbstractStackableScanResultSorter = None
+    ):
         self.opt = opt
         self.sysinfo = sysinfo
         self.logger = logger

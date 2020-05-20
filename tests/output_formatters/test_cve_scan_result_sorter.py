@@ -22,7 +22,6 @@ def test_cve_scan_descending(shuffled_scan_results):
 
     cve_sorter.sort(shuffled_scan_results)
 
-    print(shuffled_scan_results[0].cve_id)
     assert shuffled_scan_results[0].cve_id == "CVE-2020-10000"
     assert shuffled_scan_results[1].cve_id == "CVE-2020-2000"
     assert shuffled_scan_results[2].cve_id == "CVE-2020-1005"
