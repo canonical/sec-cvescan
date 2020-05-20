@@ -64,19 +64,23 @@ def shuffled_scan_results():
     ]
 
 
-def format_with_priority(formatterType, priority, scan_results):
+def format_with_priority(formatter_type, priority, scan_results):
     opt = MockOpt()
     opt.priority = priority
-    formatter = formatterType(opt, MockSysInfo(), null_logger())
+    formatter = formatter_type(opt, MockSysInfo(), null_logger())
 
     return formatter.format_output(scan_results)
 
 
+def run_format(formatter_type, scan_results):
+    return format_with_priority(formatter_type, "all", scan_results)
+
+
 @pytest.fixture
 def run_priority_filter_all_test(priority_scan_results):
-    def run_test(formatterType):
+    def run_test(formatter_type):
         (results_msg, return_code) = format_with_priority(
-            formatterType, const.ALL, priority_scan_results
+            formatter_type, const.ALL, priority_scan_results
         )
 
         assert priority_scan_results[0].cve_id in results_msg
@@ -91,9 +95,9 @@ def run_priority_filter_all_test(priority_scan_results):
 
 @pytest.fixture
 def run_priority_filter_negligible_test(priority_scan_results):
-    def run_test(formatterType):
+    def run_test(formatter_type):
         (results_msg, return_code) = format_with_priority(
-            formatterType, const.NEGLIGIBLE, priority_scan_results
+            formatter_type, const.NEGLIGIBLE, priority_scan_results
         )
 
         assert priority_scan_results[0].cve_id in results_msg
@@ -108,9 +112,9 @@ def run_priority_filter_negligible_test(priority_scan_results):
 
 @pytest.fixture
 def run_priority_filter_low_test(priority_scan_results):
-    def run_test(formatterType):
+    def run_test(formatter_type):
         (results_msg, return_code) = format_with_priority(
-            formatterType, const.LOW, priority_scan_results
+            formatter_type, const.LOW, priority_scan_results
         )
 
         assert priority_scan_results[0].cve_id in results_msg
@@ -125,9 +129,9 @@ def run_priority_filter_low_test(priority_scan_results):
 
 @pytest.fixture
 def run_priority_filter_medium_test(priority_scan_results):
-    def run_test(formatterType):
+    def run_test(formatter_type):
         (results_msg, return_code) = format_with_priority(
-            formatterType, const.MEDIUM, priority_scan_results
+            formatter_type, const.MEDIUM, priority_scan_results
         )
 
         assert priority_scan_results[0].cve_id in results_msg
@@ -142,9 +146,9 @@ def run_priority_filter_medium_test(priority_scan_results):
 
 @pytest.fixture
 def run_priority_filter_high_test(priority_scan_results):
-    def run_test(formatterType):
+    def run_test(formatter_type):
         (results_msg, return_code) = format_with_priority(
-            formatterType, const.HIGH, priority_scan_results
+            formatter_type, const.HIGH, priority_scan_results
         )
 
         assert priority_scan_results[0].cve_id not in results_msg
@@ -159,9 +163,9 @@ def run_priority_filter_high_test(priority_scan_results):
 
 @pytest.fixture
 def run_priority_filter_critical_test(priority_scan_results):
-    def run_test(formatterType):
+    def run_test(formatter_type):
         (results_msg, return_code) = format_with_priority(
-            formatterType, const.CRITICAL, priority_scan_results
+            formatter_type, const.CRITICAL, priority_scan_results
         )
 
         assert priority_scan_results[0].cve_id not in results_msg
@@ -170,5 +174,108 @@ def run_priority_filter_critical_test(priority_scan_results):
         assert priority_scan_results[3].cve_id not in results_msg
         assert priority_scan_results[4].cve_id not in results_msg
         assert priority_scan_results[5].cve_id not in results_msg
+
+    return run_test
+
+
+def misc_scan_results():
+    return [
+        ScanResult("CVE-2020-1000", "low", "pkg3", None, None),
+        ScanResult(
+            "CVE-2020-1001", "high", "pkg1", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
+        ),
+        ScanResult(
+            "CVE-2020-1001", "high", "pkg2", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
+        ),
+        ScanResult(
+            "CVE-2020-1002", "low", "pkg4", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
+        ),
+        ScanResult(
+            "CVE-2020-1002", "low", "pkg5", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
+        ),
+        ScanResult(
+            "CVE-2020-1002", "low", "pkg6", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
+        ),
+        ScanResult("CVE-2020-1003", "medium", "pkg4", None, None),
+        ScanResult("CVE-2020-1003", "medium", "pkg5", None, None),
+        ScanResult("CVE-2020-1003", "medium", "pkg6", None, None),
+        ScanResult("CVE-2020-1004", "medium", "pkg7", None, None),
+        ScanResult("CVE-2020-1005", "low", "pkg1", "1:1.2.3-4+deb9u3", const.UA_APPS),
+        ScanResult("CVE-2020-1005", "low", "pkg2", "1:1.2.3-4+deb9u3", const.UA_APPS),
+        ScanResult("CVE-2020-1005", "low", "pkg3", "10.2.3-2ubuntu0.1", const.UA_INFRA),
+        ScanResult("CVE-2020-1006", "untriaged", "pkg5", None, None),
+        ScanResult("CVE-2020-1007", "critical", "pkg4", None, None),
+        ScanResult("CVE-2020-1008", "negligible", "pkg1", None, None),
+    ]
+
+
+def filter_scan_results_by_cve_ids(cve_ids):
+    return [sr for sr in misc_scan_results() if sr.cve_id in cve_ids]
+
+
+@pytest.fixture
+def run_success_return_code_test():
+    def run_test(formatter_type):
+        (results_msg, return_code) = run_format(formatter_type, list())
+
+        assert return_code == const.SUCCESS_RETURN_CODE
+
+    return run_test
+
+
+@pytest.fixture
+def run_vulnerable_return_code_test():
+    def run_test(formatter_type):
+        sr = filter_scan_results_by_cve_ids(["CVE-2020-1000", "CVE-2020-1003"])
+        (results_msg, return_code) = run_format(formatter_type, sr)
+
+        assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
+
+    return run_test
+
+
+@pytest.fixture
+def run_patch_available_return_code_test():
+    def run_test(formatter_type):
+        sr = filter_scan_results_by_cve_ids(["CVE-2020-1002"])
+        (results_msg, return_code) = run_format(formatter_type, sr)
+
+        assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
+
+    return run_test
+
+
+@pytest.fixture
+def run_no_unresolved_shown_test():
+    def run_test(formatter_type):
+        sr = filter_scan_results_by_cve_ids(["CVE-2020-1004", "CVE-2020-1005"])
+        opt = MockOpt()
+        opt.unresolved = False
+        formatter = formatter_type(opt, MockSysInfo(), null_logger())
+
+        (results_msg, return_code) = formatter.format_output(sr)
+
+        assert "Unresolved" not in results_msg
+        assert "N/A" not in results_msg
+        assert "CVE-2020-1004" not in results_msg
+        assert "CVE-2020-1005" in results_msg
+
+    return run_test
+
+
+@pytest.fixture
+def run_unresolved_shown_test():
+    def run_test(formatter_type):
+        sr = filter_scan_results_by_cve_ids(["CVE-2020-1004", "CVE-2020-1005"])
+        opt = MockOpt()
+        opt.unresolved = True
+        formatter = formatter_type(opt, MockSysInfo(), null_logger())
+
+        (results_msg, return_code) = formatter.format_output(sr)
+
+        assert "Unresolved" in results_msg
+        assert "N/A" in results_msg
+        assert "CVE-2020-1004" in results_msg
+        assert "CVE-2020-1005" in results_msg
 
     return run_test

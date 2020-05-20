@@ -1,30 +1,9 @@
-import logging
-
 import pytest
+from conftest import MockOpt
 
 import cvescan.constants as const
 from cvescan.output_formatters import CVEScanResultSorter, NagiosOutputFormatter
 from cvescan.scan_result import ScanResult
-
-
-def null_logger():
-    logger = logging.getLogger("cvescan.null")
-    if not logger.hasHandlers():
-        logger.addHandler(logging.NullHandler())
-
-    return logger
-
-
-class MockSysInfo:
-    def __init__(self):
-        self.distrib_codename = "bionic"
-        self.package_count = 100
-
-
-class MockOpt:
-    def __init__(self):
-        self.cve = None
-        self.priority = "all"
 
 
 @pytest.fixture
