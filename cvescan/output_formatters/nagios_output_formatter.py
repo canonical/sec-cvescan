@@ -7,6 +7,7 @@ from cvescan.scan_result import ScanResult
 
 class NagiosOutputFormatter(AbstractOutputFormatter):
     def format_output(self, scan_results: List[ScanResult]) -> (str, int):
+        self.sort(scan_results)
         (priority_filtered_cves, fixable_cves) = self._apply_filters(scan_results)
 
         if self.opt.priority == const.ALL:
@@ -77,13 +78,16 @@ class NagiosOutputFormatter(AbstractOutputFormatter):
         priority_filtered_cves = _remove_duplicate_cves(priority_filtered_cves)
         fixable_cves = _remove_duplicate_cves(fixable_cves)
 
-        # TODO: This should be handled in AbstractOutputFormatter. It should
-        #       also sort numerically so that CVE-2020-12826 is after CVE-2020-1747.
-        priority_filtered_cves.sort()
-        fixable_cves.sort()
-
         return (priority_filtered_cves, fixable_cves)
 
 
 def _remove_duplicate_cves(cve_list):
-    return list(set(cve_list))
+    new_list = list()
+    duplicates = set()
+
+    for cve in cve_list:
+        if cve not in duplicates:
+            new_list.append(cve)
+            duplicates.add(cve)
+
+    return new_list

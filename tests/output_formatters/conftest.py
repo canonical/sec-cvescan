@@ -41,6 +41,29 @@ def priority_scan_results():
     ]
 
 
+@pytest.fixture
+def shuffled_scan_results():
+    return [
+        ScanResult(
+            "CVE-2020-1002", const.CRITICAL, "pkg4", "2.0.0-1+deb9u1", const.UA_INFRA
+        ),
+        ScanResult("CVE-2020-1000", const.MEDIUM, "pkg4", "1.2.3-4", const.UA_APPS),
+        ScanResult("CVE-2020-1005", const.HIGH, "pkg2", "2.0.0-2", const.ARCHIVE),
+        ScanResult(
+            "CVE-2020-1002", const.CRITICAL, "pkg6", "2.0.0-1+deb9u1", const.UA_APPS
+        ),
+        ScanResult("CVE-2020-1001", const.MEDIUM, "pkg4", None, None),
+        ScanResult(
+            "CVE-2020-10000", const.UNTRIAGED, "pkg7", "2.2.19-1", const.UA_APPS
+        ),
+        ScanResult(
+            "CVE-2020-1002", const.CRITICAL, "pkg3", "2.0.0-1+deb9u1", const.UA_APPS
+        ),
+        ScanResult("CVE-2020-1003", const.NEGLIGIBLE, "pkg5", None, None),
+        ScanResult("CVE-2020-2000", const.LOW, "pkg1", "1.0.0-2", const.ARCHIVE),
+    ]
+
+
 def format_with_priority(formatterType, priority, scan_results):
     opt = MockOpt()
     opt.priority = priority
