@@ -144,6 +144,7 @@ def load_output_formatter(opt, sysinfo):
     if opt.nagios_mode:
         return NagiosOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
 
+    # TODO: output formatter for single CVE
     return CLIOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
 
 

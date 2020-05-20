@@ -1,108 +1,99 @@
+from sys import stdout
 from typing import List
 
 import cvescan.constants as const
 from cvescan.output_formatters import AbstractOutputFormatter
 from cvescan.scan_result import ScanResult
+from tabulate import tabulate
 
 
 class CLIOutputFormatter(AbstractOutputFormatter):
+    NOT_APPLICABLE = "N/A"
+
+    # TODO: These colors don't all show clearly on a light background
+    priority_to_color_code = {
+        const.UNTRIAGED: 5,
+        const.NEGLIGIBLE: 193,
+        const.LOW: 228,
+        const.MEDIUM: 3,
+        const.HIGH: 208,
+        const.CRITICAL: 1,
+    }
+    repository_to_color_code = {const.ARCHIVE: 2, const.UA_INFRA: 3, const.UA_APPS: 3}
+
     def format_output(self, scan_results: List[ScanResult]) -> (str, int):
-        (cve_list_all_filtered, cve_list_fixable_filtered) = self._apply_filters(
-            scan_results
-        )
+        self.sort(scan_results)
+        priority_results = self._filter_on_priority(scan_results)
+        fixable_results = self._filter_on_fixable(priority_results)
 
-        return self._analyze_results(cve_list_all_filtered, cve_list_fixable_filtered)
-
-    def _apply_filters(self, scan_results):
-        priority_filtered_scan_results = self._filter_on_priority(scan_results)
-        fixable_filtered_scan_results = self._filter_on_fixable(
-            priority_filtered_scan_results
-        )
-
-        cve_list_all_filtered = [sr.cve_id for sr in priority_filtered_scan_results]
-        cve_list_fixable_filtered = [sr.cve_id for sr in fixable_filtered_scan_results]
-
-        # TODO: This removes duplicates. It can go away once output is overhauled.
-        cve_list_all_filtered = list(set(cve_list_all_filtered))
-        cve_list_fixable_filtered = list(set(cve_list_fixable_filtered))
-
-        # TODO: This should be handled by whatever handles the output. It should
-        #       also sort numerically so that CVE-2020-12826 is after CVE-2020-1747.
-        cve_list_all_filtered.sort()
-        cve_list_fixable_filtered.sort()
-
-        return (cve_list_all_filtered, cve_list_fixable_filtered)
-
-    def _analyze_results(self, cve_list_all_filtered, cve_list_fixable_filtered):
-        if self.opt.cve:
-            return self._analyze_single_cve_results(
-                cve_list_all_filtered, cve_list_fixable_filtered, self.opt.cve
-            )
-
-        return self._analyze_cve_list_results(
-            cve_list_all_filtered, cve_list_fixable_filtered
-        )
-
-    def _analyze_single_cve_results(
-        self, cve_list_all_filtered, cve_list_fixable_filtered, cve
-    ):
-        if cve in cve_list_fixable_filtered:
-            return (
-                "A patch is available to fix %s." % cve,
-                const.PATCH_AVAILABLE_RETURN_CODE,
-            )
-
-        if cve in cve_list_all_filtered:
-            return (
-                "%s affects this system, but no patch is available." % cve,
-                const.SYSTEM_VULNERABLE_RETURN_CODE,
-            )
-
-        return (
-            "This system is not known to be affected by %s." % cve,
-            const.SUCCESS_RETURN_CODE,
-        )
-
-    def _analyze_cve_list_results(
-        self, cve_list_all_filtered, cve_list_fixable_filtered
-    ):
-        package_count = self._get_package_count()
-
-        inspected_msg = "Inspected %d packages." % package_count
-
-        if len(cve_list_all_filtered) == 0:
-            results_msg = '%s No CVEs of priority "%s" or higher affect this system' % (
-                inspected_msg,
-                self.opt.priority,
-            )
-            return_code = const.SUCCESS_RETURN_CODE
+        if self.opt.unresolved:
+            formatted_results = CLIOutputFormatter._transform_results(priority_results)
         else:
-            results_msg = (
-                '%s %d CVEs of priority "%s" or higher affect this system.'
-                % (inspected_msg, len(cve_list_all_filtered), self.opt.priority,)
-            )
+            formatted_results = CLIOutputFormatter._transform_results(fixable_results)
 
-            if self.opt.unresolved:
-                results_msg = "%s\n\nAll CVEs affecting this system:\n\t%s" % (
-                    results_msg,
-                    "\n\t".join(cve_list_all_filtered),
-                )
+        msg = tabulate(
+            formatted_results,
+            headers=["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "ARCHIVE"],
+            tablefmt="plain",
+        )
+        return_code = CLIOutputFormatter._get_return_code(
+            priority_results, fixable_results
+        )
 
-            if len(cve_list_fixable_filtered) != 0:
-                results_msg = (
-                    "%s\n\nThe following %d CVEs can be fixed by installing "
-                    "updates:\n\t%s"
-                    % (
-                        results_msg,
-                        len(cve_list_fixable_filtered),
-                        "\n\t".join(cve_list_fixable_filtered),
-                    )
-                )
-                return_code = const.PATCH_AVAILABLE_RETURN_CODE
-            else:
-                return_code = const.SYSTEM_VULNERABLE_RETURN_CODE
+        return (msg, return_code)
 
-        return (results_msg, return_code)
+    @classmethod
+    def _transform_results(cls, scan_results):
+        for sr in scan_results:
+            (priority, repository) = cls._colorize(sr)
+
+            fixed_version = cls._transform_fixed_version(sr.fixed_version)
+            repository = cls._transform_repository(repository)
+
+            yield [sr.cve_id, priority, sr.package_name, fixed_version, repository]
+
+    @classmethod
+    def _colorize(cls, scan_result):
+        if not stdout.isatty():
+            return (scan_result.priority, scan_result.repository)
+
+        priority = cls._colorize_priority(scan_result.priority)
+        repository = cls._colorize_repository(scan_result.repository)
+
+        return priority, repository
+
+    @classmethod
+    def _colorize_priority(cls, priority):
+        priority_color_code = cls.priority_to_color_code[priority]
+        return "\u001b[38;5;%dm%s\u001b[0m" % (priority_color_code, priority)
+
+    # TODO: Test whether or not UA enabled (in SysInfo()), colorize output based
+    #       on which repos are enabled.
+    @classmethod
+    def _colorize_repository(cls, repository):
+        if not repository:
+            return repository
+
+        repository_color_code = cls.repository_to_color_code[repository]
+        return "\u001b[38;5;%dm%s\u001b[0m" % (repository_color_code, repository)
+
+    @staticmethod
+    def _transform_fixed_version(fixed_version):
+        return fixed_version if fixed_version else "Unresolved"
+
+    @classmethod
+    def _transform_repository(cls, repository):
+        return repository if repository else cls.NOT_APPLICABLE
+
+    @staticmethod
+    def _get_return_code(priority_results, fixable_results):
+        if len(fixable_results) > 0:
+            return const.PATCH_AVAILABLE_RETURN_CODE
+
+        if len(priority_results) > 0:
+            return const.SYSTEM_VULNERABLE_RETURN_CODE
+
+        return const.SUCCESS_RETURN_CODE
 
     def _get_package_count(self):
         if self.opt.manifest_mode:
@@ -116,6 +107,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return package_count
 
 
+# TODO: fix manifest mode
 def _count_packages_in_manifest_file(manifest_file):
     with open(manifest_file) as mf:
         package_count = len(mf.readlines())

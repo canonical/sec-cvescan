@@ -29,12 +29,12 @@ class AbstractOutputFormatter(ABC):
         return [sr for sr in scan_results if sr.fixed_version is not None]
 
     @abstractmethod
-    def format_output(self, cvescan_results: List[ScanResult]) -> (str, int):
+    def format_output(self, scan_results: List[ScanResult]) -> (str, int):
         pass
 
-    # Sorts cvescan_results in place
-    def sort(self, cvescan_results: List[ScanResult]) -> None:
+    # Sorts scan_results in place
+    def sort(self, scan_results: List[ScanResult]) -> None:
         if self.sorter is None:
             return
 
-        self.sorter.sort(cvescan_results)
+        self.sorter.sort(scan_results)

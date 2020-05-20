@@ -1,4 +1,5 @@
 import logging
+import sys
 
 import pytest
 
@@ -27,7 +28,7 @@ class MockOpt:
         self.manifest_file = None
         self.nagios_mode = False
         self.cve = None
-        self.unresolved = True
+        self.unresolved = False
         self.priority = "all"
 
 
@@ -57,6 +58,9 @@ def scan_results():
         ScanResult("CVE-2020-1005", "low", "pkg1", "1:1.2.3-4+deb9u3", const.UA_APPS),
         ScanResult("CVE-2020-1005", "low", "pkg2", "1:1.2.3-4+deb9u3", const.UA_APPS),
         ScanResult("CVE-2020-1005", "low", "pkg3", "10.2.3-2ubuntu0.1", const.UA_INFRA),
+        ScanResult("CVE-2020-1006", "untriaged", "pkg5", None, None),
+        ScanResult("CVE-2020-1007", "critical", "pkg4", None, None),
+        ScanResult("CVE-2020-1008", "negligible", "pkg1", None, None),
     ]
 
 
@@ -69,22 +73,51 @@ def cli_output_formatter():
     return CLIOutputFormatter(MockOpt(), MockSysInfo(), null_logger())
 
 
-def test_no_cves(cli_output_formatter):
+def test_no_cves_return_code(cli_output_formatter):
     (results_msg, return_code) = cli_output_formatter.format_output(list())
 
-    assert "No CVEs" in results_msg
     assert return_code == const.SUCCESS_RETURN_CODE
 
 
-def test_unresolved_no_fixable(cli_output_formatter, scan_results):
+def test_unresolved_no_fixable_return_code(cli_output_formatter, scan_results):
     sr = filter_scan_results_by_cve_ids(
         scan_results, ["CVE-2020-1000", "CVE-2020-1003"]
     )
     (results_msg, return_code) = cli_output_formatter.format_output(sr)
 
-    assert "All CVEs" in results_msg
-    assert "can be fixed by installing" not in results_msg
     assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
+
+
+def test_unresolved_fixable_return_code(cli_output_formatter, scan_results):
+    sr = filter_scan_results_by_cve_ids(scan_results, ["CVE-2020-1002"])
+    (results_msg, return_code) = cli_output_formatter.format_output(sr)
+
+    assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
+
+
+def test_no_unresolved_shown(cli_output_formatter, scan_results):
+    cli_output_formatter.opt.unresolved = False
+    sr = filter_scan_results_by_cve_ids(
+        scan_results, ["CVE-2020-1004", "CVE-2020-1005"]
+    )
+    (results_msg, return_code) = cli_output_formatter.format_output(sr)
+
+    assert "Unresolved" not in results_msg
+    assert "N/A" not in results_msg
+    assert "CVE-2020-1004" not in results_msg
+
+
+def test_unresolved_shown(cli_output_formatter, scan_results):
+    cli_output_formatter.opt.unresolved = True
+    sr = filter_scan_results_by_cve_ids(
+        scan_results, ["CVE-2020-1004", "CVE-2020-1005"]
+    )
+    (results_msg, return_code) = cli_output_formatter.format_output(sr)
+
+    assert "Unresolved" in results_msg
+    assert "N/A" in results_msg
+    assert "CVE-2020-1004" in results_msg
+    assert "CVE-2020-1005" in results_msg
 
 
 def test_priority_filter_all(run_priority_filter_all_test):
@@ -111,116 +144,74 @@ def test_priority_filter_critical(run_priority_filter_critical_test):
     run_priority_filter_critical_test(CLIOutputFormatter)
 
 
-# TODO: Don't spend time making the rest of these tests pass since we're going to
-#       completely change the output. Remove these now empty tests and replace with
-#       tests that better test the new output formatter.
-def test_all_cves_fixable():
-    pass
+def test_no_tty_no_color(monkeypatch, cli_output_formatter, scan_results):
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
+    sr = filter_scan_results_by_cve_ids(scan_results, ["CVE-2020-1001"])
+
+    (results_msg, return_code) = cli_output_formatter.format_output(sr)
+
+    assert "\u001b" not in results_msg
 
 
-#   cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-#   (results_msg, return_code) = cve_scanner.scan(MockOpt())
+def run_priority_color_test(
+    monkeypatch, cli_output_formatter, scan_results, cve_id, priority_name
+):
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
 
-#   assert "All CVEs" in results_msg
-#   assert "can be fixed by installing" in results_msg
-#   assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
+    expected_color = (
+        "38;5;%d" % CLIOutputFormatter.priority_to_color_code[priority_name]
+    )
 
+    cli_output_formatter.opt.unresolved = True
+    sr = filter_scan_results_by_cve_ids(scan_results, [cve_id])
 
-def test_updates_no_cves():
-    pass
+    (results_msg, return_code) = cli_output_formatter.format_output(sr)
 
-
-#   cve_scanner = MockCVEScanner(list(), list())
-#   opt = MockOpt()
-#   opt.all_cve = False
-#   (results_msg, return_code) = cve_scanner.scan(opt)
-
-#   assert "No CVEs" in results_msg
-#   assert return_code == const.SUCCESS_RETURN_CODE
+    assert expected_color in results_msg
 
 
-def test_updates_no_fixable():
-    pass
+def test_untriaged_color(monkeypatch, cli_output_formatter, scan_results):
+    run_priority_color_test(
+        monkeypatch,
+        cli_output_formatter,
+        scan_results,
+        "CVE-2020-1006",
+        const.UNTRIAGED,
+    )
 
 
-#   cve_scanner = MockCVEScanner(test_cve_list_all, list())
-#   opt = MockOpt()
-#   opt.all_cve = False
-#   (results_msg, return_code) = cve_scanner.scan(opt)
-
-#   assert "All CVEs" not in results_msg
-#   assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
-
-
-def test_updates_fixable():
-    pass
+def test_negligible_color(monkeypatch, cli_output_formatter, scan_results):
+    run_priority_color_test(
+        monkeypatch,
+        cli_output_formatter,
+        scan_results,
+        "CVE-2020-1008",
+        const.NEGLIGIBLE,
+    )
 
 
-#   cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-#   opt = MockOpt()
-#   opt.all_cve = False
-#   (results_msg, return_code) = cve_scanner.scan(opt)
-
-#    assert "All CVEs" not in results_msg
-#    assert "can be fixed by installing" in results_msg
-#    assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
+def test_low_color(monkeypatch, cli_output_formatter, scan_results):
+    run_priority_color_test(
+        monkeypatch, cli_output_formatter, scan_results, "CVE-2020-1005", const.LOW
+    )
 
 
-def test_specific_cve_not_vulnerable():
-    pass
+def test_medium_color(monkeypatch, cli_output_formatter, scan_results):
+    run_priority_color_test(
+        monkeypatch, cli_output_formatter, scan_results, "CVE-2020-1003", const.MEDIUM
+    )
 
 
-#    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-#    opt = MockOpt()
-#    opt.cve = "CVE-2020-2000"
-#    (results_msg, return_code) = cve_scanner.scan(opt)
-
-#    assert return_code == const.SUCCESS_RETURN_CODE
+def test_high_color(monkeypatch, cli_output_formatter, scan_results):
+    run_priority_color_test(
+        monkeypatch, cli_output_formatter, scan_results, "CVE-2020-1001", const.HIGH
+    )
 
 
-def test_specific_cve_vulnerable():
-    pass
+def test_critical_color(monkeypatch, cli_output_formatter, scan_results):
+    run_priority_color_test(
+        monkeypatch, cli_output_formatter, scan_results, "CVE-2020-1007", const.CRITICAL
+    )
 
 
-#    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-#    opt = MockOpt()
-#    opt.cve = "CVE-2020-1000"
-#    (results_msg, return_code) = cve_scanner.scan(opt)
-
-#    assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
-
-
-def test_specific_cve_fixable():
-    pass
-
-
-#    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-#    opt = MockOpt()
-#    opt.cve = "CVE-2020-1001"
-#    (results_msg, return_code) = cve_scanner.scan(opt)
-
-#    assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
-
-
-def test_nagios_no_fixable_cves():
-    pass
-
-
-#    cve_scanner = MockCVEScanner(test_cve_list_all, list())
-#    opt = MockOpt()
-#    opt.nagios_mode = True
-#    (results_msg, return_code) = cve_scanner.scan(opt)
-
-#    assert return_code == const.NAGIOS_WARNING_RETURN_CODE
-
-
-def test_nagios_fixable_cves():
-    pass
-
-
-#    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-#    opt = MockOpt()
-#    opt.nagios_mode = True
-#    (results_msg, return_code) = cve_scanner.scan(opt)
-
-# assert return_code == const.NAGIOS_CRITICAL_RETURN_CODE
+# TODO: Test ubuntu archive colors after UA detection is enabled
