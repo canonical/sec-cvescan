@@ -15,6 +15,7 @@ from cvescan.output_formatters import (
     CLIOutputFormatter,
     CVEScanResultSorter,
     NagiosOutputFormatter,
+    PackageScanResultSorter,
 )
 from cvescan.sysinfo import SysInfo
 
@@ -147,7 +148,8 @@ def load_output_formatter(opt, sysinfo):
 
 
 def load_output_sorter(opt, sysinfo):
-    return CVEScanResultSorter()
+    pkg_sorter = PackageScanResultSorter()
+    return CVEScanResultSorter(subsorters=[pkg_sorter])
 
 
 def main():
