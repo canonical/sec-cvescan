@@ -131,6 +131,8 @@ def log_system_info(sysinfo):
     table = [
         ["Local Ubuntu Codename", sysinfo.distrib_codename],
         ["Installed Package Count", sysinfo.package_count],
+        ["ESM Apps Enabled", sysinfo.esm_apps_enabled],
+        ["ESM Infra Enabled", sysinfo.esm_infra_enabled],
         ["CVEScan is a Snap", sysinfo.is_snap],
         ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
     ]

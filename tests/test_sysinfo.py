@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import sys
+from unittest.mock import MagicMock
 
 import lsb_release
 import pytest
@@ -53,6 +54,7 @@ class MockResponses:
         self.get_distro_information_raises = False
         self.get_distro_information = {"ID": "Ubuntu", "CODENAME": "trusty"}
         self.lsb_release_file = "tests/assets/lsb-release"
+        self.ua_status_file = "tests/assets/ubuntu-advantage-status-disabled.json"
         self.dpkg_popen = MockSubprocess()
 
 
@@ -75,6 +77,7 @@ def apply_mock_responses(monkeypatch, mock_responses):
         )
 
     monkeypatch.setattr(const, "LSB_RELEASE_FILE", mock_responses.lsb_release_file)
+    monkeypatch.setattr(const, "UA_STATUS_FILE", mock_responses.ua_status_file)
     monkeypatch.setattr(
         subprocess, "Popen", lambda *args, **kwargs: mock_responses.dpkg_popen
     )
@@ -93,11 +96,17 @@ def null_logger():
     return logger
 
 
+class MockSysInfo(SysInfo):
+    def __init__(self, logger):
+        self._get_raw_ua_status = MagicMock()
+        super().__init__(logger)
+
+
 def test_is_snap_false(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
 
-    sysinfo = SysInfo(null_logger)
+    sysinfo = MockSysInfo(null_logger)
     assert not sysinfo.is_snap
     assert sysinfo.snap_user_common is None
 
@@ -107,7 +116,7 @@ def test_is_snap_true(monkeypatch, null_logger):
     mock_responses.environ_snap_user_common = "/home/test/snap"
     apply_mock_responses(monkeypatch, mock_responses)
 
-    sysinfo = SysInfo(null_logger)
+    sysinfo = MockSysInfo(null_logger)
     assert sysinfo.is_snap
     assert sysinfo.snap_user_common == "/home/test/snap"
 
@@ -204,3 +213,104 @@ def test_installed_packages_list(monkeypatch, null_logger):
         "akregator": "4:19.04.3-0ubuntu1",
     }
     assert sysinfo.installed_packages == expected_installed_packages
+
+
+def test_esm_infra_enabled(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-enabled.json"
+    apply_mock_responses(monkeypatch, mock_responses)
+    sysinfo = SysInfo(null_logger)
+
+    assert sysinfo.esm_infra_enabled is True
+
+
+def test_esm_infra_disabled(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-disabled.json"
+    apply_mock_responses(monkeypatch, mock_responses)
+    sysinfo = SysInfo(null_logger)
+
+    assert sysinfo.esm_infra_enabled is False
+
+
+def test_esm_apps_enabled(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-enabled.json"
+    apply_mock_responses(monkeypatch, mock_responses)
+    sysinfo = SysInfo(null_logger)
+
+    assert sysinfo.esm_apps_enabled is True
+
+
+def test_esm_apps_disabled(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-disabled.json"
+    apply_mock_responses(monkeypatch, mock_responses)
+    sysinfo = SysInfo(null_logger)
+
+    assert sysinfo.esm_apps_enabled is False
+
+
+def test_esm_apps_missing(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-missing.json"
+    apply_mock_responses(monkeypatch, mock_responses)
+    sysinfo = SysInfo(null_logger)
+
+    assert sysinfo.esm_apps_enabled is False
+    assert sysinfo.esm_infra_enabled is False
+
+
+def test_no_snap_ua_status_path(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-missing.json"
+    apply_mock_responses(monkeypatch, mock_responses)
+    sysinfo = MockSysInfo(null_logger)
+
+    sysinfo._get_raw_ua_status.assert_called_with(const.UA_STATUS_FILE)
+
+
+def test_snap_ua_status_path(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    mock_responses.environ_snap_user_common = "/home/test/snap"
+    mock_responses.ua_status_file = const.UA_STATUS_FILE
+    apply_mock_responses(monkeypatch, mock_responses)
+    sysinfo = MockSysInfo(null_logger)
+
+    sysinfo._get_raw_ua_status.assert_called_with(
+        "/var/lib/snapd/hostfs/var/lib/ubuntu-advantage/status.json"
+    )
+
+
+def test_ua_fnf(monkeypatch, null_logger):
+    def raise_(x):
+        raise x
+
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-enabled.json"
+    apply_mock_responses(monkeypatch, mock_responses)
+    monkeypatch.setattr(
+        SysInfo,
+        "_get_raw_ua_status",
+        lambda *args, **kwargs: raise_(FileNotFoundError()),
+    )
+    sysinfo = SysInfo(null_logger)
+
+    assert sysinfo.esm_apps_enabled is False
+    assert sysinfo.esm_infra_enabled is False
+
+
+def test_ua_permission_denied(monkeypatch, null_logger):
+    def raise_(x):
+        raise x
+
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-enabled.json"
+    apply_mock_responses(monkeypatch, mock_responses)
+    monkeypatch.setattr(
+        SysInfo, "_get_raw_ua_status", lambda *args, **kwargs: raise_(PermissionError())
+    )
+    sysinfo = SysInfo(null_logger)
+
+    assert sysinfo.esm_apps_enabled is False
+    assert sysinfo.esm_infra_enabled is False

@@ -68,6 +68,8 @@ EXPERIMENTAL_HELP = (
 DEBUG_LOG = "debug.log"
 DEFAULT_MANIFEST_FILE = "manifest"
 LSB_RELEASE_FILE = "/etc/lsb-release"
+UA_STATUS_FILE = "/var/lib/ubuntu-advantage/status.json"
+SNAPD_HOSTFS = "/var/lib/snapd/hostfs"
 
 ARCHIVE = "Ubuntu Archive"
 UA_APPS = "UA for Apps"

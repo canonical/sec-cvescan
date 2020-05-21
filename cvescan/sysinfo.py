@@ -1,4 +1,5 @@
 import configparser
+import json
 import os
 import re
 import subprocess
@@ -14,12 +15,14 @@ class SysInfo:
         self._set_snap_info()
         self.distrib_codename = self.get_ubuntu_codename()
         self.installed_packages = self._get_installed_packages()
+        self._set_esm_status()
 
     def _set_snap_info(self):
         self.is_snap = False
         self.snap_user_common = None
 
         if "SNAP_USER_COMMON" in os.environ:
+            self.logger.debug("Detected that CVEScan is installed as a snap")
             self.is_snap = True
             self.snap_user_common = os.environ["SNAP_USER_COMMON"]
 
@@ -115,3 +118,39 @@ class SysInfo:
             )
 
         return out.splitlines()
+
+    def _set_esm_status(self):
+        try:
+            apps = False
+            infra = False
+
+            ua_status_file_path = self._get_ua_status_file_path()
+            ua_status = self._get_raw_ua_status(ua_status_file_path)
+
+            for entitlement in ua_status["services"]:
+                if entitlement["name"] == "esm-apps":
+                    apps = True if entitlement["status"] == "enabled" else False
+                elif entitlement["name"] == "esm-infra":
+                    infra = True if entitlement["status"] == "enabled" else False
+        except (FileNotFoundError, PermissionError) as err:
+            self.logger.debug("Failed to open UA Status JSON file: %s" % err)
+
+        self.esm_apps_enabled = apps
+        self.esm_infra_enabled = infra
+
+    def _get_ua_status_file_path(self):
+        ua_status_file_path = const.UA_STATUS_FILE
+        if self.is_snap:
+            ua_status_file_path = "%s%s" % (const.SNAPD_HOSTFS, ua_status_file_path)
+
+        return ua_status_file_path
+
+    def _get_raw_ua_status(self, ua_status_file_path):
+        self.logger.debug(
+            "Attempting to read %s to determine the status of UA offerings"
+            % ua_status_file_path
+        )
+        with open(ua_status_file_path) as ua_status_file:
+            ua_status = json.load(ua_status_file)
+
+        return ua_status
