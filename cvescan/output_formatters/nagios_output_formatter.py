@@ -60,7 +60,7 @@ class NagiosOutputFormatter(AbstractOutputFormatter):
         else:
             fc_list = "\n".join(fixable_cves)
             results_msg = (
-                'CRITICAL: Affected by %d CVEs with "%s" or higher priority.'
+                'CRITICAL: Affected by %d CVEs with "%s" or higher priority. '
                 "%d CVEs can be fixed with package updates\n%s"
                 % (num_pfc, self.opt.priority, num_fc, fc_list)
             )
