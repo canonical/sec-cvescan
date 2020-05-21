@@ -1,10 +1,15 @@
 from sys import stdout
 from typing import List
 
-import cvescan.constants as const
-from cvescan.output_formatters import AbstractOutputFormatter
-from cvescan.scan_result import ScanResult
 from tabulate import tabulate
+
+import cvescan.constants as const
+from cvescan.output_formatters import (
+    AbstractOutputFormatter,
+    AbstractStackableScanResultSorter,
+    ScanStats,
+)
+from cvescan.scan_result import ScanResult
 
 
 class CLIOutputFormatter(AbstractOutputFormatter):
@@ -20,26 +25,75 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         const.CRITICAL: 1,
     }
 
+    def __init__(
+        self, opt, sysinfo, logger, sorter: AbstractStackableScanResultSorter = None
+    ):
+        super().__init__(opt, sysinfo, logger, sorter)
+        # Currently, this setting is only enabled/disabled by the test suite
+        self._show_summary = True
+
     def format_output(self, scan_results: List[ScanResult]) -> (str, int):
-        self.sort(scan_results)
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
-        if self.opt.unresolved:
-            formatted_results = self._transform_results(priority_results)
-        else:
-            formatted_results = self._transform_results(fixable_results)
+        stats = self._get_scan_stats(scan_results)
 
-        msg = tabulate(
-            formatted_results,
-            headers=["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "ARCHIVE"],
-            tablefmt="plain",
-        )
+        summary_msg = self._format_summary(stats)
+        table_msg = self._format_table(priority_results, fixable_results)
+        msg = "\n%s\n\n%s" % (summary_msg, table_msg)
+
         return_code = CLIOutputFormatter._get_return_code(
             priority_results, fixable_results
         )
 
         return (msg, return_code)
+
+    def _format_summary(self, stats: ScanStats):
+        apps_enabled = self._format_esm_enabled(self.sysinfo.esm_apps_enabled)
+        infra_enabled = self._format_esm_enabled(self.sysinfo.esm_infra_enabled)
+
+        summary = list()
+        summary.append(["Ubuntu Release", stats.codename])
+        summary.append(["Installed Packages", stats.installed_packages])
+        summary.append(["CVE Priority", self._format_summary_priority()])
+        summary.append(["Unique Packages Fixable by Patching", stats.fixable_packages])
+        summary.append(["Unique CVEs Fixable by Patching", stats.fixable_cves])
+        summary.append(["Vulnerabilities Fixable by Patching", stats.fixable_vulns])
+        summary.append(["Vulnerabilities Fixable by ESM Apps", stats.apps_vulns])
+        summary.append(["Vulnerabilities Fixable by ESM Infra", stats.infra_vulns])
+        summary.append(["ESM Apps Enabled", apps_enabled])
+        summary.append(["ESM Infra Enabled", infra_enabled])
+        summary.append(["Fixes Available by `apt-get upgrade`", stats.upgrade_vulns])
+        summary.append(
+            ["Available Fixes Not Applied by `apt-get upgrade`", stats.missing_fixes]
+        )
+        return "Summary\n" + tabulate(summary)
+
+    def _format_summary_priority(self):
+        if self.opt.priority == const.ALL:
+            return "All"
+
+        return "%s or higher" % self.opt.priority
+
+    def _format_esm_enabled(self, enabled):
+        if enabled:
+            return "Yes"
+
+        return "No"
+
+    def _format_table(self, priority_results, fixable_results):
+        if self.opt.unresolved:
+            self.sort(priority_results)
+            formatted_results = self._transform_results(priority_results)
+        else:
+            self.sort(fixable_results)
+            formatted_results = self._transform_results(fixable_results)
+
+        return tabulate(
+            formatted_results,
+            headers=["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "ARCHIVE"],
+            tablefmt="plain",
+        )
 
     def _transform_results(self, scan_results):
         for sr in scan_results:
@@ -107,22 +161,3 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             return const.SYSTEM_VULNERABLE_RETURN_CODE
 
         return const.SUCCESS_RETURN_CODE
-
-    def _get_package_count(self):
-        if self.opt.manifest_mode:
-            package_count = _count_packages_in_manifest_file(
-                const.DEFAULT_MANIFEST_FILE
-            )
-            self.logger.debug("Manifest package count is %s" % package_count)
-        else:
-            package_count = self.sysinfo.package_count
-
-        return package_count
-
-
-# TODO: fix manifest mode
-def _count_packages_in_manifest_file(manifest_file):
-    with open(manifest_file) as mf:
-        package_count = len(mf.readlines())
-
-    return package_count
