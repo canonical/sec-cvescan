@@ -97,28 +97,16 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
     def _transform_results(self, scan_results):
         for sr in scan_results:
-            (priority, repository) = self._colorize(sr)
-
-            fixed_version = CLIOutputFormatter._transform_fixed_version(
-                sr.fixed_version
-            )
-            repository = CLIOutputFormatter._transform_repository(repository)
+            fixed_version = sr.fixed_version if sr.fixed_version else "Unresolved"
+            priority = CLIOutputFormatter._colorize_priority(sr.priority)
+            repository = self._transform_repository(sr.repository)
 
             yield [sr.cve_id, priority, sr.package_name, fixed_version, repository]
-
-    def _colorize(self, scan_result):
-        if not stdout.isatty():
-            return (scan_result.priority, scan_result.repository)
-
-        priority = CLIOutputFormatter._colorize_priority(scan_result.priority)
-        repository = self._colorize_repository(scan_result.repository)
-
-        return priority, repository
 
     @classmethod
     def _colorize_priority(cls, priority):
         priority_color_code = cls.priority_to_color_code[priority]
-        return "\u001b[38;5;%dm%s\u001b[0m" % (priority_color_code, priority)
+        return cls._colorize(priority_color_code, priority)
 
     def _colorize_repository(self, repository):
         if not repository:
@@ -127,30 +115,33 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         if repository == const.ARCHIVE:
             color_code = const.ARCHIVE_ENABLED_COLOR_CODE
         elif repository == const.UA_APPS:
-            color_code = (
-                const.ARCHIVE_ENABLED_COLOR_CODE
-                if self.sysinfo.esm_apps_enabled
-                else const.ARCHIVE_DISABLED_COLOR_CODE
-            )
+            if self.sysinfo.esm_apps_enabled:
+                color_code = const.ARCHIVE_ENABLED_COLOR_CODE
+            else:
+                color_code = const.ARCHIVE_DISABLED_COLOR_CODE
         elif repository == const.UA_INFRA:
-            color_code = (
-                const.ARCHIVE_ENABLED_COLOR_CODE
-                if self.sysinfo.esm_infra_enabled
-                else const.ARCHIVE_DISABLED_COLOR_CODE
-            )
+            if self.sysinfo.esm_infra_enabled:
+                color_code = const.ARCHIVE_ENABLED_COLOR_CODE
+            else:
+                color_code = const.ARCHIVE_DISABLED_COLOR_CODE
         else:
             self.logger.warning("Unknown repository %s" % repository)
             color_code = const.ARCHIVE_DISABLED_COLOR_CODE
 
-        return "\u001b[38;5;%dm%s\u001b[0m" % (color_code, repository)
+        return CLIOutputFormatter._colorize(color_code, repository)
+
+    def _transform_repository(self, repository):
+        if repository:
+            return self._colorize_repository(repository)
+
+        return CLIOutputFormatter.NOT_APPLICABLE
 
     @staticmethod
-    def _transform_fixed_version(fixed_version):
-        return fixed_version if fixed_version else "Unresolved"
+    def _colorize(color_code, value):
+        if not stdout.isatty():
+            return str(value)
 
-    @classmethod
-    def _transform_repository(cls, repository):
-        return repository if repository else cls.NOT_APPLICABLE
+        return "\u001b[38;5;%dm%s\u001b[0m" % (color_code, str(value))
 
     @staticmethod
     def _get_return_code(priority_results, fixable_results):
