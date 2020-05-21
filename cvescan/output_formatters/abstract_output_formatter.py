@@ -9,7 +9,6 @@ from cvescan.scan_result import ScanResult
 ScanStats = namedtuple(
     "OutputSummary",
     [
-        "codename",
         "installed_packages",
         "fixable_packages",
         "fixable_cves",
@@ -59,7 +58,6 @@ class AbstractOutputFormatter(ABC):
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
-        codename = self.sysinfo.distrib_codename
         installed_packages = self._get_package_count()
         fixable_packages = len(set([r.package_name for r in fixable_results]))
         fixable_cves = len(set([r.cve_id for r in fixable_results]))
@@ -77,7 +75,6 @@ class AbstractOutputFormatter(ABC):
 
         missing_fixes = fixable_vulns - upgrade_vulns
         return ScanStats(
-            codename,
             installed_packages,
             fixable_packages,
             fixable_cves,
@@ -106,3 +103,6 @@ class AbstractOutputFormatter(ABC):
             package_count = len(mf.readlines())
 
         return package_count
+
+    def _get_scanned_system_codename(self):
+        return self.sysinfo.distrib_codename

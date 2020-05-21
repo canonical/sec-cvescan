@@ -49,6 +49,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return (msg, return_code)
 
     def _format_summary(self, stats: ScanStats):
+        codename = self._get_scanned_system_codename()
         apps_enabled = self._format_esm_enabled(self.sysinfo.esm_apps_enabled)
         infra_enabled = self._format_esm_enabled(self.sysinfo.esm_infra_enabled)
         fixable_vulns = CLIOutputFormatter._colorize_fixes(stats.fixable_vulns, True)
@@ -62,7 +63,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         missing_fixes = CLIOutputFormatter._colorize_fixes(stats.missing_fixes, False)
 
         summary = list()
-        summary.append(["Ubuntu Release", stats.codename])
+        summary.append(["Ubuntu Release", codename])
         summary.append(["Installed Packages", stats.installed_packages])
         summary.append(["CVE Priority", self._format_summary_priority()])
         summary.append(["Unique Packages Fixable by Patching", stats.fixable_packages])
