@@ -219,6 +219,7 @@ def test_summary_nounresolved(monkeypatch, no_table_cli_output_formatter):
 
     (results_msg, return_code) = cof.format_output(sr)
 
+    print(results_msg)
     assert re.search(r"Ubuntu Release\s+bionic", results_msg)
     assert re.search(r"Installed Packages\s+100", results_msg)
     assert re.search(r"CVE Priority\s+low or higher", results_msg)
@@ -272,3 +273,49 @@ def test_summary_apps_enabled(monkeypatch, no_table_cli_output_formatter):
 
     assert re.search(r"ESM Apps Enabled\s+Yes", results_msg)
     assert re.search(r"ESM Infra Enabled\s+No", results_msg)
+
+
+def test_summary_esm_enabled_color(monkeypatch, no_table_cli_output_formatter):
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    cof = no_table_cli_output_formatter
+    cof.sysinfo.esm_apps_enabled = True
+    cof.sysinfo.esm_infra_enabled = True
+
+    sr = filter_scan_results_by_cve_ids(["CVE-2020-1005"])
+
+    (results_msg, return_code) = cof.format_output(sr)
+
+    fixable_color_code = r"\u001b\[38;5;%dm" % const.ARCHIVE_ENABLED_COLOR_CODE
+    assert re.search(
+        r"Vulnerabilities Fixable by ESM Apps\s+%s2" % fixable_color_code, results_msg
+    )
+    assert re.search(
+        r"Vulnerabilities Fixable by ESM Infra\s+%s1" % fixable_color_code, results_msg
+    )
+
+    esm_color_code = r"\u001b\[38;5;%dm" % const.YES_COLOR_CODE
+    assert re.search(r"ESM Apps Enabled\s+%sYes" % esm_color_code, results_msg)
+    assert re.search(r"ESM Infra Enabled\s+%sYes" % esm_color_code, results_msg)
+
+
+def test_summary_esm_disabled_color(monkeypatch, no_table_cli_output_formatter):
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+    cof = no_table_cli_output_formatter
+    cof.sysinfo.esm_apps_enabled = False
+    cof.sysinfo.esm_inra_enabled = False
+
+    sr = filter_scan_results_by_cve_ids(["CVE-2020-1005"])
+
+    (results_msg, return_code) = cof.format_output(sr)
+
+    fixable_color_code = r"\u001b\[38;5;%dm" % const.ARCHIVE_DISABLED_COLOR_CODE
+    assert re.search(
+        r"Vulnerabilities Fixable by ESM Apps\s+%s2" % fixable_color_code, results_msg
+    )
+    assert re.search(
+        r"Vulnerabilities Fixable by ESM Infra\s+%s1" % fixable_color_code, results_msg
+    )
+
+    esm_color_code = r"\u001b\[38;5;%dm" % const.NO_COLOR_CODE
+    assert re.search(r"ESM Apps Enabled\s+%sNo" % esm_color_code, results_msg)
+    assert re.search(r"ESM Infra Enabled\s+%sNo" % esm_color_code, results_msg)

@@ -51,6 +51,15 @@ class CLIOutputFormatter(AbstractOutputFormatter):
     def _format_summary(self, stats: ScanStats):
         apps_enabled = self._format_esm_enabled(self.sysinfo.esm_apps_enabled)
         infra_enabled = self._format_esm_enabled(self.sysinfo.esm_infra_enabled)
+        fixable_vulns = CLIOutputFormatter._colorize_fixes(stats.fixable_vulns, True)
+        apps_vulns = CLIOutputFormatter._colorize_fixes(
+            stats.apps_vulns, self.sysinfo.esm_apps_enabled
+        )
+        infra_vulns = CLIOutputFormatter._colorize_fixes(
+            stats.infra_vulns, self.sysinfo.esm_infra_enabled
+        )
+        upgrade_vulns = CLIOutputFormatter._colorize_fixes(stats.upgrade_vulns, True)
+        missing_fixes = CLIOutputFormatter._colorize_fixes(stats.missing_fixes, False)
 
         summary = list()
         summary.append(["Ubuntu Release", stats.codename])
@@ -58,14 +67,14 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         summary.append(["CVE Priority", self._format_summary_priority()])
         summary.append(["Unique Packages Fixable by Patching", stats.fixable_packages])
         summary.append(["Unique CVEs Fixable by Patching", stats.fixable_cves])
-        summary.append(["Vulnerabilities Fixable by Patching", stats.fixable_vulns])
-        summary.append(["Vulnerabilities Fixable by ESM Apps", stats.apps_vulns])
-        summary.append(["Vulnerabilities Fixable by ESM Infra", stats.infra_vulns])
+        summary.append(["Vulnerabilities Fixable by Patching", fixable_vulns])
+        summary.append(["Vulnerabilities Fixable by ESM Apps", apps_vulns])
+        summary.append(["Vulnerabilities Fixable by ESM Infra", infra_vulns])
         summary.append(["ESM Apps Enabled", apps_enabled])
         summary.append(["ESM Infra Enabled", infra_enabled])
-        summary.append(["Fixes Available by `apt-get upgrade`", stats.upgrade_vulns])
+        summary.append(["Fixes Available by `apt-get upgrade`", upgrade_vulns])
         summary.append(
-            ["Available Fixes Not Applied by `apt-get upgrade`", stats.missing_fixes]
+            ["Available Fixes Not Applied by `apt-get upgrade`", missing_fixes]
         )
         return "Summary\n" + tabulate(summary)
 
@@ -76,10 +85,11 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return "%s or higher" % self.opt.priority
 
     def _format_esm_enabled(self, enabled):
+        yes_no = "No"
         if enabled:
-            return "Yes"
+            yes_no = "Yes"
 
-        return "No"
+        return CLIOutputFormatter._colorize_yes_no(yes_no)
 
     def _format_table(self, priority_results, fixable_results):
         if self.opt.unresolved:
@@ -135,6 +145,23 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             return self._colorize_repository(repository)
 
         return CLIOutputFormatter.NOT_APPLICABLE
+
+    @classmethod
+    def _colorize_yes_no(cls, yes_no):
+        if yes_no.lower() == "yes":
+            return cls._colorize(const.YES_COLOR_CODE, yes_no)
+
+        return cls._colorize(const.NO_COLOR_CODE, yes_no)
+
+    @classmethod
+    def _colorize_fixes(cls, fixes, enabled):
+        if fixes == 0:
+            return str(fixes)
+
+        if enabled:
+            return cls._colorize(const.ARCHIVE_ENABLED_COLOR_CODE, fixes)
+
+        return cls._colorize(const.ARCHIVE_DISABLED_COLOR_CODE, fixes)
 
     @staticmethod
     def _colorize(color_code, value):
