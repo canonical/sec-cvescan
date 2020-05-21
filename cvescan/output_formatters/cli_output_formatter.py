@@ -19,7 +19,6 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         const.HIGH: 208,
         const.CRITICAL: 1,
     }
-    repository_to_color_code = {const.ARCHIVE: 2, const.UA_INFRA: 3, const.UA_APPS: 3}
 
     def format_output(self, scan_results: List[ScanResult]) -> (str, int):
         self.sort(scan_results)
@@ -27,9 +26,9 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         fixable_results = self._filter_on_fixable(priority_results)
 
         if self.opt.unresolved:
-            formatted_results = CLIOutputFormatter._transform_results(priority_results)
+            formatted_results = self._transform_results(priority_results)
         else:
-            formatted_results = CLIOutputFormatter._transform_results(fixable_results)
+            formatted_results = self._transform_results(fixable_results)
 
         msg = tabulate(
             formatted_results,
@@ -42,23 +41,23 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
         return (msg, return_code)
 
-    @classmethod
-    def _transform_results(cls, scan_results):
+    def _transform_results(self, scan_results):
         for sr in scan_results:
-            (priority, repository) = cls._colorize(sr)
+            (priority, repository) = self._colorize(sr)
 
-            fixed_version = cls._transform_fixed_version(sr.fixed_version)
-            repository = cls._transform_repository(repository)
+            fixed_version = CLIOutputFormatter._transform_fixed_version(
+                sr.fixed_version
+            )
+            repository = CLIOutputFormatter._transform_repository(repository)
 
             yield [sr.cve_id, priority, sr.package_name, fixed_version, repository]
 
-    @classmethod
-    def _colorize(cls, scan_result):
+    def _colorize(self, scan_result):
         if not stdout.isatty():
             return (scan_result.priority, scan_result.repository)
 
-        priority = cls._colorize_priority(scan_result.priority)
-        repository = cls._colorize_repository(scan_result.repository)
+        priority = CLIOutputFormatter._colorize_priority(scan_result.priority)
+        repository = self._colorize_repository(scan_result.repository)
 
         return priority, repository
 
@@ -67,15 +66,29 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         priority_color_code = cls.priority_to_color_code[priority]
         return "\u001b[38;5;%dm%s\u001b[0m" % (priority_color_code, priority)
 
-    # TODO: Test whether or not UA enabled (in SysInfo()), colorize output based
-    #       on which repos are enabled.
-    @classmethod
-    def _colorize_repository(cls, repository):
+    def _colorize_repository(self, repository):
         if not repository:
             return repository
 
-        repository_color_code = cls.repository_to_color_code[repository]
-        return "\u001b[38;5;%dm%s\u001b[0m" % (repository_color_code, repository)
+        if repository == const.ARCHIVE:
+            color_code = const.ARCHIVE_ENABLED_COLOR_CODE
+        elif repository == const.UA_APPS:
+            color_code = (
+                const.ARCHIVE_ENABLED_COLOR_CODE
+                if self.sysinfo.esm_apps_enabled
+                else const.ARCHIVE_DISABLED_COLOR_CODE
+            )
+        elif repository == const.UA_INFRA:
+            color_code = (
+                const.ARCHIVE_ENABLED_COLOR_CODE
+                if self.sysinfo.esm_infra_enabled
+                else const.ARCHIVE_DISABLED_COLOR_CODE
+            )
+        else:
+            self.logger.warning("Unknown repository %s" % repository)
+            color_code = const.ARCHIVE_DISABLED_COLOR_CODE
+
+        return "\u001b[38;5;%dm%s\u001b[0m" % (color_code, repository)
 
     @staticmethod
     def _transform_fixed_version(fixed_version):

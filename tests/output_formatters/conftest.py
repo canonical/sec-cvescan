@@ -18,6 +18,8 @@ class MockSysInfo:
     def __init__(self):
         self.distrib_codename = "bionic"
         self.package_count = 100
+        self.esm_apps_enabled = False
+        self.esm_infra_enabled = False
 
 
 class MockOpt:
@@ -206,6 +208,11 @@ def misc_scan_results():
         ScanResult("CVE-2020-1006", "untriaged", "pkg5", None, None),
         ScanResult("CVE-2020-1007", "critical", "pkg4", None, None),
         ScanResult("CVE-2020-1008", "negligible", "pkg1", None, None),
+        ScanResult("CVE-2020-1009", "low", "pkg2", "1:1.2.3-4+deb9u3", const.UA_APPS),
+        ScanResult("CVE-2020-1010", "low", "pkg3", "10.2.3-2ubuntu0.1", const.UA_INFRA),
+        ScanResult(
+            "CVE-2020-1011", "low", "pkg3", "10.2.3-2ubuntu0.1", "INVALID_ARCHIVE"
+        ),
     ]
 
 
