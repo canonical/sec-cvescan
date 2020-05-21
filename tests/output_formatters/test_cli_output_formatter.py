@@ -319,3 +319,11 @@ def test_summary_esm_disabled_color(monkeypatch, no_table_cli_output_formatter):
     esm_color_code = r"\u001b\[38;5;%dm" % const.NO_COLOR_CODE
     assert re.search(r"ESM Apps Enabled\s+%sNo" % esm_color_code, results_msg)
     assert re.search(r"ESM Infra Enabled\s+%sNo" % esm_color_code, results_msg)
+
+
+def test_uct_links(run_uct_links_test):
+    run_uct_links_test(NoSummaryCLIOutputFormatter)
+
+
+def test_no_uct_links(run_no_uct_links_test):
+    run_no_uct_links_test(NoSummaryCLIOutputFormatter)

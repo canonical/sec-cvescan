@@ -18,7 +18,7 @@ class MockArgs:
         self.manifest = None
         self.file = None
         self.nagios = False
-        self.list = False
+        self.uct_links = False
         self.test = False
         self.unresolved = False
         self.verbose = False
@@ -345,6 +345,15 @@ def test_invalid_nagios_and_unresolved(mock_args, mock_sysinfo):
     assert "options are incompatible" in str(ae)
 
 
+def test_invalid_nagios_and_links(mock_args, mock_sysinfo):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.nagios = True
+        mock_args.uct_links = True
+        Options(mock_args, mock_sysinfo)
+
+    assert "options are incompatible" in str(ae)
+
+
 def test_invalid_silent_without_cve(monkeypatch, mock_args, mock_sysinfo):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
     with pytest.raises(ArgumentError) as ae:
@@ -352,6 +361,16 @@ def test_invalid_silent_without_cve(monkeypatch, mock_args, mock_sysinfo):
         Options(mock_args, mock_sysinfo)
 
     assert "Cannot specify" in str(ae)
+
+
+def test_invalid_silent_and_links(mock_args, mock_sysinfo):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.uct_links = True
+        mock_args.cve = "CVE-2020-1234"
+        mock_args.silent = True
+        Options(mock_args, mock_sysinfo)
+
+    assert "options are incompatible" in str(ae)
 
 
 def test_invalid_verbose_and_silent(mock_args, mock_sysinfo):

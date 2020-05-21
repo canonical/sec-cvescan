@@ -9,6 +9,7 @@ FMT_EXPERIMENTAL_OPTION = "-x|--experimental"
 FMT_FILE_OPTION = "-f|--file"
 FMT_MANIFEST_OPTION = "-m|--manifest"
 FMT_NAGIOS_OPTION = "-n|--nagios"
+FMT_UCT_LINKS_OPTION = "--uct-links"
 FMT_OVAL_FILE_OPTION = "-o|--oval_file"
 FMT_PRIORITY_OPTION = "-p|priority"
 FMT_SILENT_OPTION = "-s|--silent"
@@ -33,6 +34,8 @@ class Options:
         self.cve = args.cve
         self.priority = args.priority
         self.unresolved = args.unresolved
+
+        self.uct_links = args.uct_links
 
     def _set_mode(self, args):
         self.manifest_mode = True if args.manifest else False
@@ -126,6 +129,9 @@ def raise_on_invalid_nagios_options(args):
     if args.unresolved:
         raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UNRESOLVED_OPTION)
 
+    if args.uct_links:
+        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UCT_LINKS_OPTION)
+
 
 def raise_on_invalid_silent_options(args):
     if not args.silent:
@@ -139,6 +145,9 @@ def raise_on_invalid_silent_options(args):
 
     if args.verbose:
         raise_incompatible_arguments_error(FMT_SILENT_OPTION, FMT_VERBOSE_OPTION)
+
+    if args.uct_links:
+        raise_incompatible_arguments_error(FMT_SILENT_OPTION, FMT_UCT_LINKS_OPTION)
 
 
 def raise_on_invalid_unresolved_options(args):

@@ -100,11 +100,11 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             self.sort(fixable_results)
             formatted_results = self._transform_results(fixable_results)
 
-        return tabulate(
-            formatted_results,
-            headers=["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "ARCHIVE"],
-            tablefmt="plain",
-        )
+        headers = ["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "ARCHIVE"]
+        if self.opt.uct_links:
+            headers.append("URL")
+
+        return tabulate(formatted_results, headers, tablefmt="plain")
 
     def _transform_results(self, scan_results):
         for sr in scan_results:
@@ -112,7 +112,12 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             priority = CLIOutputFormatter._colorize_priority(sr.priority)
             repository = self._transform_repository(sr.repository)
 
-            yield [sr.cve_id, priority, sr.package_name, fixed_version, repository]
+            result = [sr.cve_id, priority, sr.package_name, fixed_version, repository]
+            if self.opt.uct_links:
+                uct_link = const.UCT_URL % sr.cve_id
+                result.append(uct_link)
+
+            yield result
 
     @classmethod
     def _colorize_priority(cls, priority):

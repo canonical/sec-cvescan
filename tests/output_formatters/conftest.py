@@ -29,6 +29,7 @@ class MockOpt:
         self.cve = None
         self.unresolved = True
         self.priority = "all"
+        self.uct_links = None
 
 
 @pytest.fixture
@@ -284,5 +285,39 @@ def run_unresolved_shown_test():
         assert "N/A" in results_msg
         assert "CVE-2020-1004" in results_msg
         assert "CVE-2020-1005" in results_msg
+
+    return run_test
+
+
+@pytest.fixture
+def run_uct_links_test():
+    def run_test(formatter_type):
+        sr = filter_scan_results_by_cve_ids(["CVE-2020-1004", "CVE-2020-1005"])
+        opt = MockOpt()
+        opt.unresolved = True
+        opt.uct_links = True
+        formatter = formatter_type(opt, MockSysInfo(), null_logger())
+
+        (results_msg, return_code) = formatter.format_output(sr)
+
+        assert const.UCT_URL % "CVE-2020-1004" in results_msg
+        assert const.UCT_URL % "CVE-2020-1005" in results_msg
+
+    return run_test
+
+
+@pytest.fixture
+def run_no_uct_links_test():
+    def run_test(formatter_type):
+        sr = filter_scan_results_by_cve_ids(["CVE-2020-1004", "CVE-2020-1005"])
+        opt = MockOpt()
+        opt.unresolved = True
+        opt.uct_links = False
+        formatter = formatter_type(opt, MockSysInfo(), null_logger())
+
+        (results_msg, return_code) = formatter.format_output(sr)
+
+        assert const.UCT_URL % "CVE-2020-1004" not in results_msg
+        assert const.UCT_URL % "CVE-2020-1005" not in results_msg
 
     return run_test

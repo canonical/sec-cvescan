@@ -44,10 +44,7 @@ NAGIOS_HELP = (
     "3/UNKNOWN = something went wrong with the script, or oscap."
 )
 
-LIST_HELP = (
-    "Disable links. Show only CVE IDs instead of URLs.\nDefault is to "
-    "output URLs linking to the Ubuntu CVE tracker."
-)
+UCT_LINKS_HELP = "Provide links to the Ubuntu CVE Tracker for each CVE."
 
 TEST_HELP = (
     "Test mode, use test OVAL data to validate that cvescan and oscap "
@@ -103,3 +100,5 @@ HIGH = "high"
 CRITICAL = "critical"
 
 PRIORITIES = [NEGLIGIBLE, LOW, MEDIUM, HIGH, CRITICAL]
+
+UCT_URL = "http://people.canonical.com/~ubuntu-security/cve/%s"
