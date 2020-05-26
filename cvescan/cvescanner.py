@@ -39,7 +39,7 @@ class CVEScanner:
     #       versions
     def _run_cvescan(self, opt, installed_pkgs):
         if opt.download_oval_file:
-            downloader.retrieve_oval_file(
+            downloader.download_bz2_file(
                 self.logger, opt.base_url, opt.oval_zip, opt.oval_file
             )
 

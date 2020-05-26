@@ -27,7 +27,7 @@ def bz2decompress(bz2_archive, target):
         raise BZ2Error("Decompressing %s to %s failed: %s", (bz2_archive, target, ex))
 
 
-def retrieve_oval_file(logger, base_url, zip_file, destination_file):
+def download_bz2_file(logger, base_url, zip_file, destination_file):
     logger.debug("Downloading %s/%s" % (base_url, zip_file))
     download(os.path.join(base_url, zip_file), zip_file)
 
