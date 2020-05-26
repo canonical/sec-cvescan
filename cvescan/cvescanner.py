@@ -1,5 +1,4 @@
 import json
-import os
 import re
 from shutil import copyfile
 
@@ -40,19 +39,14 @@ class CVEScanner:
     #       versions
     def _run_cvescan(self, opt, installed_pkgs):
         if opt.download_oval_file:
-            self._retrieve_oval_file(opt)
+            downloader.retrieve_oval_file(
+                self.logger, opt.base_url, opt.oval_zip, opt.oval_file
+            )
 
         with open(opt.oval_file) as oval_file:
             cve_status = json.load(oval_file)
 
         return self._scan_for_cves(opt.distrib_codename, cve_status, installed_pkgs)
-
-    def _retrieve_oval_file(self, opt):
-        self.logger.debug("Downloading %s/%s" % (opt.oval_base_url, opt.oval_zip))
-        downloader.download(os.path.join(opt.oval_base_url, opt.oval_zip), opt.oval_zip)
-
-        self.logger.debug("Unzipping %s" % opt.oval_zip)
-        downloader.bz2decompress(opt.oval_zip, opt.oval_file)
 
     # TODO: Add debug logging
     def _scan_for_cves(self, distrib_codename, cve_status, installed_pkgs):
