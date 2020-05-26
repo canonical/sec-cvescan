@@ -21,11 +21,11 @@ MANIFEST_URL_TEMPLATE = (
 
 
 class Options:
-    def __init__(self, args, sysinfo):
+    def __init__(self, args, system_distrib_codename):
         raise_on_invalid_args(args)
 
         self._set_mode(args)
-        self._set_distrib_codename(args, sysinfo)
+        self._set_distrib_codename(args, system_distrib_codename)
         self._set_oval_file_options(args)
         self._set_manifest_file_options(args)
 
@@ -40,11 +40,11 @@ class Options:
         self.experimental_mode = args.experimental
         self.nagios_mode = args.nagios
 
-    def _set_distrib_codename(self, args, sysinfo):
+    def _set_distrib_codename(self, args, system_distrib_codename):
         if self.manifest_mode:
             self.distrib_codename = args.manifest
         else:
-            self.distrib_codename = sysinfo.distrib_codename
+            self.distrib_codename = system_distrib_codename
 
     def _set_oval_file_options(self, args):
         self.oval_base_url = None

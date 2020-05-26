@@ -176,7 +176,7 @@ def main():
         error_exit("Failed to determine the local package count: %s" % pke)
 
     try:
-        opt = Options(args, sysinfo)
+        opt = Options(args, sysinfo.distrib_codename)
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
 
