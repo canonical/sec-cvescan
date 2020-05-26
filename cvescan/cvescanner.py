@@ -18,13 +18,13 @@ class CVEScanner:
                 continue
 
             affected_cves = affected_cves + self._scan_for_single_cve(
-                cve_id, uct_record, distrib_codename, uct_data, installed_pkgs
+                cve_id, uct_record, distrib_codename, installed_pkgs
             )
 
         return affected_cves
 
     def _scan_for_single_cve(
-        self, cve_id, uct_record, distrib_codename, uct_data, installed_pkgs
+        self, cve_id, uct_record, distrib_codename, installed_pkgs
     ):
         affected_cves = list()
 
