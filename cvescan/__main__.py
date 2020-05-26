@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse as ap
+import json
 import logging
 import os
 import sys
@@ -8,9 +9,17 @@ import sys
 from tabulate import tabulate
 
 import cvescan.constants as const
+import cvescan.downloader as downloader
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.options import Options
+from cvescan.output_formatters import (
+    CLIOutputFormatter,
+    CVEOutputFormatter,
+    CVEScanResultSorter,
+    NagiosOutputFormatter,
+    PackageScanResultSorter,
+)
 from cvescan.sysinfo import SysInfo
 
 
@@ -64,7 +73,7 @@ def parse_args():
         "-p",
         "--priority",
         help=const.PRIORITY_HELP,
-        choices=["critical", "high", "medium", "all"],
+        choices=[const.CRITICAL, const.HIGH, const.MEDIUM, const.ALL],
         default="high",
     )
     cvescan_ap.add_argument(
@@ -81,10 +90,10 @@ def parse_args():
         "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
     )
     cvescan_ap.add_argument(
-        "-l", "--list", action="store_true", default=False, help=const.LIST_HELP
+        "--uct-links", action="store_true", default=False, help=const.UCT_LINKS_HELP
     )
     cvescan_ap.add_argument(
-        "-u", "--updates", action="store_true", default=False, help=const.UPDATES_HELP
+        "--unresolved", action="store_true", default=False, help=const.UNRESOLVED_HELP
     )
     cvescan_ap.add_argument(
         "-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP
@@ -113,7 +122,7 @@ def log_config_options(opt):
         ["Manifest URL", opt.manifest_url],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
-        ["Only Show Updates Available", (not opt.all_cve)],
+        ["Show Unresolved CVEs", opt.unresolved],
     ]
 
     LOGGER.debug(tabulate(table))
@@ -125,12 +134,44 @@ def log_system_info(sysinfo):
     table = [
         ["Local Ubuntu Codename", sysinfo.distrib_codename],
         ["Installed Package Count", sysinfo.package_count],
+        ["ESM Apps Enabled", sysinfo.esm_apps_enabled],
+        ["ESM Infra Enabled", sysinfo.esm_infra_enabled],
         ["CVEScan is a Snap", sysinfo.is_snap],
         ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
     ]
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
+
+
+def load_output_formatter(opt, sysinfo):
+    if opt.cve:
+        return CVEOutputFormatter(opt, sysinfo, LOGGER)
+
+    sorter = load_output_sorter(opt, sysinfo)
+    if opt.nagios_mode:
+        return NagiosOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
+
+    return CLIOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
+
+
+def load_output_sorter(opt, sysinfo):
+    pkg_sorter = PackageScanResultSorter()
+    return CVEScanResultSorter(subsorters=[pkg_sorter])
+
+
+def load_uct_data(opt):
+    # TODO: Fix manifest mode
+    if opt.manifest_mode:
+        raise NotImplementedError("Manifest mode is temporarily disabled")
+
+    if opt.download_oval_file:
+        downloader.download_bz2_file(LOGGER, opt.base_url, opt.oval_zip, opt.oval_file)
+
+    with open(opt.oval_file) as oval_file:
+        uct_data = json.load(oval_file)
+
+    return uct_data
 
 
 def main():
@@ -154,7 +195,7 @@ def main():
         error_exit("Failed to determine the local package count: %s" % pke)
 
     try:
-        opt = Options(args, sysinfo)
+        opt = Options(args, sysinfo.distrib_codename)
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
 
@@ -164,6 +205,8 @@ def main():
 
     log_config_options(opt)
     log_system_info(sysinfo)
+
+    output_formatter = load_output_formatter(opt, sysinfo)
 
     if sysinfo.is_snap:
         LOGGER.debug(
@@ -180,8 +223,12 @@ def main():
             error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
 
     try:
-        cve_scanner = CVEScanner(sysinfo, LOGGER)
-        (results, return_code) = cve_scanner.scan(opt)
+        uct_data = load_uct_data(opt)
+        cve_scanner = CVEScanner(LOGGER)
+        scan_results = cve_scanner.scan(
+            opt.distrib_codename, uct_data, sysinfo.installed_packages
+        )
+        (results, return_code) = output_formatter.format_output(scan_results)
     except Exception as ex:
         error_exit(
             "An unexpected error occurred while running CVEScan: %s" % ex,

@@ -101,7 +101,7 @@
                         "pkg100"
                     ],
                     "status": [
-                        "neededj",
+                        "needed",
                         ""
                     ]
                 }
@@ -135,7 +135,7 @@
                     ],
                     "status": [
                         "released",
-                        "1:1.2.3-4+deb0u2"
+                        "1:1.2.3-4+deb9u3"
                     ],
                     "repository": "UA for Apps"
                 },
@@ -181,6 +181,38 @@
                     "binaries": [
                         "pkg101",
                         "pkg102"
+                    ],
+                    "status": [
+                        "needed",
+                        ""
+                    ]
+                }
+            }
+        }
+    },
+    "CVE-2020-1007": {
+        "priority": "medium",
+        "releases": {
+            "bionic": {
+                "pkgD": {
+                    "binaries": [
+                        "pkg7"
+                    ],
+                    "status": [
+                        "DNE",
+                        ""
+                    ]
+                }
+            }
+        }
+    },
+    "CVE-2020-1008": {
+        "priority": "medium",
+        "releases": {
+            "focal": {
+                "pkgD": {
+                    "binaries": [
+                        "pkg7"
                     ],
                     "status": [
                         "needed",

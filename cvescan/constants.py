@@ -44,21 +44,14 @@ NAGIOS_HELP = (
     "3/UNKNOWN = something went wrong with the script, or oscap."
 )
 
-LIST_HELP = (
-    "Disable links. Show only CVE IDs instead of URLs.\nDefault is to "
-    "output URLs linking to the Ubuntu CVE tracker."
-)
+UCT_LINKS_HELP = "Provide links to the Ubuntu CVE Tracker for each CVE."
 
 TEST_HELP = (
     "Test mode, use test OVAL data to validate that cvescan and oscap "
     "are\n working as expected. In test mode, oval files are not downloaded."
 )
 
-UPDATES_HELP = (
-    "Only show CVEs affecting packages if there is an update "
-    "available.\nDefault: show only CVEs affecting this system or "
-    "manifest file."
-)
+UNRESOLVED_HELP = "Show CVEs that have not yet been resolved."
 
 VERBOSE_HELP = "Enable verbose messages."
 
@@ -72,6 +65,18 @@ EXPERIMENTAL_HELP = (
 DEBUG_LOG = "debug.log"
 DEFAULT_MANIFEST_FILE = "manifest"
 LSB_RELEASE_FILE = "/etc/lsb-release"
+UA_STATUS_FILE = "/var/lib/ubuntu-advantage/status.json"
+SNAPD_HOSTFS = "/var/lib/snapd/hostfs"
+
+ARCHIVE = "Ubuntu Archive"
+UA_APPS = "UA for Apps"
+UA_INFRA = "UA for Infra"
+
+ARCHIVE_ENABLED_COLOR_CODE = 2
+ARCHIVE_DISABLED_COLOR_CODE = 1
+
+YES_COLOR_CODE = 2
+NO_COLOR_CODE = 1
 
 SUCCESS_RETURN_CODE = 0
 ERROR_RETURN_CODE = 1
@@ -85,3 +90,15 @@ NAGIOS_OK_RETURN_CODE = 0
 NAGIOS_WARNING_RETURN_CODE = 1
 NAGIOS_CRITICAL_RETURN_CODE = 2
 NAGIOS_UNKNOWN_RETURN_CODE = 3
+
+UNTRIAGED = "untriaged"
+ALL = "all"
+NEGLIGIBLE = "negligible"
+LOW = "low"
+MEDIUM = "medium"
+HIGH = "high"
+CRITICAL = "critical"
+
+PRIORITIES = [NEGLIGIBLE, LOW, MEDIUM, HIGH, CRITICAL]
+
+UCT_URL = "http://people.canonical.com/~ubuntu-security/cve/%s"

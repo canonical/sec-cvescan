@@ -1,4 +1,5 @@
 import bz2
+import os
 
 import pycurl
 
@@ -24,3 +25,11 @@ def bz2decompress(bz2_archive, target):
                 target.write(bz2.decompress(archive.read()))
     except Exception as ex:
         raise BZ2Error("Decompressing %s to %s failed: %s", (bz2_archive, target, ex))
+
+
+def download_bz2_file(logger, base_url, zip_file, destination_file):
+    logger.debug("Downloading %s/%s" % (base_url, zip_file))
+    download(os.path.join(base_url, zip_file), zip_file)
+
+    logger.debug("Unzipping %s" % zip_file)
+    bz2decompress(zip_file, destination_file)

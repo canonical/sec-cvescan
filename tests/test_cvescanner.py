@@ -1,9 +1,11 @@
+import json
 import logging
 
 import pytest
 
 import cvescan.constants as const
 from cvescan.cvescanner import CVEScanner
+from cvescan.scan_result import ScanResult
 
 
 def null_logger():
@@ -14,173 +16,196 @@ def null_logger():
     return logger
 
 
-class MockSysInfo:
-    def __init__(self):
-        self.distrib_codename = "bionic"
-        self.package_count = 100
-        self.scriptdir = "."
-        self.installed_packages = {
-            "pkg1": "1:1.2.3-4+deb9u2ubuntu0.1",
-            "pkg2": "1:1.2.3-4+deb9u2ubuntu0.1",
-            "pkg3": "10.2.3-2",
-            "pkg4": "2.0.0+dfsg-1ubuntu1",
-            "pkg5": "2.0.0+dfsg-1ubuntu1",
-            "pkg6": "2.0.0+dfsg-1ubuntu1",
-            "pkg7": "1.2.0-1",
-        }
+@pytest.fixture
+def default_cve_scanner():
+    return CVEScanner(null_logger())
 
 
-class MockOpt:
-    def __init__(self):
-        self.test_mode = False
-        self.manifest_mode = False
-        self.manifest_file = None
-        self.download_oval_file = False
-        self.oval_file = "tests/assets/uct.json"
-        self.nagios_mode = False
-        self.cve = None
-        self.all_cve = True
-        self.priority = "all"
-
-
-class MockCVEScanner(CVEScanner):
-    def __init__(self, cve_list_all, cve_list_fixable):
-        super().__init__(MockSysInfo(), null_logger())
-        self.cve_list_all = cve_list_all
-        self.cve_list_fixable = cve_list_fixable
-
-    def _retrieve_oval_file(self, opt):
-        pass
+@pytest.fixture(scope="module")
+def uct_data():
+    with open("tests/assets/uct.json") as json_file:
+        return json.load(json_file)
 
 
 @pytest.fixture
-def test_cve_list_all():
-    return [
-        "CVE-2020-1000",
-        "CVE-2020-1001",
-        "CVE-2020-1002",
-        "CVE-2020-1003",
-        "CVE-2020-1004",
-        "CVE-2020-1005",
+def default_installed_packages():
+    return {
+        "pkg1": "1:1.2.3-4+deb9u2ubuntu0.1",
+        "pkg2": "1:1.2.3-4+deb9u2ubuntu0.1",
+        "pkg3": "10.2.3-2",
+        "pkg4": "2.0.0+dfsg-1ubuntu1",
+        "pkg5": "2.0.0+dfsg-1ubuntu1",
+        "pkg6": "2.0.0+dfsg-1ubuntu1",
+        "pkg7": "1.2.0-1",
+    }
+
+
+def test_no_cves(default_cve_scanner, default_installed_packages):
+    results = default_cve_scanner.scan("bionic", dict(), default_installed_packages)
+    assert len(results) == 0
+
+
+def test_no_fix_available(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1000"
+    installed_pkgs = {"pkg3": "10.2.3-2"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 1
+    assert results[0].cve_id == cve_id
+    assert results[0].fixed_version is None
+    assert results[0].repository is None
+
+
+def test_fix_available_infra(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1005"
+    installed_pkgs = {"pkg3": "10.2.3-2"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 1
+    assert results[0].cve_id == cve_id
+    assert results[0].fixed_version == "10.2.3-2ubuntu0.1"
+    assert results[0].repository == const.UA_INFRA
+
+
+def test_fix_available_apps(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1002"
+    installed_pkgs = {"pkg6": "2.0.0+dfsg-1ubuntu1"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 1
+    assert results[0].cve_id == cve_id
+    assert results[0].fixed_version == "2.0.0+dfsg-1ubuntu1.1"
+    assert results[0].repository == const.UA_APPS
+
+
+def test_fix_available_archive(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1006"
+    installed_pkgs = {"pkg5": "2.0.0+dfsg-1"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 1
+    assert results[0].cve_id == cve_id
+    assert results[0].fixed_version == "2.0.0+dfsg-1ubuntu1"
+    assert results[0].repository == const.ARCHIVE
+
+
+def test_DNE(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1007"
+    installed_pkgs = {"pkg7": "1.2.0-1"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 0
+
+
+def test_codename_missing(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1008"
+    installed_pkgs = {"pkg7": "1.2.0-1"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 0
+
+
+def test_cve_affects_mulitple_binaries(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1002"
+    installed_pkgs = {"pkg4": "2.0.0+dfsg-1ubuntu1", "pkg6": "2.0.0+dfsg-1ubuntu1"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 2
+
+    assert results[0].cve_id == cve_id
+    assert results[0].package_name == "pkg4"
+    assert results[0].fixed_version == "2.0.0+dfsg-1ubuntu1.1"
+    assert results[0].repository == const.UA_APPS
+
+    assert results[1].cve_id == cve_id
+    assert results[1].package_name == "pkg6"
+    assert results[1].fixed_version == "2.0.0+dfsg-1ubuntu1.1"
+    assert results[1].repository == const.UA_APPS
+
+
+def test_already_patched(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1002"
+    installed_pkgs = {"pkg4": "2.0.+dfsg-1ubuntu1.1"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 0
+
+
+def test_installed_version_later_than_patched(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1002"
+    installed_pkgs = {"pkg4": "2.0.+dfsg-1ubuntu1.2"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 0
+
+
+def test_multiple_source_pkgs(default_cve_scanner, uct_data):
+    cve_id = "CVE-2020-1005"
+    installed_pkgs = {"pkg1": "1:1.2.3-4", "pkg3": "10.2.3-2"}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
+
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
+
+    assert len(results) == 2
+
+    assert results[0].cve_id == cve_id
+    assert results[0].priority == "low"
+    assert results[0].package_name == "pkg1"
+    assert results[0].fixed_version == "1:1.2.3-4+deb9u3"
+    assert results[0].repository == const.UA_APPS
+
+    assert results[1].cve_id == cve_id
+    assert results[1].priority == "low"
+    assert results[1].package_name == "pkg3"
+    assert results[1].fixed_version == "10.2.3-2ubuntu0.1"
+    assert results[1].repository == const.UA_INFRA
+
+
+def test_whole_uct_json_file(default_cve_scanner, uct_data, default_installed_packages):
+    expected_results = [
+        ScanResult("CVE-2020-1000", "low", "pkg3", None, None),
+        ScanResult(
+            "CVE-2020-1001", "high", "pkg1", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
+        ),
+        ScanResult(
+            "CVE-2020-1001", "high", "pkg2", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
+        ),
+        ScanResult(
+            "CVE-2020-1002", "low", "pkg4", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
+        ),
+        ScanResult(
+            "CVE-2020-1002", "low", "pkg5", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
+        ),
+        ScanResult(
+            "CVE-2020-1002", "low", "pkg6", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
+        ),
+        ScanResult("CVE-2020-1003", "medium", "pkg4", None, None),
+        ScanResult("CVE-2020-1003", "medium", "pkg5", None, None),
+        ScanResult("CVE-2020-1003", "medium", "pkg6", None, None),
+        ScanResult("CVE-2020-1004", "medium", "pkg7", None, None),
+        ScanResult("CVE-2020-1005", "low", "pkg1", "1:1.2.3-4+deb9u3", const.UA_APPS),
+        ScanResult("CVE-2020-1005", "low", "pkg2", "1:1.2.3-4+deb9u3", const.UA_APPS),
+        ScanResult("CVE-2020-1005", "low", "pkg3", "10.2.3-2ubuntu0.1", const.UA_INFRA),
     ]
 
+    results = default_cve_scanner.scan("bionic", uct_data, default_installed_packages)
 
-@pytest.fixture
-def test_cve_list_fixable():
-    return ["CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1005"]
-
-
-@pytest.fixture
-def default_cve_scanner(test_cve_list_all, test_cve_list_fixable):
-    return MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-
-
-def test_no_cves():
-    cve_scanner = MockCVEScanner(list(), list())
-    (results_msg, return_code) = cve_scanner.scan(MockOpt())
-
-    assert "No CVEs" in results_msg
-    assert return_code == const.SUCCESS_RETURN_CODE
-
-
-def test_all_cves_no_fixable(test_cve_list_all):
-    cve_scanner = MockCVEScanner(test_cve_list_all, list())
-    (results_msg, return_code) = cve_scanner.scan(MockOpt())
-
-    assert "All CVEs" in results_msg
-    assert "can be fixed by installing" not in results_msg
-    assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
-
-
-def test_all_cves_fixable(test_cve_list_all, test_cve_list_fixable):
-    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-    (results_msg, return_code) = cve_scanner.scan(MockOpt())
-
-    assert "All CVEs" in results_msg
-    assert "can be fixed by installing" in results_msg
-    assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
-
-
-def test_updates_no_cves():
-    cve_scanner = MockCVEScanner(list(), list())
-    opt = MockOpt()
-    opt.all_cve = False
-    (results_msg, return_code) = cve_scanner.scan(opt)
-
-    assert "No CVEs" in results_msg
-    assert return_code == const.SUCCESS_RETURN_CODE
-
-
-def test_updates_no_fixable(test_cve_list_all):
-    cve_scanner = MockCVEScanner(test_cve_list_all, list())
-    opt = MockOpt()
-    opt.all_cve = False
-    (results_msg, return_code) = cve_scanner.scan(opt)
-
-    assert "All CVEs" not in results_msg
-    assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
-
-
-def test_updates_fixable(test_cve_list_all, test_cve_list_fixable):
-    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-    opt = MockOpt()
-    opt.all_cve = False
-    (results_msg, return_code) = cve_scanner.scan(opt)
-
-    assert "All CVEs" not in results_msg
-    assert "can be fixed by installing" in results_msg
-    assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
-
-
-def test_specific_cve_not_vulnerable(test_cve_list_all, test_cve_list_fixable):
-    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-    opt = MockOpt()
-    opt.cve = "CVE-2020-2000"
-    (results_msg, return_code) = cve_scanner.scan(opt)
-
-    assert return_code == const.SUCCESS_RETURN_CODE
-
-
-def test_specific_cve_vulnerable(test_cve_list_all, test_cve_list_fixable):
-    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-    opt = MockOpt()
-    opt.cve = "CVE-2020-1000"
-    (results_msg, return_code) = cve_scanner.scan(opt)
-
-    assert return_code == const.SYSTEM_VULNERABLE_RETURN_CODE
-
-
-def test_specific_cve_fixable(test_cve_list_all, test_cve_list_fixable):
-    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-    opt = MockOpt()
-    opt.cve = "CVE-2020-1001"
-    (results_msg, return_code) = cve_scanner.scan(opt)
-
-    assert return_code == const.PATCH_AVAILABLE_RETURN_CODE
-
-
-def test_nagios_no_cves():
-    cve_scanner = MockCVEScanner(list(), list())
-    opt = MockOpt()
-    opt.nagios_mode = True
-    (results_msg, return_code) = cve_scanner.scan(opt)
-
-    assert return_code == const.NAGIOS_OK_RETURN_CODE
-
-
-def test_nagios_no_fixable_cves(test_cve_list_all):
-    cve_scanner = MockCVEScanner(test_cve_list_all, list())
-    opt = MockOpt()
-    opt.nagios_mode = True
-    (results_msg, return_code) = cve_scanner.scan(opt)
-
-    assert return_code == const.NAGIOS_WARNING_RETURN_CODE
-
-
-def test_nagios_fixable_cves(test_cve_list_all, test_cve_list_fixable):
-    cve_scanner = MockCVEScanner(test_cve_list_all, test_cve_list_fixable)
-    opt = MockOpt()
-    opt.nagios_mode = True
-    (results_msg, return_code) = cve_scanner.scan(opt)
-
-    assert return_code == const.NAGIOS_CRITICAL_RETURN_CODE
+    assert results == expected_results

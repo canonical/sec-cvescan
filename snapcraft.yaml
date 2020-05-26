@@ -24,6 +24,10 @@ plugs:
     - /var/lib/snapd/hostfs/var/cache/apt
     - /etc/apt
     - /etc/dpkg
+  ua-status:
+    interface: system-files
+    read: 
+    - /var/lib/snapd/hostfs/var/lib/ubuntu-advantage
 
 layout:
   /usr/lib/x86_64-linux-gnu/openscap:
@@ -48,6 +52,7 @@ apps:
     - home
     - network
     - apt-dpkg-db
+    - ua-status
   sh:
     command: ./cvescan.sh
     environment:
