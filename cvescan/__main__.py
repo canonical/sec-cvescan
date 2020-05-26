@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse as ap
+import json
 import logging
 import os
 import sys
@@ -8,6 +9,7 @@ import sys
 from tabulate import tabulate
 
 import cvescan.constants as const
+import cvescan.downloader as downloader
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.options import Options
@@ -155,6 +157,20 @@ def load_output_sorter(opt, sysinfo):
     return CVEScanResultSorter(subsorters=[pkg_sorter])
 
 
+def load_uct_data(opt):
+    # TODO: Fix manifest mode
+    if opt.manifest_mode:
+        raise NotImplementedError("Manifest mode is temporarily disabled")
+
+    if opt.download_oval_file:
+        downloader.download_bz2_file(LOGGER, opt.base_url, opt.oval_zip, opt.oval_file)
+
+    with open(opt.oval_file) as oval_file:
+        uct_data = json.load(oval_file)
+
+    return uct_data
+
+
 def main():
     global LOGGER
 
@@ -176,7 +192,7 @@ def main():
         error_exit("Failed to determine the local package count: %s" % pke)
 
     try:
-        opt = Options(args, sysinfo)
+        opt = Options(args, sysinfo.distrib_codename)
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
 
@@ -204,8 +220,11 @@ def main():
             error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
 
     try:
-        cve_scanner = CVEScanner(sysinfo, LOGGER)
-        scan_results = cve_scanner.scan(opt)
+        uct_data = load_uct_data(opt)
+        cve_scanner = CVEScanner(LOGGER)
+        scan_results = cve_scanner.scan(
+            opt.distrib_codename, uct_data, sysinfo.installed_packages
+        )
         (results, return_code) = output_formatter.format_output(scan_results)
     except Exception as ex:
         error_exit(

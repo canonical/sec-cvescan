@@ -16,56 +16,41 @@ def null_logger():
     return logger
 
 
-class MockSysInfo:
-    def __init__(self):
-        self.distrib_codename = "bionic"
-        self.installed_packages = {
-            "pkg1": "1:1.2.3-4+deb9u2ubuntu0.1",
-            "pkg2": "1:1.2.3-4+deb9u2ubuntu0.1",
-            "pkg3": "10.2.3-2",
-            "pkg4": "2.0.0+dfsg-1ubuntu1",
-            "pkg5": "2.0.0+dfsg-1ubuntu1",
-            "pkg6": "2.0.0+dfsg-1ubuntu1",
-            "pkg7": "1.2.0-1",
-        }
-
-
-class MockOpt:
-    def __init__(self):
-        self.manifest_mode = False
-        self.manifest_file = None
-        self.download_oval_file = False
-        self.oval_file = "tests/assets/uct.json"
-
-
 @pytest.fixture
 def default_cve_scanner():
-    return CVEScanner(MockSysInfo(), null_logger())
+    return CVEScanner(null_logger())
 
 
 @pytest.fixture(scope="module")
-def cve_statuses():
+def uct_data():
     with open("tests/assets/uct.json") as json_file:
         return json.load(json_file)
 
 
-def test_no_cves(default_cve_scanner):
-    sysinfo = MockSysInfo()
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, dict(), sysinfo.installed_packages
-    )
+@pytest.fixture
+def default_installed_packages():
+    return {
+        "pkg1": "1:1.2.3-4+deb9u2ubuntu0.1",
+        "pkg2": "1:1.2.3-4+deb9u2ubuntu0.1",
+        "pkg3": "10.2.3-2",
+        "pkg4": "2.0.0+dfsg-1ubuntu1",
+        "pkg5": "2.0.0+dfsg-1ubuntu1",
+        "pkg6": "2.0.0+dfsg-1ubuntu1",
+        "pkg7": "1.2.0-1",
+    }
+
+
+def test_no_cves(default_cve_scanner, default_installed_packages):
+    results = default_cve_scanner.scan("bionic", dict(), default_installed_packages)
     assert len(results) == 0
 
 
-def test_no_fix_available(default_cve_scanner, cve_statuses):
+def test_no_fix_available(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1000"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg3": "10.2.3-2"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 1
     assert results[0].cve_id == cve_id
@@ -73,15 +58,12 @@ def test_no_fix_available(default_cve_scanner, cve_statuses):
     assert results[0].repository is None
 
 
-def test_fix_available_infra(default_cve_scanner, cve_statuses):
+def test_fix_available_infra(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1005"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg3": "10.2.3-2"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 1
     assert results[0].cve_id == cve_id
@@ -89,15 +71,12 @@ def test_fix_available_infra(default_cve_scanner, cve_statuses):
     assert results[0].repository == const.UA_INFRA
 
 
-def test_fix_available_apps(default_cve_scanner, cve_statuses):
+def test_fix_available_apps(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1002"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg6": "2.0.0+dfsg-1ubuntu1"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 1
     assert results[0].cve_id == cve_id
@@ -105,15 +84,12 @@ def test_fix_available_apps(default_cve_scanner, cve_statuses):
     assert results[0].repository == const.UA_APPS
 
 
-def test_fix_available_archive(default_cve_scanner, cve_statuses):
+def test_fix_available_archive(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1006"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg5": "2.0.0+dfsg-1"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 1
     assert results[0].cve_id == cve_id
@@ -121,41 +97,32 @@ def test_fix_available_archive(default_cve_scanner, cve_statuses):
     assert results[0].repository == const.ARCHIVE
 
 
-def test_DNE(default_cve_scanner, cve_statuses):
+def test_DNE(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1007"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg7": "1.2.0-1"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 0
 
 
-def test_codename_missing(default_cve_scanner, cve_statuses):
+def test_codename_missing(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1008"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg7": "1.2.0-1"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 0
 
 
-def test_cve_affects_mulitple_binaries(default_cve_scanner, cve_statuses):
+def test_cve_affects_mulitple_binaries(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1002"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg4": "2.0.0+dfsg-1ubuntu1", "pkg6": "2.0.0+dfsg-1ubuntu1"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 2
 
@@ -170,41 +137,32 @@ def test_cve_affects_mulitple_binaries(default_cve_scanner, cve_statuses):
     assert results[1].repository == const.UA_APPS
 
 
-def test_already_patched(default_cve_scanner, cve_statuses):
+def test_already_patched(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1002"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg4": "2.0.+dfsg-1ubuntu1.1"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 0
 
 
-def test_installed_version_later_than_patched(default_cve_scanner, cve_statuses):
+def test_installed_version_later_than_patched(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1002"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg4": "2.0.+dfsg-1ubuntu1.2"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 0
 
 
-def test_multiple_source_pkgs(default_cve_scanner, cve_statuses):
+def test_multiple_source_pkgs(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1005"
-    sysinfo = MockSysInfo()
     installed_pkgs = {"pkg1": "1:1.2.3-4", "pkg3": "10.2.3-2"}
-    tmp_cve_statuses = {cve_id: cve_statuses[cve_id]}
+    tmp_uct_data = {cve_id: uct_data[cve_id]}
 
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, tmp_cve_statuses, installed_pkgs
-    )
+    results = default_cve_scanner.scan("bionic", tmp_uct_data, installed_pkgs)
 
     assert len(results) == 2
 
@@ -221,7 +179,7 @@ def test_multiple_source_pkgs(default_cve_scanner, cve_statuses):
     assert results[1].repository == const.UA_INFRA
 
 
-def test_whole_uct_json_file(default_cve_scanner, cve_statuses):
+def test_whole_uct_json_file(default_cve_scanner, uct_data, default_installed_packages):
     expected_results = [
         ScanResult("CVE-2020-1000", "low", "pkg3", None, None),
         ScanResult(
@@ -248,9 +206,6 @@ def test_whole_uct_json_file(default_cve_scanner, cve_statuses):
         ScanResult("CVE-2020-1005", "low", "pkg3", "10.2.3-2ubuntu0.1", const.UA_INFRA),
     ]
 
-    sysinfo = MockSysInfo()
-    results = default_cve_scanner._scan_for_cves(
-        sysinfo.distrib_codename, cve_statuses, sysinfo.installed_packages
-    )
+    results = default_cve_scanner.scan("bionic", uct_data, default_installed_packages)
 
     assert results == expected_results
