@@ -248,6 +248,7 @@ def test_set_cve_default(mock_args):
 
 def test_set_cve(mock_args):
     mock_args.cve = "CVE-2020-1234"
+    mock_args.priority = "all"
     opt = Options(mock_args, "focal")
 
     assert opt.cve == "CVE-2020-1234"
@@ -388,4 +389,29 @@ def test_invalid_cve_and_unresolved(mock_args):
     with pytest.raises(ArgumentError):
         mock_args.cve = "CVE-2020-1234"
         mock_args.unresolved = True
+        Options(mock_args, "focal")
+
+
+def test_invalid_cve_and_priority(mock_args):
+    with pytest.raises(ArgumentError):
+        mock_args.cve = "CVE-2020-1234"
+        mock_args.priority = "medium"
+        Options(mock_args, "focal")
+
+    with pytest.raises(ArgumentError):
+        mock_args.cve = "CVE-2020-1234"
+        mock_args.priority = "high"
+        Options(mock_args, "focal")
+
+    with pytest.raises(ArgumentError):
+        mock_args.cve = "CVE-2020-1234"
+        mock_args.priority = "critical"
+        Options(mock_args, "focal")
+
+
+def test_invalid_cve_and_uct_links(mock_args):
+    with pytest.raises(ArgumentError):
+        mock_args.cve = "CVE-2020-1234"
+        mock_args.priority = "all"
+        mock_args.uct_links = True
         Options(mock_args, "focal")
