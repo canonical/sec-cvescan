@@ -1,11 +1,7 @@
-import json
 import re
-from shutil import copyfile
 
 import apt_pkg
 
-import cvescan.constants as const
-import cvescan.downloader as downloader
 from cvescan.scan_result import ScanResult
 
 ESM_VERSION_RE = re.compile(r"[+~]esm\d+")
@@ -17,53 +13,22 @@ class CVEScanner:
 
         self.logger = logger
 
-    def scan(self, opt, installed_pkgs):
-        if opt.manifest_mode:
-            return self._run_manifest_mode(opt, installed_pkgs)
-
-        return self._run_cvescan(opt, installed_pkgs)
-
-    def _run_manifest_mode(self, opt, installed_pkgs):
-        if not opt.manifest_file:
-            self.logger.debug("Downloading %s" % opt.manifest_url)
-            downloader.download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
-        else:
-            copyfile(opt.manifest_file, const.DEFAULT_MANIFEST_FILE)
-
-        # TODO: Create dictionary of installed packages/versions from manifest file
-        return self._run_cvescan(opt, installed_pkgs)
-
-    # TODO: I don't think I want CVEScan to care about what files are in use or
-    #       whether or not its in manifest mode. Ideally, we would just pass in
-    #       the data parsed from UCT and a dictionary of installed packages and
-    #       versions
-    def _run_cvescan(self, opt, installed_pkgs):
-        if opt.download_oval_file:
-            downloader.download_bz2_file(
-                self.logger, opt.base_url, opt.oval_zip, opt.oval_file
-            )
-
-        with open(opt.oval_file) as oval_file:
-            cve_status = json.load(oval_file)
-
-        return self._scan_for_cves(opt.distrib_codename, cve_status, installed_pkgs)
-
     # TODO: Add debug logging
-    def _scan_for_cves(self, distrib_codename, cve_status, installed_pkgs):
+    def scan(self, distrib_codename, uct_data, installed_pkgs):
         affected_cves = list()
 
-        for (cve_id, uct_record) in cve_status.items():
+        for (cve_id, uct_record) in uct_data.items():
             if distrib_codename not in uct_record["releases"]:
                 continue
 
             affected_cves = affected_cves + self._scan_for_single_cve(
-                cve_id, uct_record, distrib_codename, cve_status, installed_pkgs
+                cve_id, uct_record, distrib_codename, uct_data, installed_pkgs
             )
 
         return affected_cves
 
     def _scan_for_single_cve(
-        self, cve_id, uct_record, distrib_codename, cve_status, installed_pkgs
+        self, cve_id, uct_record, distrib_codename, uct_data, installed_pkgs
     ):
         affected_cves = list()
 
