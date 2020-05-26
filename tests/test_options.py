@@ -245,19 +245,6 @@ def test_set_manifest_file_abspath(monkeypatch, mock_args, mock_sysinfo):
     assert opt.manifest_file == "/tmp/testmanifest"
 
 
-def test_set_not_verbose(mock_args, mock_sysinfo):
-    opt = Options(mock_args, mock_sysinfo)
-
-    assert opt.verbose_oscap_options == ""
-
-
-def test_set_verbose(mock_args, mock_sysinfo):
-    mock_args.verbose = True
-    opt = Options(mock_args, mock_sysinfo)
-
-    assert "--verbose" in opt.verbose_oscap_options
-
-
 def test_set_cve_default(mock_args, mock_sysinfo):
     opt = Options(mock_args, mock_sysinfo)
 

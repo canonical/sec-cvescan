@@ -1,7 +1,6 @@
 import os
 import re
 
-import cvescan.constants as const
 from cvescan.errors import ArgumentError
 
 FMT_CVE_OPTION = "-c|--cve"
@@ -27,9 +26,8 @@ class Options:
 
         self._set_mode(args)
         self._set_distrib_codename(args, sysinfo)
-        self._set_oval_file_options(args, sysinfo)
+        self._set_oval_file_options(args)
         self._set_manifest_file_options(args)
-        self._set_output_verbosity(args)
 
         self.cve = args.cve
         self.priority = args.priority
@@ -48,7 +46,7 @@ class Options:
         else:
             self.distrib_codename = sysinfo.distrib_codename
 
-    def _set_oval_file_options(self, args, sysinfo):
+    def _set_oval_file_options(self, args):
         self.oval_base_url = None
 
         if args.oval_file:
@@ -77,14 +75,6 @@ class Options:
         self.manifest_url = (
             manifest_url_tmp if (self.manifest_mode and not args.file) else None
         )
-
-    def _set_output_verbosity(self, args):
-        self.verbose_oscap_options = ""
-
-        if args.verbose:
-            self.verbose_oscap_options = (
-                "--verbose WARNING --verbose-log-file %s" % const.DEBUG_LOG
-            )
 
     @property
     def download_oval_file(self):
