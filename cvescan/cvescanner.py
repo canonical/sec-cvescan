@@ -1,10 +1,6 @@
-import re
-
 import apt_pkg
 
 from cvescan.scan_result import ScanResult
-
-ESM_VERSION_RE = re.compile(r"[+~]esm\d+")
 
 
 class CVEScanner:
