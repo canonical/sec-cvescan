@@ -13,19 +13,18 @@ ESM_VERSION_RE = re.compile(r"[+~]esm\d+")
 
 
 class CVEScanner:
-    def __init__(self, sysinfo, logger):
+    def __init__(self, logger):
         apt_pkg.init_system()
 
-        self.sysinfo = sysinfo
         self.logger = logger
 
-    def scan(self, opt):
+    def scan(self, opt, installed_pkgs):
         if opt.manifest_mode:
-            return self._run_manifest_mode(opt)
+            return self._run_manifest_mode(opt, installed_pkgs)
 
-        return self._run_cvescan(opt, self.sysinfo.installed_packages)
+        return self._run_cvescan(opt, installed_pkgs)
 
-    def _run_manifest_mode(self, opt):
+    def _run_manifest_mode(self, opt, installed_pkgs):
         if not opt.manifest_file:
             self.logger.debug("Downloading %s" % opt.manifest_url)
             downloader.download(opt.manifest_url, const.DEFAULT_MANIFEST_FILE)
@@ -33,7 +32,7 @@ class CVEScanner:
             copyfile(opt.manifest_file, const.DEFAULT_MANIFEST_FILE)
 
         # TODO: Create dictionary of installed packages/versions from manifest file
-        return self._run_cvescan(opt, self.sysinfo.installed_packages)
+        return self._run_cvescan(opt, installed_pkgs)
 
     # TODO: I don't think I want CVEScan to care about what files are in use or
     #       whether or not its in manifest mode. Ideally, we would just pass in

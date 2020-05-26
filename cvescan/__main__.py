@@ -204,8 +204,8 @@ def main():
             error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
 
     try:
-        cve_scanner = CVEScanner(sysinfo, LOGGER)
-        scan_results = cve_scanner.scan(opt)
+        cve_scanner = CVEScanner(LOGGER)
+        scan_results = cve_scanner.scan(opt, sysinfo.installed_packages)
         (results, return_code) = output_formatter.format_output(scan_results)
     except Exception as ex:
         error_exit(
