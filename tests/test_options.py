@@ -407,3 +407,11 @@ def test_invalid_cve_and_priority(mock_args):
         mock_args.cve = "CVE-2020-1234"
         mock_args.priority = "critical"
         Options(mock_args, "focal")
+
+
+def test_invalid_cve_and_uct_links(mock_args):
+    with pytest.raises(ArgumentError):
+        mock_args.cve = "CVE-2020-1234"
+        mock_args.priority = "all"
+        mock_args.uct_links = True
+        Options(mock_args, "focal")

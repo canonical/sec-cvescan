@@ -150,8 +150,14 @@ def raise_on_invalid_unresolved_options(args):
 
 
 def raise_on_invalid_cve_options(args):
-    if args.cve and (args.priority != "all"):
+    if not args.cve:
+        return
+
+    if args.priority != "all":
         raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_PRIORITY_OPTION)
+
+    if args.uct_links:
+        raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_UCT_LINKS_OPTION)
 
 
 def raise_incompatible_arguments_error(arg1, arg2):
