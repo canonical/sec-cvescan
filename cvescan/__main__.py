@@ -15,6 +15,7 @@ from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.options import Options
 from cvescan.output_formatters import (
     CLIOutputFormatter,
+    CVEOutputFormatter,
     CVEScanResultSorter,
     NagiosOutputFormatter,
     PackageScanResultSorter,
@@ -144,11 +145,13 @@ def log_system_info(sysinfo):
 
 
 def load_output_formatter(opt, sysinfo):
+    if opt.cve:
+        return CVEOutputFormatter(opt, sysinfo, LOGGER)
+
     sorter = load_output_sorter(opt, sysinfo)
     if opt.nagios_mode:
         return NagiosOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
 
-    # TODO: output formatter for single CVE
     return CLIOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
 
 
