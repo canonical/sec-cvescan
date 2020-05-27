@@ -10,6 +10,7 @@ from tabulate import tabulate
 
 import cvescan.constants as const
 import cvescan.downloader as downloader
+import cvescan.manifest_parser as manifest_parser
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.options import Options
@@ -150,10 +151,6 @@ def load_output_sorter(opt, sysinfo):
 
 
 def load_uct_data(opt):
-    # TODO: Fix manifest mode
-    if opt.manifest_mode:
-        raise NotImplementedError("Manifest mode is temporarily disabled")
-
     if opt.download_oval_file:
         downloader.download_bz2_file(LOGGER, opt.base_url, opt.oval_zip, opt.oval_file)
 
@@ -161,6 +158,19 @@ def load_uct_data(opt):
         uct_data = json.load(oval_file)
 
     return uct_data
+
+
+def get_installed_pkgs_and_codename(sys_pkgs, sys_codename, manifest_file):
+    if manifest_file:
+        (installed_pkgs, codename) = manifest_parser.parse_manifest_file(manifest_file)
+    else:
+        installed_pkgs = sys_pkgs
+        codename = sys_codename
+
+    LOGGER.debug("Target system code name is %s." % codename)
+    LOGGER.debug("Target system has %d packages installed." % len(installed_pkgs))
+
+    return (installed_pkgs, codename)
 
 
 def main():
@@ -192,6 +202,10 @@ def main():
         const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
     )
 
+    installed_pkgs, codename = get_installed_pkgs_and_codename(
+        sysinfo.installed_packages, sysinfo.distrib_codename, opt.manifest_file
+    )
+
     log_config_options(opt)
     log_system_info(sysinfo)
 
@@ -214,9 +228,7 @@ def main():
     try:
         uct_data = load_uct_data(opt)
         cve_scanner = CVEScanner(LOGGER)
-        scan_results = cve_scanner.scan(
-            sysinfo.distrib_codename, uct_data, sysinfo.installed_packages
-        )
+        scan_results = cve_scanner.scan(codename, uct_data, installed_pkgs)
         (results, return_code) = output_formatter.format_output(scan_results)
     except Exception as ex:
         error_exit(
