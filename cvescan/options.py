@@ -21,11 +21,10 @@ MANIFEST_URL_TEMPLATE = (
 
 
 class Options:
-    def __init__(self, args, system_distrib_codename):
+    def __init__(self, args):
         raise_on_invalid_args(args)
 
         self._set_mode(args)
-        self._set_distrib_codename(args, system_distrib_codename)
         self._set_oval_file_options(args)
         self._set_manifest_file_options(args)
 
@@ -36,15 +35,9 @@ class Options:
         self.uct_links = args.uct_links
 
     def _set_mode(self, args):
-        self.manifest_mode = True if args.manifest else False
+        self.manifest_mode = True if args.manifest_file else False
         self.experimental_mode = args.experimental
         self.nagios_mode = args.nagios
-
-    def _set_distrib_codename(self, args, system_distrib_codename):
-        if self.manifest_mode:
-            self.distrib_codename = args.manifest
-        else:
-            self.distrib_codename = system_distrib_codename
 
     def _set_oval_file_options(self, args):
         self.oval_base_url = None
@@ -53,27 +46,17 @@ class Options:
             self.oval_file = args.oval_file
             return
 
-        self.oval_base_url = "https://people.canonical.com/~ubuntu-security/oval"
-        self.oval_file = "com.ubuntu.%s.cve.oval.xml" % self.distrib_codename
-
-        if self.manifest_mode:
-            self.oval_file = "oci.%s" % self.oval_file
+        self.oval_base_url = "https://people.canonical.com/~ubuntu-security/uct/json"
+        self.oval_file = "uct.json"
 
         if self.experimental_mode:
-            self.oval_base_url = "%s/alpha" % self.oval_base_url
             self.oval_file = "alpha.%s" % self.oval_file
 
         self.oval_zip = "%s.bz2" % self.oval_file
 
     def _set_manifest_file_options(self, args):
-        manifest_url_tmp = MANIFEST_URL_TEMPLATE % (
-            self.distrib_codename,
-            self.distrib_codename,
-        )
-
-        self.manifest_file = os.path.abspath(args.file) if args.file else None
-        self.manifest_url = (
-            manifest_url_tmp if (self.manifest_mode and not args.file) else None
+        self.manifest_file = (
+            os.path.abspath(args.manifest_file) if args.manifest_file else None
         )
 
     @property
@@ -95,16 +78,10 @@ def raise_on_invalid_cve(args):
 
 
 def raise_on_invalid_combinations(args):
-    raise_on_invalid_manifest_options(args)
     raise_on_invalid_nagios_options(args)
     raise_on_invalid_silent_options(args)
     raise_on_invalid_unresolved_options(args)
     raise_on_invalid_cve_options(args)
-
-
-def raise_on_invalid_manifest_options(args):
-    if args.file and not args.manifest:
-        raise ArgumentError("Cannot specify -f|--file argument without -m|--manifest.")
 
 
 def raise_on_invalid_nagios_options(args):
@@ -168,7 +145,7 @@ def raise_incompatible_arguments_error(arg1, arg2):
 
 
 def raise_on_missing_manifest_file(args):
-    raise_on_missing_file(args.file)
+    raise_on_missing_file(args.manifest_file)
 
 
 def raise_on_missing_oval_file(args):

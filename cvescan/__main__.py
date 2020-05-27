@@ -59,10 +59,6 @@ def error_exit(msg, code=const.ERROR_RETURN_CODE):
 
 
 def parse_args():
-    # TODO: Consider a more flexible solution than storing this in code
-    #       (e.g. config file or launchpad query)
-    acceptable_codenames = ["xenial", "bionic", "eoan", "focal"]
-
     cvescan_ap = ap.ArgumentParser(
         description=const.CVESCAN_DESCRIPTION, formatter_class=ap.RawTextHelpFormatter
     )
@@ -80,12 +76,7 @@ def parse_args():
         "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
     )
     cvescan_ap.add_argument("-o", "--oval-file", help=const.OVAL_FILE_HELP)
-    cvescan_ap.add_argument(
-        "-m", "--manifest", help=const.MANIFEST_HELP, choices=acceptable_codenames
-    )
-    cvescan_ap.add_argument(
-        "-f", "--file", metavar="manifest-file", help=const.FILE_HELP
-    )
+    cvescan_ap.add_argument("-m", "--manifest-file", help=const.MANIFEST_HELP)
     cvescan_ap.add_argument(
         "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
     )
@@ -115,11 +106,9 @@ def log_config_options(opt):
         ["Manifest Mode", opt.manifest_mode],
         ["Experimental Mode", opt.experimental_mode],
         ["Nagios Output Mode", opt.nagios_mode],
-        ["Target Ubuntu Codename", opt.distrib_codename],
         ["OVAL File Path", opt.oval_file],
         ["OVAL URL", opt.oval_base_url],
         ["Manifest File", opt.manifest_file],
-        ["Manifest URL", opt.manifest_url],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
         ["Show Unresolved CVEs", opt.unresolved],
@@ -195,7 +184,7 @@ def main():
         error_exit("Failed to determine the local package count: %s" % pke)
 
     try:
-        opt = Options(args, sysinfo.distrib_codename)
+        opt = Options(args)
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
 
@@ -226,7 +215,7 @@ def main():
         uct_data = load_uct_data(opt)
         cve_scanner = CVEScanner(LOGGER)
         scan_results = cve_scanner.scan(
-            opt.distrib_codename, uct_data, sysinfo.installed_packages
+            sysinfo.distrib_codename, uct_data, sysinfo.installed_packages
         )
         (results, return_code) = output_formatter.format_output(scan_results)
     except Exception as ex:
