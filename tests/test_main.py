@@ -9,7 +9,7 @@ from cvescan import manifest_parser as mp
 Args = collections.namedtuple("Args", "silent, verbose")
 
 
-class MockSysInfo:
+class MockLocalSysInfo:
     def __init__(self):
         self.installed_packages = {"pkg1": "1.1.0-1", "pkg2": "2.2.0-3.1"}
         self.distrib_codename = "bionic"
@@ -48,13 +48,13 @@ def test_set_output_verbosity_debug():
 
 def test_installed_pkgs_and_codename_no_manifest():
     manifest_file = None
-    sysinfo = MockSysInfo()
+    local_sysinfo = MockLocalSysInfo()
     installed_pkgs, codename = main.get_installed_pkgs_and_codename(
-        sysinfo, manifest_file
+        local_sysinfo, manifest_file
     )
 
-    assert installed_pkgs == sysinfo.installed_packages
-    assert codename == sysinfo.distrib_codename
+    assert installed_pkgs == local_sysinfo.installed_packages
+    assert codename == local_sysinfo.distrib_codename
 
 
 def test_installed_pkgs_and_codename_with_manifest(
@@ -62,7 +62,7 @@ def test_installed_pkgs_and_codename_with_manifest(
 ):
     manifest_file = "/tmp/manifest"
     installed_pkgs, codename = main.get_installed_pkgs_and_codename(
-        MockSysInfo(), manifest_file
+        MockLocalSysInfo(), manifest_file
     )
 
     assert installed_pkgs == manifest_data[0]

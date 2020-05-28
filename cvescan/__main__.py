@@ -13,6 +13,7 @@ import cvescan.downloader as downloader
 import cvescan.manifest_parser as manifest_parser
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
+from cvescan.local_sysinfo import LocalSysInfo
 from cvescan.options import Options
 from cvescan.output_formatters import (
     CLIOutputFormatter,
@@ -21,7 +22,6 @@ from cvescan.output_formatters import (
     NagiosOutputFormatter,
     PackageScanResultSorter,
 )
-from cvescan.sysinfo import SysInfo
 
 
 def set_output_verbosity(args):
@@ -119,37 +119,37 @@ def log_config_options(opt):
     LOGGER.debug("")
 
 
-def log_system_info(sysinfo, manifest_mode):
+def log_local_system_info(local_sysinfo, manifest_mode):
     LOGGER.debug("System Info")
     table = [
-        ["CVEScan is a Snap", sysinfo.is_snap],
-        ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
+        ["CVEScan is a Snap", local_sysinfo.is_snap],
+        ["$SNAP_USER_COMMON", local_sysinfo.snap_user_common],
     ]
 
     if not manifest_mode:
         table = [
-            ["Local Ubuntu Codename", sysinfo.distrib_codename],
-            ["Installed Package Count", sysinfo.package_count],
-            ["ESM Apps Enabled", sysinfo.esm_apps_enabled],
-            ["ESM Infra Enabled", sysinfo.esm_infra_enabled],
+            ["Local Ubuntu Codename", local_sysinfo.distrib_codename],
+            ["Installed Package Count", local_sysinfo.package_count],
+            ["ESM Apps Enabled", local_sysinfo.esm_apps_enabled],
+            ["ESM Infra Enabled", local_sysinfo.esm_infra_enabled],
         ] + table
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
 
 
-def load_output_formatter(opt, sysinfo):
+def load_output_formatter(opt, local_sysinfo):
     if opt.cve:
-        return CVEOutputFormatter(opt, sysinfo, LOGGER)
+        return CVEOutputFormatter(opt, local_sysinfo, LOGGER)
 
-    sorter = load_output_sorter(opt, sysinfo)
+    sorter = load_output_sorter(opt)
     if opt.nagios_mode:
-        return NagiosOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
+        return NagiosOutputFormatter(opt, local_sysinfo, LOGGER, sorter=sorter)
 
-    return CLIOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
+    return CLIOutputFormatter(opt, local_sysinfo, LOGGER, sorter=sorter)
 
 
-def load_output_sorter(opt, sysinfo):
+def load_output_sorter(opt):
     pkg_sorter = PackageScanResultSorter()
     return CVEScanResultSorter(subsorters=[pkg_sorter])
 
@@ -164,12 +164,12 @@ def load_uct_data(opt):
     return uct_data
 
 
-def get_installed_pkgs_and_codename(sysinfo, manifest_file):
+def get_installed_pkgs_and_codename(local_sysinfo, manifest_file):
     if manifest_file:
         (installed_pkgs, codename) = manifest_parser.parse_manifest_file(manifest_file)
     else:
-        installed_pkgs = sysinfo.installed_packages
-        codename = sysinfo.distrib_codename
+        installed_pkgs = local_sysinfo.installed_packages
+        codename = local_sysinfo.distrib_codename
 
     LOGGER.debug("Target system code name is %s." % codename)
     LOGGER.debug("Target system has %d packages installed." % len(installed_pkgs))
@@ -185,7 +185,7 @@ def main():
     # Configure debug logging as early as possible
     LOGGER = set_output_verbosity(args)
 
-    sysinfo = SysInfo(LOGGER)
+    local_sysinfo = LocalSysInfo(LOGGER)
 
     try:
         opt = Options(args)
@@ -198,11 +198,11 @@ def main():
 
     try:
         installed_pkgs, codename = get_installed_pkgs_and_codename(
-            sysinfo, opt.manifest_file
+            local_sysinfo, opt.manifest_file
         )
 
         log_config_options(opt)
-        log_system_info(sysinfo, opt.manifest_mode)
+        log_local_system_info(local_sysinfo, opt.manifest_mode)
     except (FileNotFoundError, PermissionError) as err:
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
@@ -213,21 +213,24 @@ def main():
     except PkgCountError as pke:
         error_exit("Failed to determine the local package count: %s" % pke)
 
-    output_formatter = load_output_formatter(opt, sysinfo)
+    output_formatter = load_output_formatter(opt, local_sysinfo)
 
-    if sysinfo.is_snap:
+    if local_sysinfo.is_snap:
         LOGGER.debug(
-            "Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common
+            "Running as a snap, changing to '%s' directory."
+            % local_sysinfo.snap_user_common
         )
         LOGGER.debug(
             "Downloaded files, log files and temporary reports will "
-            "be in '%s'" % sysinfo.snap_user_common
+            "be in '%s'" % local_sysinfo.snap_user_common
         )
 
         try:
-            os.chdir(sysinfo.snap_user_common)
+            os.chdir(local_sysinfo.snap_user_common)
         except Exception:
-            error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
+            error_exit(
+                "failed to cd to %s" % local_sysinfo.snap_user_common, error_exit_code
+            )
 
     try:
         uct_data = load_uct_data(opt)

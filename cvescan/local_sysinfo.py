@@ -8,7 +8,7 @@ import cvescan.constants as const
 from cvescan.errors import DistribIDError, PkgCountError
 
 
-class SysInfo:
+class LocalSysInfo:
     def __init__(self, logger):
         self.logger = logger
 
