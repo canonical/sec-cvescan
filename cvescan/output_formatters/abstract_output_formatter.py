@@ -9,7 +9,7 @@ from cvescan.scan_result import ScanResult
 ScanStats = namedtuple(
     "OutputSummary",
     [
-        "installed_packages",
+        "installed_pkgs",
         "fixable_packages",
         "fixable_cves",
         "fixable_vulns",
@@ -58,7 +58,7 @@ class AbstractOutputFormatter(ABC):
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
-        installed_packages = self._get_package_count()
+        installed_pkgs = self._get_package_count()
         fixable_packages = len(set([r.package_name for r in fixable_results]))
         fixable_cves = len(set([r.cve_id for r in fixable_results]))
         fixable_vulns = len(fixable_results)
@@ -75,7 +75,7 @@ class AbstractOutputFormatter(ABC):
 
         missing_fixes = fixable_vulns - upgrade_vulns
         return ScanStats(
-            installed_packages,
+            installed_pkgs,
             fixable_packages,
             fixable_cves,
             fixable_vulns,

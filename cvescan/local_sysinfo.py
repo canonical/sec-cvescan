@@ -16,7 +16,7 @@ class LocalSysInfo:
         self._esm_apps_enabled = None
         self._esm_infra_enabled = None
         self._codename = None
-        self._installed_packages = None
+        self._installed_pkgs = None
 
     def _set_snap_info(self):
         self.is_snap = False
@@ -118,16 +118,16 @@ class LocalSysInfo:
 
     @property
     def package_count(self):
-        return len(self.installed_packages.keys())
+        return len(self.installed_pkgs.keys())
 
     @property
-    def installed_packages(self):
-        if not self._installed_packages:
-            self._installed_packages = self._get_installed_packages()
+    def installed_pkgs(self):
+        if not self._installed_pkgs:
+            self._installed_pkgs = self._get_installed_pkgs()
 
-        return self._installed_packages
+        return self._installed_pkgs
 
-    def _get_installed_packages(self):
+    def _get_installed_pkgs(self):
         installed_regex = re.compile(r"^[uihrp]i")
         installed_pkgs = {}
         try:

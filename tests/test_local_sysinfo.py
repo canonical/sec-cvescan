@@ -200,12 +200,12 @@ def test_package_count_error(monkeypatch, null_logger):
         sysinfo.package_count
 
 
-def test_installed_packages_list(monkeypatch, null_logger):
+def test_installed_pkgs_list(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
 
     sysinfo = LocalSysInfo(null_logger)
-    expected_installed_packages = {
+    expected_installed_pkgs = {
         "2to3": "3.7.5-1",
         "accountsservice": "0.6.55-0ubuntu10",
         "accountwizard": "4:19.04.3-0ubuntu1",
@@ -221,7 +221,7 @@ def test_installed_packages_list(monkeypatch, null_logger):
         "akonadi-server": "4:19.04.3-0ubuntu3",
         "akregator": "4:19.04.3-0ubuntu1",
     }
-    assert sysinfo.installed_packages == expected_installed_packages
+    assert sysinfo.installed_pkgs == expected_installed_pkgs
 
 
 def test_esm_infra_enabled(monkeypatch, null_logger):

@@ -64,7 +64,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
         summary = list()
         summary.append(["Ubuntu Release", codename])
-        summary.append(["Installed Packages", stats.installed_packages])
+        summary.append(["Installed Packages", stats.installed_pkgs])
         summary.append(["CVE Priority", self._format_summary_priority()])
         summary.append(["Unique Packages Fixable by Patching", stats.fixable_packages])
         summary.append(["Unique CVEs Fixable by Patching", stats.fixable_cves])
