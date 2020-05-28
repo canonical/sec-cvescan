@@ -152,15 +152,15 @@ def log_target_system_info(target_sysinfo):
     LOGGER.debug("")
 
 
-def load_output_formatter(opt, target_sysinfo):
+def load_output_formatter(opt):
     if opt.cve:
-        return CVEOutputFormatter(opt, target_sysinfo, LOGGER)
+        return CVEOutputFormatter(opt, LOGGER)
 
     sorter = load_output_sorter(opt)
     if opt.nagios_mode:
-        return NagiosOutputFormatter(opt, target_sysinfo, LOGGER, sorter=sorter)
+        return NagiosOutputFormatter(opt, LOGGER, sorter=sorter)
 
-    return CLIOutputFormatter(opt, target_sysinfo, LOGGER, sorter=sorter)
+    return CLIOutputFormatter(opt, LOGGER, sorter=sorter)
 
 
 def load_output_sorter(opt):
@@ -213,7 +213,7 @@ def main():
     except PkgCountError as pke:
         error_exit("Failed to determine the local package count: %s" % pke)
 
-    output_formatter = load_output_formatter(opt, target_sysinfo)
+    output_formatter = load_output_formatter(opt)
 
     if local_sysinfo.is_snap:
         LOGGER.debug(
@@ -238,7 +238,9 @@ def main():
         scan_results = cve_scanner.scan(
             target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs
         )
-        (results, return_code) = output_formatter.format_output(scan_results)
+        (results, return_code) = output_formatter.format_output(
+            scan_results, target_sysinfo
+        )
     except Exception as ex:
         error_exit(
             "An unexpected error occurred while running CVEScan: %s" % ex,

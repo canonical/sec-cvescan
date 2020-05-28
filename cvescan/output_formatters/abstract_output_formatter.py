@@ -3,6 +3,7 @@ from collections import namedtuple
 from typing import List
 
 import cvescan.constants as const
+from cvescan import TargetSysInfo
 from cvescan.output_formatters import AbstractStackableScanResultSorter
 from cvescan.scan_result import ScanResult
 
@@ -22,17 +23,16 @@ ScanStats = namedtuple(
 
 
 class AbstractOutputFormatter(ABC):
-    def __init__(
-        self, opt, sysinfo, logger, sorter: AbstractStackableScanResultSorter = None
-    ):
+    def __init__(self, opt, logger, sorter: AbstractStackableScanResultSorter = None):
         self.opt = opt
-        self.sysinfo = sysinfo
         self.logger = logger
         self.sorter = sorter
         super().__init__()
 
     @abstractmethod
-    def format_output(self, scan_results: List[ScanResult]) -> (str, int):
+    def format_output(
+        self, scan_results: List[ScanResult], sysinfo: TargetSysInfo
+    ) -> (str, int):
         pass
 
     def _filter_on_priority(self, scan_results):
@@ -54,7 +54,9 @@ class AbstractOutputFormatter(ABC):
 
         self.sorter.sort(scan_results)
 
-    def _get_scan_stats(self, scan_results: List[ScanResult]) -> ScanStats:
+    def _get_scan_stats(
+        self, scan_results: List[ScanResult], sysinfo: TargetSysInfo
+    ) -> ScanStats:
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
@@ -67,14 +69,14 @@ class AbstractOutputFormatter(ABC):
         )
 
         upgrade_vulns = fixable_vulns
-        if not self.sysinfo.esm_apps_enabled:
+        if not sysinfo.esm_apps_enabled:
             upgrade_vulns -= apps_vulns
-        if not self.sysinfo.esm_infra_enabled:
+        if not sysinfo.esm_infra_enabled:
             upgrade_vulns -= infra_vulns
 
         missing_fixes = fixable_vulns - upgrade_vulns
         return ScanStats(
-            self.sysinfo.pkg_count,
+            sysinfo.pkg_count,
             fixable_packages,
             fixable_cves,
             fixable_vulns,

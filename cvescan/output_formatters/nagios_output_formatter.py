@@ -1,12 +1,15 @@
 from typing import List
 
 import cvescan.constants as const
+from cvescan import TargetSysInfo
 from cvescan.output_formatters import AbstractOutputFormatter
 from cvescan.scan_result import ScanResult
 
 
 class NagiosOutputFormatter(AbstractOutputFormatter):
-    def format_output(self, scan_results: List[ScanResult]) -> (str, int):
+    def format_output(
+        self, scan_results: List[ScanResult], _: TargetSysInfo
+    ) -> (str, int):
         self.sort(scan_results)
         (priority_filtered_cves, fixable_cves) = self._apply_filters(scan_results)
 
