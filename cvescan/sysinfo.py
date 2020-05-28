@@ -13,9 +13,10 @@ class SysInfo:
         self.logger = logger
 
         self._set_snap_info()
-        self.distrib_codename = self.get_ubuntu_codename()
-        self.installed_packages = self._get_installed_packages()
-        self._set_esm_status()
+        self._esm_apps_enabled = None
+        self._esm_infra_enabled = None
+        self._distrib_codename = None
+        self._installed_packages = None
 
     def _set_snap_info(self):
         self.is_snap = False
@@ -26,11 +27,49 @@ class SysInfo:
             self.is_snap = True
             self.snap_user_common = os.environ["SNAP_USER_COMMON"]
 
-    def get_ubuntu_codename(self):
+    @property
+    def esm_apps_enabled(self):
+        if self._esm_apps_enabled is None:
+            self._set_esm_status()
+
+        return self._esm_apps_enabled
+
+    @property
+    def esm_infra_enabled(self):
+        if self._esm_infra_enabled is None:
+            self._set_esm_status()
+
+        return self._esm_infra_enabled
+
+    def _set_esm_status(self):
+        try:
+            apps = False
+            infra = False
+
+            ua_status_file_path = self._get_ua_status_file_path()
+            ua_status = self._get_raw_ua_status(ua_status_file_path)
+
+            for entitlement in ua_status["services"]:
+                if entitlement["name"] == "esm-apps":
+                    apps = True if entitlement["status"] == "enabled" else False
+                elif entitlement["name"] == "esm-infra":
+                    infra = True if entitlement["status"] == "enabled" else False
+        except (FileNotFoundError, PermissionError) as err:
+            self.logger.debug("Failed to open UA Status JSON file: %s" % err)
+
+        self._esm_apps_enabled = apps
+        self._esm_infra_enabled = infra
+
+    @property
+    def distrib_codename(self):
+        if not self._distrib_codename:
+            self._distrib_codename = self._get_ubuntu_codename()
+
+        return self._distrib_codename
+
+    def _get_ubuntu_codename(self):
         distrib_id, distrib_codename = self.get_lsb_release_info()
 
-        # TODO: We probably don't care if distrib_id != ubuntu if --manifest is set.
-        # Compare /etc/lsb-release to acceptable environment.
         if distrib_id != "Ubuntu":
             raise DistribIDError(
                 "DISTRIB_ID in /etc/lsb-release must be Ubuntu (DISTRIB_ID=%s)"
@@ -81,9 +120,13 @@ class SysInfo:
     def package_count(self):
         return len(self.installed_packages.keys())
 
-    # TODO: We can skip this if --manifest is set. The simplest solution is
-    #       probably to use a @property for self.installed_packages and
-    #       "lazy load" it.
+    @property
+    def installed_packages(self):
+        if not self._installed_packages:
+            self._installed_packages = self._get_installed_packages()
+
+        return self._installed_packages
+
     def _get_installed_packages(self):
         installed_regex = re.compile(r"^[uihrp]i")
         installed_pkgs = {}
@@ -118,25 +161,6 @@ class SysInfo:
             )
 
         return out.splitlines()
-
-    def _set_esm_status(self):
-        try:
-            apps = False
-            infra = False
-
-            ua_status_file_path = self._get_ua_status_file_path()
-            ua_status = self._get_raw_ua_status(ua_status_file_path)
-
-            for entitlement in ua_status["services"]:
-                if entitlement["name"] == "esm-apps":
-                    apps = True if entitlement["status"] == "enabled" else False
-                elif entitlement["name"] == "esm-infra":
-                    infra = True if entitlement["status"] == "enabled" else False
-        except (FileNotFoundError, PermissionError) as err:
-            self.logger.debug("Failed to open UA Status JSON file: %s" % err)
-
-        self.esm_apps_enabled = apps
-        self.esm_infra_enabled = infra
 
     def _get_ua_status_file_path(self):
         ua_status_file_path = const.UA_STATUS_FILE

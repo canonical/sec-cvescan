@@ -119,16 +119,20 @@ def log_config_options(opt):
     LOGGER.debug("")
 
 
-def log_system_info(sysinfo):
+def log_system_info(sysinfo, manifest_mode):
     LOGGER.debug("System Info")
     table = [
-        ["Local Ubuntu Codename", sysinfo.distrib_codename],
-        ["Installed Package Count", sysinfo.package_count],
-        ["ESM Apps Enabled", sysinfo.esm_apps_enabled],
-        ["ESM Infra Enabled", sysinfo.esm_infra_enabled],
         ["CVEScan is a Snap", sysinfo.is_snap],
         ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
     ]
+
+    if not manifest_mode:
+        table = [
+            ["Local Ubuntu Codename", sysinfo.distrib_codename],
+            ["Installed Package Count", sysinfo.package_count],
+            ["ESM Apps Enabled", sysinfo.esm_apps_enabled],
+            ["ESM Infra Enabled", sysinfo.esm_infra_enabled],
+        ] + table
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
@@ -160,12 +164,12 @@ def load_uct_data(opt):
     return uct_data
 
 
-def get_installed_pkgs_and_codename(sys_pkgs, sys_codename, manifest_file):
+def get_installed_pkgs_and_codename(sysinfo, manifest_file):
     if manifest_file:
         (installed_pkgs, codename) = manifest_parser.parse_manifest_file(manifest_file)
     else:
-        installed_pkgs = sys_pkgs
-        codename = sys_codename
+        installed_pkgs = sysinfo.installed_packages
+        codename = sysinfo.distrib_codename
 
     LOGGER.debug("Target system code name is %s." % codename)
     LOGGER.debug("Target system has %d packages installed." % len(installed_pkgs))
@@ -181,17 +185,7 @@ def main():
     # Configure debug logging as early as possible
     LOGGER = set_output_verbosity(args)
 
-    try:
-        sysinfo = SysInfo(LOGGER)
-    except (FileNotFoundError, PermissionError) as err:
-        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
-    except DistribIDError as di:
-        error_exit(
-            "Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s"
-            % di
-        )
-    except PkgCountError as pke:
-        error_exit("Failed to determine the local package count: %s" % pke)
+    sysinfo = SysInfo(LOGGER)
 
     try:
         opt = Options(args)
@@ -202,12 +196,22 @@ def main():
         const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
     )
 
-    installed_pkgs, codename = get_installed_pkgs_and_codename(
-        sysinfo.installed_packages, sysinfo.distrib_codename, opt.manifest_file
-    )
+    try:
+        installed_pkgs, codename = get_installed_pkgs_and_codename(
+            sysinfo, opt.manifest_file
+        )
 
-    log_config_options(opt)
-    log_system_info(sysinfo)
+        log_config_options(opt)
+        log_system_info(sysinfo, opt.manifest_mode)
+    except (FileNotFoundError, PermissionError) as err:
+        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
+    except DistribIDError as di:
+        error_exit(
+            "Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s"
+            % di
+        )
+    except PkgCountError as pke:
+        error_exit("Failed to determine the local package count: %s" % pke)
 
     output_formatter = load_output_formatter(opt, sysinfo)
 

@@ -135,7 +135,9 @@ def test_get_codename_lsb_module_empty(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     with pytest.raises(DistribIDError) as di:
-        SysInfo(null_logger)
+        sysinfo = SysInfo(null_logger)
+        # This property is lazy-loaded
+        sysinfo.distrib_codename
 
     assert "UNKNOWN" in str(di)
 
@@ -146,7 +148,9 @@ def test_get_codename_lsb_module_other(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     with pytest.raises(DistribIDError) as di:
-        SysInfo(null_logger)
+        sysinfo = SysInfo(null_logger)
+        # This property is lazy-loaded
+        sysinfo.distrib_codename
 
     assert "something_else" in str(di)
 
@@ -167,7 +171,9 @@ def test_get_codename_from_not_ubuntu(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     with pytest.raises(DistribIDError) as di:
-        SysInfo(null_logger)
+        sysinfo = SysInfo(null_logger)
+        # This property is lazy-loaded
+        sysinfo.distrib_codename
 
     assert "not-ubuntu" in str(di)
 
@@ -177,6 +183,7 @@ def test_package_count(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     sysinfo = SysInfo(null_logger)
+    # This property is lazy-loaded
     assert sysinfo.package_count == 14
 
 
@@ -189,6 +196,9 @@ def test_package_count_error(monkeypatch, null_logger):
 
     with pytest.raises(PkgCountError):
         SysInfo(null_logger)
+        sysinfo = SysInfo(null_logger)
+        # This property is lazy-loaded
+        sysinfo.package_count
 
 
 def test_installed_packages_list(monkeypatch, null_logger):
@@ -267,6 +277,9 @@ def test_no_snap_ua_status_path(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
     sysinfo = MockSysInfo(null_logger)
 
+    # This property is lazy-loaded
+    sysinfo.esm_apps_enabled
+
     sysinfo._get_raw_ua_status.assert_called_with(const.UA_STATUS_FILE)
 
 
@@ -276,6 +289,9 @@ def test_snap_ua_status_path(monkeypatch, null_logger):
     mock_responses.ua_status_file = const.UA_STATUS_FILE
     apply_mock_responses(monkeypatch, mock_responses)
     sysinfo = MockSysInfo(null_logger)
+
+    # This property is lazy-loaded
+    sysinfo.esm_infra_enabled
 
     sysinfo._get_raw_ua_status.assert_called_with(
         "/var/lib/snapd/hostfs/var/lib/ubuntu-advantage/status.json"

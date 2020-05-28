@@ -9,14 +9,10 @@ from cvescan import manifest_parser as mp
 Args = collections.namedtuple("Args", "silent, verbose")
 
 
-@pytest.fixture
-def sys_codename():
-    return "bionic"
-
-
-@pytest.fixture
-def sys_pkgs():
-    return {"pkg1": "1.1.0-1", "pkg2": "2.2.0-3.1"}
+class MockSysInfo:
+    def __init__(self):
+        self.installed_packages = {"pkg1": "1.1.0-1", "pkg2": "2.2.0-3.1"}
+        self.distrib_codename = "bionic"
 
 
 @pytest.fixture(scope="module")
@@ -50,24 +46,23 @@ def test_set_output_verbosity_debug():
     assert logger.level == logging.DEBUG
 
 
-def test_installed_pkgs_and_codename_no_manifest(
-    sys_pkgs, sys_codename,
-):
+def test_installed_pkgs_and_codename_no_manifest():
     manifest_file = None
+    sysinfo = MockSysInfo()
     installed_pkgs, codename = main.get_installed_pkgs_and_codename(
-        sys_pkgs, sys_codename, manifest_file
+        sysinfo, manifest_file
     )
 
-    assert installed_pkgs == sys_pkgs
-    assert codename == sys_codename
+    assert installed_pkgs == sysinfo.installed_packages
+    assert codename == sysinfo.distrib_codename
 
 
 def test_installed_pkgs_and_codename_with_manifest(
-    sys_pkgs, sys_codename, patch_manifest_parser, manifest_data
+    patch_manifest_parser, manifest_data
 ):
     manifest_file = "/tmp/manifest"
     installed_pkgs, codename = main.get_installed_pkgs_and_codename(
-        sys_pkgs, sys_codename, manifest_file
+        MockSysInfo(), manifest_file
     )
 
     assert installed_pkgs == manifest_data[0]
