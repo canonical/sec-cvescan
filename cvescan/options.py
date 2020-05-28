@@ -9,7 +9,7 @@ FMT_FILE_OPTION = "-f|--file"
 FMT_MANIFEST_OPTION = "-m|--manifest"
 FMT_NAGIOS_OPTION = "-n|--nagios"
 FMT_UCT_LINKS_OPTION = "--uct-links"
-FMT_OVAL_FILE_OPTION = "-o|--oval_file"
+FMT_UCT_FILE_OPTION = "-u|--uct_file"
 FMT_PRIORITY_OPTION = "-p|priority"
 FMT_SILENT_OPTION = "-s|--silent"
 FMT_UNRESOLVED_OPTION = "--unresolved"
@@ -25,7 +25,7 @@ class Options:
         raise_on_invalid_args(args)
 
         self._set_mode(args)
-        self._set_oval_file_options(args)
+        self._set_uct_file_options(args)
         self._set_manifest_file_options(args)
 
         self.cve = args.cve
@@ -39,17 +39,17 @@ class Options:
         self.experimental_mode = args.experimental
         self.nagios_mode = args.nagios
 
-    def _set_oval_file_options(self, args):
-        self.oval_base_url = None
+    def _set_uct_file_options(self, args):
+        self.uct_base_url = None
 
-        if args.oval_file:
-            self.oval_file = args.oval_file
+        if args.uct_file:
+            self.uct_file = args.uct_file
             return
 
-        self.oval_base_url = "https://people.canonical.com/~ubuntu-security/uct/json"
-        self.oval_file = "uct.json"
+        self.uct_base_url = "https://people.canonical.com/~ubuntu-security/uct/json"
+        self.uct_file = "uct.json"
 
-        self.oval_zip = "%s.bz2" % self.oval_file
+        self.uct_zip = "%s.bz2" % self.uct_file
 
     def _set_manifest_file_options(self, args):
         self.manifest_file = (
@@ -57,15 +57,15 @@ class Options:
         )
 
     @property
-    def download_oval_file(self):
-        return self.oval_base_url is not None
+    def download_uct_file(self):
+        return self.uct_base_url is not None
 
 
 def raise_on_invalid_args(args):
     raise_on_invalid_cve(args)
     raise_on_invalid_combinations(args)
     raise_on_missing_manifest_file(args)
-    raise_on_missing_oval_file(args)
+    raise_on_missing_uct_file(args)
 
 
 def raise_on_invalid_cve(args):
@@ -145,8 +145,8 @@ def raise_on_missing_manifest_file(args):
     raise_on_missing_file(args.manifest_file)
 
 
-def raise_on_missing_oval_file(args):
-    raise_on_missing_file(args.oval_file)
+def raise_on_missing_uct_file(args):
+    raise_on_missing_file(args.uct_file)
 
 
 def raise_on_missing_file(file_path):

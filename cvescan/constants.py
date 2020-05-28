@@ -1,4 +1,4 @@
-CVESCAN_DESCRIPTION = "Use this script to use the Ubuntu security OVAL files."
+CVESCAN_DESCRIPTION = "Scan an Ubuntu system for known vulnerabilities."
 
 CVE_HELP = "Report if this system is vulnerable to a specific CVE."
 
@@ -29,8 +29,8 @@ FILE_HELP = (
     "will likely work, /tmp will likely not work."
 )
 
-OVAL_FILE_HELP = (
-    "Specify an OVAL file to use instead of downloading the "
+UCT_FILE_HELP = (
+    "Specify an UCT JSON file to use instead of downloading the "
     "latest from people.canonical.com."
 )
 
@@ -47,20 +47,15 @@ NAGIOS_HELP = (
 
 UCT_LINKS_HELP = "Provide links to the Ubuntu CVE Tracker for each CVE."
 
-TEST_HELP = (
-    "Test mode, use test OVAL data to validate that cvescan and oscap "
-    "are\n working as expected. In test mode, oval files are not downloaded."
-)
-
 UNRESOLVED_HELP = "Show CVEs that have not yet been resolved."
 
 VERBOSE_HELP = "Enable verbose messages."
 
 EXPERIMENTAL_HELP = (
-    "Enable eXperimental mode.\nUse experimental (also called "
-    '"alpha") OVAL data files.\nThe alpha OVAL files include '
-    "information about package updates\n available for users of Ubuntu "
-    "Advantage running systems with ESM\n Apps enabled."
+    'Enable eXperimental mode. Use experimental (also called "alpha") data \n'
+    "from the Ubuntu CVE tracker. The alpha UCT files include information about\n"
+    "package updates available for users of Ubuntu Advantage running systems \n"
+    "with ESM Apps and ESM Infra enabled."
 )
 
 DEBUG_LOG = "debug.log"

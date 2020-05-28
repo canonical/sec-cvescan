@@ -76,7 +76,7 @@ def parse_args():
     cvescan_ap.add_argument(
         "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
     )
-    cvescan_ap.add_argument("-o", "--oval-file", help=const.OVAL_FILE_HELP)
+    cvescan_ap.add_argument("-u", "--uct-file", help=const.UCT_FILE_HELP)
     cvescan_ap.add_argument("-m", "--manifest-file", help=const.MANIFEST_HELP)
     cvescan_ap.add_argument(
         "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
@@ -107,8 +107,8 @@ def log_config_options(opt):
         ["Manifest Mode", opt.manifest_mode],
         ["Experimental Mode", opt.experimental_mode],
         ["Nagios Output Mode", opt.nagios_mode],
-        ["OVAL File Path", opt.oval_file],
-        ["OVAL URL", opt.oval_base_url],
+        ["UCT File Path", opt.uct_file],
+        ["UCT URL", opt.uct_base_url],
         ["Manifest File", opt.manifest_file],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
@@ -169,11 +169,11 @@ def load_output_sorter(opt):
 
 
 def load_uct_data(opt):
-    if opt.download_oval_file:
-        downloader.download_bz2_file(LOGGER, opt.base_url, opt.oval_zip, opt.oval_file)
+    if opt.download_uct_file:
+        downloader.download_bz2_file(LOGGER, opt.base_url, opt.uct_zip, opt.uct_file)
 
-    with open(opt.oval_file) as oval_file:
-        uct_data = json.load(oval_file)
+    with open(opt.uct_file) as uct_file:
+        uct_data = json.load(uct_file)
 
     return uct_data
 

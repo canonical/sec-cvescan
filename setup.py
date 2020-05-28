@@ -14,8 +14,7 @@ setuptools.setup(
         "Mark Morlino <mark.morlino@canonical.com>,"
         "Mike Salvatore <mike.salvatore@canonical.com>"
     ),
-    description="A utility for using the Ubuntu Security Team's OVAL files to"
-    "determine which CVEs affect an Ubuntu system.",
+    description="A utility determining which CVEs affect an Ubuntu system.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/canonical/sec-cvescan",

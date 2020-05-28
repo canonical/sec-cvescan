@@ -14,7 +14,7 @@ class MockArgs:
         self.cve = None
         self.priority = "high"
         self.silent = False
-        self.oval_file = None
+        self.uct_file = None
         self.manifest_file = None
         self.nagios = False
         self.uct_links = False
@@ -80,49 +80,49 @@ def test_set_experimental_nagios_manifest(monkeypatch, mock_args):
     assert opt.nagios_mode is True
 
 
-def test_set_oval_file_default(monkeypatch, mock_args):
+def test_set_uct_file_default(monkeypatch, mock_args):
     opt = Options(mock_args)
 
-    assert opt.oval_file == "uct.json"
+    assert opt.uct_file == "uct.json"
 
 
-def test_set_oval_file_user_specified(monkeypatch, mock_args):
+def test_set_uct_file_user_specified(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
 
-    mock_args.oval_file = "/my/path/fakefile.json"
+    mock_args.uct_file = "/my/path/fakefile.json"
     opt = Options(mock_args)
 
-    assert opt.oval_file == "/my/path/fakefile.json"
+    assert opt.uct_file == "/my/path/fakefile.json"
 
 
-def test_set_oval_url_default(monkeypatch, mock_args):
+def test_set_uct_url_default(monkeypatch, mock_args):
     opt = Options(mock_args)
 
-    assert opt.oval_base_url == BASE_URL
+    assert opt.uct_base_url == BASE_URL
 
 
-def test_set_oval_url_user_specified(monkeypatch, mock_args):
+def test_set_uct_url_user_specified(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
 
-    mock_args.oval_file = "/my/path/fakefile.json"
+    mock_args.uct_file = "/my/path/fakefile.json"
     opt = Options(mock_args)
 
-    assert opt.oval_base_url is None
+    assert opt.uct_base_url is None
 
 
-def test_set_download_oval_file_default(monkeypatch, mock_args):
+def test_set_download_uct_file_default(monkeypatch, mock_args):
     opt = Options(mock_args)
 
-    assert opt.download_oval_file is True
+    assert opt.download_uct_file is True
 
 
-def test_set_download_oval_file_user_specified(monkeypatch, mock_args):
+def test_set_download_uct_file_user_specified(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
 
-    mock_args.oval_file = "/my/path/fakefile.xml"
+    mock_args.uct_file = "/my/path/fakefile.xml"
     opt = Options(mock_args)
 
-    assert opt.download_oval_file is False
+    assert opt.download_uct_file is False
 
 
 def test_set_manifest_file_none(mock_args):
@@ -275,11 +275,11 @@ def test_invalid_manifest_file_not_found(monkeypatch, mock_args):
     assert "Cannot find file" in str(ae)
 
 
-def test_invalid_oval_file_not_found(monkeypatch, mock_args):
+def test_invalid_uct_file_not_found(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: False)
 
     with pytest.raises(ArgumentError) as ae:
-        mock_args.oval_file = "test"
+        mock_args.uct_file = "test"
         Options(mock_args)
 
     assert "Cannot find file" in str(ae)
