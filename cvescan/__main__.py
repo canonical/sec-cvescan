@@ -10,7 +10,7 @@ from tabulate import tabulate
 
 import cvescan.constants as const
 import cvescan.downloader as downloader
-import cvescan.manifest_parser as manifest_parser
+from cvescan import TargetSysInfo
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.local_sysinfo import LocalSysInfo
@@ -120,7 +120,7 @@ def log_config_options(opt):
 
 
 def log_local_system_info(local_sysinfo, manifest_mode):
-    LOGGER.debug("System Info")
+    LOGGER.debug("Local System Info")
     table = [
         ["CVEScan is a Snap", local_sysinfo.is_snap],
         ["$SNAP_USER_COMMON", local_sysinfo.snap_user_common],
@@ -138,15 +138,29 @@ def log_local_system_info(local_sysinfo, manifest_mode):
     LOGGER.debug("")
 
 
-def load_output_formatter(opt, local_sysinfo):
+def log_target_system_info(target_sysinfo):
+    LOGGER.debug("Target System Info")
+
+    table = [
+        ["Local Ubuntu Codename", target_sysinfo.codename],
+        ["Installed Package Count", target_sysinfo.pkg_count],
+        ["ESM Apps Enabled", target_sysinfo.esm_apps_enabled],
+        ["ESM Infra Enabled", target_sysinfo.esm_infra_enabled],
+    ]
+
+    LOGGER.debug(tabulate(table))
+    LOGGER.debug("")
+
+
+def load_output_formatter(opt, target_sysinfo):
     if opt.cve:
-        return CVEOutputFormatter(opt, local_sysinfo, LOGGER)
+        return CVEOutputFormatter(opt, target_sysinfo, LOGGER)
 
     sorter = load_output_sorter(opt)
     if opt.nagios_mode:
-        return NagiosOutputFormatter(opt, local_sysinfo, LOGGER, sorter=sorter)
+        return NagiosOutputFormatter(opt, target_sysinfo, LOGGER, sorter=sorter)
 
-    return CLIOutputFormatter(opt, local_sysinfo, LOGGER, sorter=sorter)
+    return CLIOutputFormatter(opt, target_sysinfo, LOGGER, sorter=sorter)
 
 
 def load_output_sorter(opt):
@@ -162,19 +176,6 @@ def load_uct_data(opt):
         uct_data = json.load(oval_file)
 
     return uct_data
-
-
-def get_installed_pkgs_and_codename(local_sysinfo, manifest_file):
-    if manifest_file:
-        (installed_pkgs, codename) = manifest_parser.parse_manifest_file(manifest_file)
-    else:
-        installed_pkgs = local_sysinfo.installed_packages
-        codename = local_sysinfo.distrib_codename
-
-    LOGGER.debug("Target system code name is %s." % codename)
-    LOGGER.debug("Target system has %d packages installed." % len(installed_pkgs))
-
-    return (installed_pkgs, codename)
 
 
 def main():
@@ -197,12 +198,11 @@ def main():
     )
 
     try:
-        installed_pkgs, codename = get_installed_pkgs_and_codename(
-            local_sysinfo, opt.manifest_file
-        )
+        target_sysinfo = TargetSysInfo(opt, local_sysinfo)
 
         log_config_options(opt)
         log_local_system_info(local_sysinfo, opt.manifest_mode)
+        log_target_system_info(target_sysinfo)
     except (FileNotFoundError, PermissionError) as err:
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
@@ -213,7 +213,7 @@ def main():
     except PkgCountError as pke:
         error_exit("Failed to determine the local package count: %s" % pke)
 
-    output_formatter = load_output_formatter(opt, local_sysinfo)
+    output_formatter = load_output_formatter(opt, target_sysinfo)
 
     if local_sysinfo.is_snap:
         LOGGER.debug(
@@ -235,7 +235,9 @@ def main():
     try:
         uct_data = load_uct_data(opt)
         cve_scanner = CVEScanner(LOGGER)
-        scan_results = cve_scanner.scan(codename, uct_data, installed_pkgs)
+        scan_results = cve_scanner.scan(
+            target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs
+        )
         (results, return_code) = output_formatter.format_output(scan_results)
     except Exception as ex:
         error_exit(

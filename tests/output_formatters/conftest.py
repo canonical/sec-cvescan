@@ -16,8 +16,8 @@ def null_logger():
 
 class MockSysInfo:
     def __init__(self):
-        self.distrib_codename = "bionic"
-        self.package_count = 100
+        self.codename = "bionic"
+        self.pkg_count = 100
         self.esm_apps_enabled = False
         self.esm_infra_enabled = False
 

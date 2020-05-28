@@ -92,7 +92,7 @@ class AbstractOutputFormatter(ABC):
             )
             self.logger.debug("Manifest package count is %s" % package_count)
         else:
-            package_count = self.sysinfo.package_count
+            package_count = self.sysinfo.pkg_count
 
         return package_count
 
@@ -105,4 +105,4 @@ class AbstractOutputFormatter(ABC):
         return package_count
 
     def _get_scanned_system_codename(self):
-        return self.sysinfo.distrib_codename
+        return self.sysinfo.codename
