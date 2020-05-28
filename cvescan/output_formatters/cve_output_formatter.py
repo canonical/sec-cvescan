@@ -10,6 +10,7 @@ class CVEOutputFormatter(AbstractOutputFormatter):
     def format_output(
         self, scan_results: List[ScanResult], _: TargetSysInfo
     ) -> (str, int):
+        scan_results = self._filter_on_experimental(scan_results)
         cve_results = self._get_results_for_cve(scan_results)
 
         if len(cve_results) == 0:

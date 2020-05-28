@@ -49,9 +49,6 @@ class Options:
         self.oval_base_url = "https://people.canonical.com/~ubuntu-security/uct/json"
         self.oval_file = "uct.json"
 
-        if self.experimental_mode:
-            self.oval_file = "alpha.%s" % self.oval_file
-
         self.oval_zip = "%s.bz2" % self.oval_file
 
     def _set_manifest_file_options(self, args):

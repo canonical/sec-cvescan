@@ -72,6 +72,8 @@ class NagiosOutputFormatter(AbstractOutputFormatter):
         return (results_msg, return_code)
 
     def _apply_filters(self, scan_results):
+        scan_results = self._filter_on_experimental(scan_results)
+
         priority_filtered_scan_results = self._filter_on_priority(scan_results)
         fixable_scan_results = self._filter_on_fixable(priority_filtered_scan_results)
 

@@ -34,6 +34,8 @@ class CLIOutputFormatter(AbstractOutputFormatter):
     def format_output(
         self, scan_results: List[ScanResult], sysinfo: TargetSysInfo
     ) -> (str, int):
+        scan_results = self._filter_on_experimental(scan_results)
+
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
@@ -73,14 +75,16 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         summary.append(["Unique Packages Fixable by Patching", stats.fixable_packages])
         summary.append(["Unique CVEs Fixable by Patching", stats.fixable_cves])
         summary.append(["Vulnerabilities Fixable by Patching", fixable_vulns])
-        summary.append(["Vulnerabilities Fixable by ESM Apps", apps_vulns])
-        summary.append(["Vulnerabilities Fixable by ESM Infra", infra_vulns])
-        summary.append(["ESM Apps Enabled", apps_enabled])
-        summary.append(["ESM Infra Enabled", infra_enabled])
+        if self.opt.experimental_mode:
+            summary.append(["Vulnerabilities Fixable by ESM Apps", apps_vulns])
+            summary.append(["Vulnerabilities Fixable by ESM Infra", infra_vulns])
+            summary.append(["ESM Apps Enabled", apps_enabled])
+            summary.append(["ESM Infra Enabled", infra_enabled])
         summary.append(["Fixes Available by `apt-get upgrade`", upgrade_vulns])
-        summary.append(
-            ["Available Fixes Not Applied by `apt-get upgrade`", missing_fixes]
-        )
+        if self.opt.experimental_mode:
+            summary.append(
+                ["Available Fixes Not Applied by `apt-get upgrade`", missing_fixes]
+            )
         return "Summary\n" + tabulate(summary)
 
     def _format_summary_priority(self):

@@ -37,6 +37,7 @@ class MockOpt:
         self.unresolved = True
         self.priority = "all"
         self.uct_links = None
+        self.experimental_mode = True
 
 
 @pytest.fixture
@@ -74,16 +75,17 @@ def shuffled_scan_results():
     ]
 
 
-def format_with_priority(formatter_type, priority, scan_results):
+def format_with_priority(formatter_type, priority, scan_results, experimental=True):
     opt = MockOpt()
     opt.priority = priority
+    opt.experimental_mode = experimental
     formatter = formatter_type(opt, null_logger())
 
     return formatter.format_output(scan_results, MockSysInfo())
 
 
-def run_format(formatter_type, scan_results):
-    return format_with_priority(formatter_type, "all", scan_results)
+def run_format(formatter_type, scan_results, experimental=True):
+    return format_with_priority(formatter_type, "all", scan_results, experimental)
 
 
 @pytest.fixture
@@ -226,6 +228,37 @@ def misc_scan_results():
 
 def filter_scan_results_by_cve_ids(cve_ids):
     return [sr for sr in misc_scan_results() if sr.cve_id in cve_ids]
+
+
+# These two tests are less than ideal, but since experimental mode is only a
+# temporary measure, I'm ok with it for now.
+@pytest.fixture
+def run_non_experimental_filter_test_cli():
+    def run_test(formatter_type):
+        sr = filter_scan_results_by_cve_ids(
+            ["CVE-2020-1000", "CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1010"]
+        )
+        (results_msg, return_code) = run_format(formatter_type, sr, experimental=False)
+
+        assert "UA for Apps" not in results_msg
+        assert "UA for Infra" not in results_msg
+
+    return run_test
+
+
+@pytest.fixture
+def run_non_experimental_filter_test_nagios():
+    def run_test(formatter_type):
+        sr = filter_scan_results_by_cve_ids(
+            ["CVE-2020-1000", "CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1010"]
+        )
+        (results_msg, return_code) = run_format(formatter_type, sr, experimental=False)
+
+        assert "CVE-2020-1001" in results_msg
+        assert "CVE-2020-1002" not in results_msg
+        assert "CVE-2020-1010" not in results_msg
+
+    return run_test
 
 
 @pytest.fixture

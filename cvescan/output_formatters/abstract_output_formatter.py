@@ -35,6 +35,21 @@ class AbstractOutputFormatter(ABC):
     ) -> (str, int):
         pass
 
+    def _filter_on_experimental(self, scan_results):
+        if self.opt.experimental_mode:
+            return scan_results
+
+        filtered_scan_results = []
+
+        for sr in scan_results:
+            if sr.repository in {const.UA_APPS, const.UA_INFRA}:
+                new_sr = ScanResult(sr.cve_id, sr.priority, sr.package_name, None, None)
+                filtered_scan_results.append(new_sr)
+            else:
+                filtered_scan_results.append(sr)
+
+        return filtered_scan_results
+
     def _filter_on_priority(self, scan_results):
         if self.opt.priority == const.ALL:
             return scan_results

@@ -489,3 +489,26 @@ def test_uct_links(run_uct_links_test):
 
 def test_no_uct_links(run_no_uct_links_test):
     run_no_uct_links_test(NoSummaryCLIOutputFormatter)
+
+
+def test_experimental_filter(run_non_experimental_filter_test_cli):
+    run_non_experimental_filter_test_cli(CLIOutputFormatter)
+
+
+def test_summary_experimental_filter(monkeypatch, no_table_cli_output_formatter):
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
+    cof = no_table_cli_output_formatter
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = False
+    sysinfo.esm_infra_enabled = True
+
+    cof.opt.experimental_mode = False
+
+    sr = filter_scan_results_by_cve_ids(["CVE-2020-1001"])
+
+    (results_msg, return_code) = cof.format_output(sr, sysinfo)
+
+    assert "Vulnerabilities Fixable by ESM" not in results_msg
+    assert "ESM Apps Enabled" not in results_msg
+    assert "ESM Infra Enabled" not in results_msg
+    assert "Available Fixes Not Applied" not in results_msg

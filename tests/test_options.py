@@ -95,13 +95,6 @@ def test_set_oval_file_user_specified(monkeypatch, mock_args):
     assert opt.oval_file == "/my/path/fakefile.json"
 
 
-def test_set_oval_file_experimental(mock_args):
-    mock_args.experimental = True
-    opt = Options(mock_args)
-
-    assert opt.oval_file == "alpha.uct.json"
-
-
 def test_set_oval_url_default(monkeypatch, mock_args):
     opt = Options(mock_args)
 
@@ -130,13 +123,6 @@ def test_set_download_oval_file_user_specified(monkeypatch, mock_args):
     opt = Options(mock_args)
 
     assert opt.download_oval_file is False
-
-
-def test_set_download_oval_file_experimental(mock_args):
-    mock_args.experimental = True
-    opt = Options(mock_args)
-
-    assert opt.download_oval_file is True
 
 
 def test_set_manifest_file_none(mock_args):

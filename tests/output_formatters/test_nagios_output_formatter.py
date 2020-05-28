@@ -147,3 +147,7 @@ def test_nagios_cves_sorted(shuffled_scan_results):
 
     assert cve_list in results_msg
     assert return_code == const.NAGIOS_CRITICAL_RETURN_CODE
+
+
+def test_experimental_filter(run_non_experimental_filter_test_nagios):
+    run_non_experimental_filter_test_nagios(NagiosOutputFormatter)
