@@ -11,7 +11,7 @@ def parse_manifest_file(manifest_file_path):
         installed_pkgs = {}
         for pkg in manifest.splitlines():
             (pkg, version) = pkg.split("\t")
-            pkg = pkg.split(":")[0]
+            pkg = strip_architecture_extension(pkg)
             installed_pkgs[pkg] = version
     except Exception as e:
         raise Exception(
@@ -19,6 +19,10 @@ def parse_manifest_file(manifest_file_path):
         )
 
     return (installed_pkgs, _get_codename(installed_pkgs))
+
+
+def strip_architecture_extension(pkg):
+    return pkg.split(":")[0]
 
 
 # This function uses a hack to guess the ubuntu release codename based on the

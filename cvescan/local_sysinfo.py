@@ -134,10 +134,13 @@ class LocalSysInfo:
             self.logger.debug("Querying the local system for installed packages")
             dpkg_output = self._get_dpkg_list()
 
+            # TODO: This code is basically duplicated in manifest_parser.py.
+            #       Replace duplicate code with a dpkg_parser module or similar.
             for pkg in dpkg_output:
                 if installed_regex.match(str(pkg)) is not None:
                     pkg_details = pkg.split()
-                    installed_pkgs[pkg_details[1]] = pkg_details[2]
+                    pkg = self.strip_architecture_extension(pkg_details[1])
+                    installed_pkgs[pkg] = pkg_details[2]
 
             return installed_pkgs
         except Exception as ex:
@@ -161,6 +164,9 @@ class LocalSysInfo:
             )
 
         return out.splitlines()
+
+    def strip_architecture_extension(self, pkg):
+        return pkg.split(":")[0]
 
     def _get_ua_status_file_path(self):
         ua_status_file_path = const.UA_STATUS_FILE

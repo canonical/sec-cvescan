@@ -22,11 +22,11 @@ class MockSubprocess:
             "+++-===============================================-===========================================-============-===============================================================================\n"  # noqa: E501
             "ii  2to3                                            3.7.5-1                                     all          2to3 binary using python3\n"  # noqa: E501
             "ii  accountsservice                                 0.6.55-0ubuntu10                            amd64        query and manipulate user account information\n"  # noqa: E501
-            "ii  accountwizard                                   4:19.04.3-0ubuntu1                          amd64        wizard for KDE PIM applications account setup\n"  # noqa: E501
+            "ii  accountwizard:i386                              4:19.04.3-0ubuntu1                          amd64        wizard for KDE PIM applications account setup\n"  # noqa: E501
             "ii  acl                                             2.2.53-4                                    amd64        access control list - utilities\n"  # noqa: E501
             "ii  acpi-support                                    0.143                                       amd64        scripts for handling many ACPI events\n"  # noqa: E501
             "rc  acpid                                           1:2.0.31-1ubuntu2                           amd64        Advanced Configuration and Power Interface event daemon\n"  # noqa: E501
-            "ii  adduser                                         3.118ubuntu1                                all          add and remove users and groups\n"  # noqa: E501
+            "ii  adduser:amd64                                   3.118ubuntu1                                all          add and remove users and groups\n"  # noqa: E501
             "ii  adwaita-icon-theme                              3.34.0-1ubuntu1                             all          default icon theme of GNOME (small subset)\n"  # noqa: E501
             "ui  afl                                             2.52b-5ubuntu1                              amd64        instrumentation-driven fuzzer for binary formats\n"  # noqa: E501
             "ii  afl-clang                                       2.52b-5ubuntu1                              amd64        instrumentation-driven fuzzer for binary formats - clang support\n"  # noqa: E501
