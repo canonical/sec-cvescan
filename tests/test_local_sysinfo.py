@@ -9,7 +9,7 @@ import pytest
 
 import cvescan.constants as const
 from cvescan.errors import DistribIDError, PkgCountError
-from cvescan.sysinfo import SysInfo
+from cvescan.local_sysinfo import LocalSysInfo
 
 
 class MockSubprocess:
@@ -96,7 +96,7 @@ def null_logger():
     return logger
 
 
-class MockSysInfo(SysInfo):
+class MockLocalSysInfo(LocalSysInfo):
     def __init__(self, logger):
         self._get_raw_ua_status = MagicMock()
         super().__init__(logger)
@@ -106,7 +106,7 @@ def test_is_snap_false(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
 
-    sysinfo = MockSysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
     assert not sysinfo.is_snap
     assert sysinfo.snap_user_common is None
 
@@ -116,7 +116,7 @@ def test_is_snap_true(monkeypatch, null_logger):
     mock_responses.environ_snap_user_common = "/home/test/snap"
     apply_mock_responses(monkeypatch, mock_responses)
 
-    sysinfo = MockSysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
     assert sysinfo.is_snap
     assert sysinfo.snap_user_common == "/home/test/snap"
 
@@ -125,8 +125,8 @@ def test_get_codename_lsb_module(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
 
-    sysinfo = SysInfo(null_logger)
-    assert sysinfo.distrib_codename == "trusty"
+    sysinfo = LocalSysInfo(null_logger)
+    assert sysinfo.codename == "trusty"
 
 
 def test_get_codename_lsb_module_empty(monkeypatch, null_logger):
@@ -135,7 +135,9 @@ def test_get_codename_lsb_module_empty(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     with pytest.raises(DistribIDError) as di:
-        SysInfo(null_logger)
+        sysinfo = LocalSysInfo(null_logger)
+        # This property is lazy-loaded
+        sysinfo.codename
 
     assert "UNKNOWN" in str(di)
 
@@ -146,7 +148,9 @@ def test_get_codename_lsb_module_other(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     with pytest.raises(DistribIDError) as di:
-        SysInfo(null_logger)
+        sysinfo = LocalSysInfo(null_logger)
+        # This property is lazy-loaded
+        sysinfo.codename
 
     assert "something_else" in str(di)
 
@@ -156,8 +160,8 @@ def test_get_codename_from_file(monkeypatch, null_logger):
     mock_responses.get_distro_information_raises = True
     apply_mock_responses(monkeypatch, mock_responses)
 
-    sysinfo = SysInfo(null_logger)
-    assert sysinfo.distrib_codename == "trusty"
+    sysinfo = LocalSysInfo(null_logger)
+    assert sysinfo.codename == "trusty"
 
 
 def test_get_codename_from_not_ubuntu(monkeypatch, null_logger):
@@ -167,7 +171,9 @@ def test_get_codename_from_not_ubuntu(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     with pytest.raises(DistribIDError) as di:
-        SysInfo(null_logger)
+        sysinfo = LocalSysInfo(null_logger)
+        # This property is lazy-loaded
+        sysinfo.codename
 
     assert "not-ubuntu" in str(di)
 
@@ -176,7 +182,8 @@ def test_package_count(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
 
-    sysinfo = SysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
+    # This property is lazy-loaded
     assert sysinfo.package_count == 14
 
 
@@ -188,15 +195,17 @@ def test_package_count_error(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     with pytest.raises(PkgCountError):
-        SysInfo(null_logger)
+        sysinfo = LocalSysInfo(null_logger)
+        # This property is lazy-loaded
+        sysinfo.package_count
 
 
-def test_installed_packages_list(monkeypatch, null_logger):
+def test_installed_pkgs_list(monkeypatch, null_logger):
     mock_responses = MockResponses()
     apply_mock_responses(monkeypatch, mock_responses)
 
-    sysinfo = SysInfo(null_logger)
-    expected_installed_packages = {
+    sysinfo = LocalSysInfo(null_logger)
+    expected_installed_pkgs = {
         "2to3": "3.7.5-1",
         "accountsservice": "0.6.55-0ubuntu10",
         "accountwizard": "4:19.04.3-0ubuntu1",
@@ -212,14 +221,14 @@ def test_installed_packages_list(monkeypatch, null_logger):
         "akonadi-server": "4:19.04.3-0ubuntu3",
         "akregator": "4:19.04.3-0ubuntu1",
     }
-    assert sysinfo.installed_packages == expected_installed_packages
+    assert sysinfo.installed_pkgs == expected_installed_pkgs
 
 
 def test_esm_infra_enabled(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-enabled.json"
     apply_mock_responses(monkeypatch, mock_responses)
-    sysinfo = SysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
 
     assert sysinfo.esm_infra_enabled is True
 
@@ -228,7 +237,7 @@ def test_esm_infra_disabled(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-disabled.json"
     apply_mock_responses(monkeypatch, mock_responses)
-    sysinfo = SysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
 
     assert sysinfo.esm_infra_enabled is False
 
@@ -237,7 +246,7 @@ def test_esm_apps_enabled(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-enabled.json"
     apply_mock_responses(monkeypatch, mock_responses)
-    sysinfo = SysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
 
     assert sysinfo.esm_apps_enabled is True
 
@@ -246,7 +255,7 @@ def test_esm_apps_disabled(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-disabled.json"
     apply_mock_responses(monkeypatch, mock_responses)
-    sysinfo = SysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
 
     assert sysinfo.esm_apps_enabled is False
 
@@ -255,7 +264,7 @@ def test_esm_apps_missing(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-missing.json"
     apply_mock_responses(monkeypatch, mock_responses)
-    sysinfo = SysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
 
     assert sysinfo.esm_apps_enabled is False
     assert sysinfo.esm_infra_enabled is False
@@ -265,7 +274,10 @@ def test_no_snap_ua_status_path(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-missing.json"
     apply_mock_responses(monkeypatch, mock_responses)
-    sysinfo = MockSysInfo(null_logger)
+    sysinfo = MockLocalSysInfo(null_logger)
+
+    # This property is lazy-loaded
+    sysinfo.esm_apps_enabled
 
     sysinfo._get_raw_ua_status.assert_called_with(const.UA_STATUS_FILE)
 
@@ -275,7 +287,10 @@ def test_snap_ua_status_path(monkeypatch, null_logger):
     mock_responses.environ_snap_user_common = "/home/test/snap"
     mock_responses.ua_status_file = const.UA_STATUS_FILE
     apply_mock_responses(monkeypatch, mock_responses)
-    sysinfo = MockSysInfo(null_logger)
+    sysinfo = MockLocalSysInfo(null_logger)
+
+    # This property is lazy-loaded
+    sysinfo.esm_infra_enabled
 
     sysinfo._get_raw_ua_status.assert_called_with(
         "/var/lib/snapd/hostfs/var/lib/ubuntu-advantage/status.json"
@@ -290,11 +305,11 @@ def test_ua_fnf(monkeypatch, null_logger):
     mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-enabled.json"
     apply_mock_responses(monkeypatch, mock_responses)
     monkeypatch.setattr(
-        SysInfo,
+        LocalSysInfo,
         "_get_raw_ua_status",
         lambda *args, **kwargs: raise_(FileNotFoundError()),
     )
-    sysinfo = SysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
 
     assert sysinfo.esm_apps_enabled is False
     assert sysinfo.esm_infra_enabled is False
@@ -308,9 +323,11 @@ def test_ua_permission_denied(monkeypatch, null_logger):
     mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-enabled.json"
     apply_mock_responses(monkeypatch, mock_responses)
     monkeypatch.setattr(
-        SysInfo, "_get_raw_ua_status", lambda *args, **kwargs: raise_(PermissionError())
+        LocalSysInfo,
+        "_get_raw_ua_status",
+        lambda *args, **kwargs: raise_(PermissionError()),
     )
-    sysinfo = SysInfo(null_logger)
+    sysinfo = LocalSysInfo(null_logger)
 
     assert sysinfo.esm_apps_enabled is False
     assert sysinfo.esm_infra_enabled is False

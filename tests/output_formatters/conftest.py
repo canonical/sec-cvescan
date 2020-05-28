@@ -3,6 +3,7 @@ import logging
 import pytest
 
 import cvescan.constants as const
+from cvescan import TargetSysInfo
 from cvescan.scan_result import ScanResult
 
 
@@ -14,18 +15,24 @@ def null_logger():
     return logger
 
 
-class MockSysInfo:
+class MockSysInfo(TargetSysInfo):
     def __init__(self):
-        self.distrib_codename = "bionic"
-        self.package_count = 100
+        self.codename = "bionic"
+        self._pkg_count = 100
         self.esm_apps_enabled = False
         self.esm_infra_enabled = False
+
+    @property
+    def pkg_count(self):
+        return self._pkg_count
+
+    @pkg_count.setter
+    def pkg_count(self, pkg_count):
+        self._pkg_count = pkg_count
 
 
 class MockOpt:
     def __init__(self):
-        self.manifest_mode = False
-        self.manifest_file = None
         self.cve = None
         self.unresolved = True
         self.priority = "all"
@@ -70,9 +77,9 @@ def shuffled_scan_results():
 def format_with_priority(formatter_type, priority, scan_results):
     opt = MockOpt()
     opt.priority = priority
-    formatter = formatter_type(opt, MockSysInfo(), null_logger())
+    formatter = formatter_type(opt, null_logger())
 
-    return formatter.format_output(scan_results)
+    return formatter.format_output(scan_results, MockSysInfo())
 
 
 def run_format(formatter_type, scan_results):
@@ -259,9 +266,9 @@ def run_no_unresolved_shown_test():
         sr = filter_scan_results_by_cve_ids(["CVE-2020-1004", "CVE-2020-1005"])
         opt = MockOpt()
         opt.unresolved = False
-        formatter = formatter_type(opt, MockSysInfo(), null_logger())
+        formatter = formatter_type(opt, null_logger())
 
-        (results_msg, return_code) = formatter.format_output(sr)
+        (results_msg, return_code) = formatter.format_output(sr, MockSysInfo())
 
         assert "Unresolved" not in results_msg
         assert "N/A" not in results_msg
@@ -277,9 +284,9 @@ def run_unresolved_shown_test():
         sr = filter_scan_results_by_cve_ids(["CVE-2020-1004", "CVE-2020-1005"])
         opt = MockOpt()
         opt.unresolved = True
-        formatter = formatter_type(opt, MockSysInfo(), null_logger())
+        formatter = formatter_type(opt, null_logger())
 
-        (results_msg, return_code) = formatter.format_output(sr)
+        (results_msg, return_code) = formatter.format_output(sr, MockSysInfo())
 
         assert "Unresolved" in results_msg
         assert "N/A" in results_msg
@@ -296,9 +303,9 @@ def run_uct_links_test():
         opt = MockOpt()
         opt.unresolved = True
         opt.uct_links = True
-        formatter = formatter_type(opt, MockSysInfo(), null_logger())
+        formatter = formatter_type(opt, null_logger())
 
-        (results_msg, return_code) = formatter.format_output(sr)
+        (results_msg, return_code) = formatter.format_output(sr, MockSysInfo())
 
         assert const.UCT_URL % "CVE-2020-1004" in results_msg
         assert const.UCT_URL % "CVE-2020-1005" in results_msg
@@ -313,9 +320,9 @@ def run_no_uct_links_test():
         opt = MockOpt()
         opt.unresolved = True
         opt.uct_links = False
-        formatter = formatter_type(opt, MockSysInfo(), null_logger())
+        formatter = formatter_type(opt, null_logger())
 
-        (results_msg, return_code) = formatter.format_output(sr)
+        (results_msg, return_code) = formatter.format_output(sr, MockSysInfo())
 
         assert const.UCT_URL % "CVE-2020-1004" not in results_msg
         assert const.UCT_URL % "CVE-2020-1005" not in results_msg

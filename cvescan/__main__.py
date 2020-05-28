@@ -10,8 +10,10 @@ from tabulate import tabulate
 
 import cvescan.constants as const
 import cvescan.downloader as downloader
+from cvescan import TargetSysInfo
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
+from cvescan.local_sysinfo import LocalSysInfo
 from cvescan.options import Options
 from cvescan.output_formatters import (
     CLIOutputFormatter,
@@ -20,7 +22,6 @@ from cvescan.output_formatters import (
     NagiosOutputFormatter,
     PackageScanResultSorter,
 )
-from cvescan.sysinfo import SysInfo
 
 
 def set_output_verbosity(args):
@@ -59,10 +60,6 @@ def error_exit(msg, code=const.ERROR_RETURN_CODE):
 
 
 def parse_args():
-    # TODO: Consider a more flexible solution than storing this in code
-    #       (e.g. config file or launchpad query)
-    acceptable_codenames = ["xenial", "bionic", "eoan", "focal"]
-
     cvescan_ap = ap.ArgumentParser(
         description=const.CVESCAN_DESCRIPTION, formatter_class=ap.RawTextHelpFormatter
     )
@@ -80,12 +77,7 @@ def parse_args():
         "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
     )
     cvescan_ap.add_argument("-o", "--oval-file", help=const.OVAL_FILE_HELP)
-    cvescan_ap.add_argument(
-        "-m", "--manifest", help=const.MANIFEST_HELP, choices=acceptable_codenames
-    )
-    cvescan_ap.add_argument(
-        "-f", "--file", metavar="manifest-file", help=const.FILE_HELP
-    )
+    cvescan_ap.add_argument("-m", "--manifest-file", help=const.MANIFEST_HELP)
     cvescan_ap.add_argument(
         "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
     )
@@ -115,11 +107,9 @@ def log_config_options(opt):
         ["Manifest Mode", opt.manifest_mode],
         ["Experimental Mode", opt.experimental_mode],
         ["Nagios Output Mode", opt.nagios_mode],
-        ["Target Ubuntu Codename", opt.distrib_codename],
         ["OVAL File Path", opt.oval_file],
         ["OVAL URL", opt.oval_base_url],
         ["Manifest File", opt.manifest_file],
-        ["Manifest URL", opt.manifest_url],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
         ["Show Unresolved CVEs", opt.unresolved],
@@ -129,42 +119,56 @@ def log_config_options(opt):
     LOGGER.debug("")
 
 
-def log_system_info(sysinfo):
-    LOGGER.debug("System Info")
+def log_local_system_info(local_sysinfo, manifest_mode):
+    LOGGER.debug("Local System Info")
     table = [
-        ["Local Ubuntu Codename", sysinfo.distrib_codename],
-        ["Installed Package Count", sysinfo.package_count],
-        ["ESM Apps Enabled", sysinfo.esm_apps_enabled],
-        ["ESM Infra Enabled", sysinfo.esm_infra_enabled],
-        ["CVEScan is a Snap", sysinfo.is_snap],
-        ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
+        ["CVEScan is a Snap", local_sysinfo.is_snap],
+        ["$SNAP_USER_COMMON", local_sysinfo.snap_user_common],
+    ]
+
+    if not manifest_mode:
+        table = [
+            ["Local Ubuntu Codename", local_sysinfo.codename],
+            ["Installed Package Count", local_sysinfo.package_count],
+            ["ESM Apps Enabled", local_sysinfo.esm_apps_enabled],
+            ["ESM Infra Enabled", local_sysinfo.esm_infra_enabled],
+        ] + table
+
+    LOGGER.debug(tabulate(table))
+    LOGGER.debug("")
+
+
+def log_target_system_info(target_sysinfo):
+    LOGGER.debug("Target System Info")
+
+    table = [
+        ["Local Ubuntu Codename", target_sysinfo.codename],
+        ["Installed Package Count", target_sysinfo.pkg_count],
+        ["ESM Apps Enabled", target_sysinfo.esm_apps_enabled],
+        ["ESM Infra Enabled", target_sysinfo.esm_infra_enabled],
     ]
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
 
 
-def load_output_formatter(opt, sysinfo):
+def load_output_formatter(opt):
     if opt.cve:
-        return CVEOutputFormatter(opt, sysinfo, LOGGER)
+        return CVEOutputFormatter(opt, LOGGER)
 
-    sorter = load_output_sorter(opt, sysinfo)
+    sorter = load_output_sorter(opt)
     if opt.nagios_mode:
-        return NagiosOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
+        return NagiosOutputFormatter(opt, LOGGER, sorter=sorter)
 
-    return CLIOutputFormatter(opt, sysinfo, LOGGER, sorter=sorter)
+    return CLIOutputFormatter(opt, LOGGER, sorter=sorter)
 
 
-def load_output_sorter(opt, sysinfo):
+def load_output_sorter(opt):
     pkg_sorter = PackageScanResultSorter()
     return CVEScanResultSorter(subsorters=[pkg_sorter])
 
 
 def load_uct_data(opt):
-    # TODO: Fix manifest mode
-    if opt.manifest_mode:
-        raise NotImplementedError("Manifest mode is temporarily disabled")
-
     if opt.download_oval_file:
         downloader.download_bz2_file(LOGGER, opt.base_url, opt.oval_zip, opt.oval_file)
 
@@ -182,8 +186,23 @@ def main():
     # Configure debug logging as early as possible
     LOGGER = set_output_verbosity(args)
 
+    local_sysinfo = LocalSysInfo(LOGGER)
+
     try:
-        sysinfo = SysInfo(LOGGER)
+        opt = Options(args)
+    except (ArgumentError, ValueError) as err:
+        error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
+
+    error_exit_code = (
+        const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
+    )
+
+    try:
+        target_sysinfo = TargetSysInfo(opt, local_sysinfo)
+
+        log_config_options(opt)
+        log_local_system_info(local_sysinfo, opt.manifest_mode)
+        log_target_system_info(target_sysinfo)
     except (FileNotFoundError, PermissionError) as err:
         error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
     except DistribIDError as di:
@@ -194,41 +213,34 @@ def main():
     except PkgCountError as pke:
         error_exit("Failed to determine the local package count: %s" % pke)
 
-    try:
-        opt = Options(args, sysinfo.distrib_codename)
-    except (ArgumentError, ValueError) as err:
-        error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
+    output_formatter = load_output_formatter(opt)
 
-    error_exit_code = (
-        const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
-    )
-
-    log_config_options(opt)
-    log_system_info(sysinfo)
-
-    output_formatter = load_output_formatter(opt, sysinfo)
-
-    if sysinfo.is_snap:
+    if local_sysinfo.is_snap:
         LOGGER.debug(
-            "Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common
+            "Running as a snap, changing to '%s' directory."
+            % local_sysinfo.snap_user_common
         )
         LOGGER.debug(
             "Downloaded files, log files and temporary reports will "
-            "be in '%s'" % sysinfo.snap_user_common
+            "be in '%s'" % local_sysinfo.snap_user_common
         )
 
         try:
-            os.chdir(sysinfo.snap_user_common)
+            os.chdir(local_sysinfo.snap_user_common)
         except Exception:
-            error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
+            error_exit(
+                "failed to cd to %s" % local_sysinfo.snap_user_common, error_exit_code
+            )
 
     try:
         uct_data = load_uct_data(opt)
         cve_scanner = CVEScanner(LOGGER)
         scan_results = cve_scanner.scan(
-            opt.distrib_codename, uct_data, sysinfo.installed_packages
+            target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs
         )
-        (results, return_code) = output_formatter.format_output(scan_results)
+        (results, return_code) = output_formatter.format_output(
+            scan_results, target_sysinfo
+        )
     except Exception as ex:
         error_exit(
             "An unexpected error occurred while running CVEScan: %s" % ex,

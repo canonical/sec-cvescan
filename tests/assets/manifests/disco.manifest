@@ -1,0 +1,11 @@
+accountsservice	0.6.45-1ubuntu1
+acl	2.2.52-3build1
+acpid	1:2.0.28-1ubuntu1
+adduser	3.116ubuntu1
+apparmor	2.12-4ubuntu5.1
+apport	2.20.9-0ubuntu7.14
+apport-symptoms	0.20
+apt	1.6.12
+base-files	10.2ubuntu7.19.10.0
+python3-gdbm:amd64	3.6.9-1~18.04
+update-manager-core	1:19.04.5

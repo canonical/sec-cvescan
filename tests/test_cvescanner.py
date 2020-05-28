@@ -28,7 +28,7 @@ def uct_data():
 
 
 @pytest.fixture
-def default_installed_packages():
+def default_installed_pkgs():
     return {
         "pkg1": "1:1.2.3-4+deb9u2ubuntu0.1",
         "pkg2": "1:1.2.3-4+deb9u2ubuntu0.1",
@@ -40,8 +40,8 @@ def default_installed_packages():
     }
 
 
-def test_no_cves(default_cve_scanner, default_installed_packages):
-    results = default_cve_scanner.scan("bionic", dict(), default_installed_packages)
+def test_no_cves(default_cve_scanner, default_installed_pkgs):
+    results = default_cve_scanner.scan("bionic", dict(), default_installed_pkgs)
     assert len(results) == 0
 
 
@@ -179,7 +179,7 @@ def test_multiple_source_pkgs(default_cve_scanner, uct_data):
     assert results[1].repository == const.UA_INFRA
 
 
-def test_whole_uct_json_file(default_cve_scanner, uct_data, default_installed_packages):
+def test_whole_uct_json_file(default_cve_scanner, uct_data, default_installed_pkgs):
     expected_results = [
         ScanResult("CVE-2020-1000", "low", "pkg3", None, None),
         ScanResult(
@@ -206,6 +206,6 @@ def test_whole_uct_json_file(default_cve_scanner, uct_data, default_installed_pa
         ScanResult("CVE-2020-1005", "low", "pkg3", "10.2.3-2ubuntu0.1", const.UA_INFRA),
     ]
 
-    results = default_cve_scanner.scan("bionic", uct_data, default_installed_packages)
+    results = default_cve_scanner.scan("bionic", uct_data, default_installed_pkgs)
 
     assert results == expected_results

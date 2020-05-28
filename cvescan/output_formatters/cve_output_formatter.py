@@ -1,12 +1,15 @@
 from typing import List
 
 import cvescan.constants as const
+from cvescan import TargetSysInfo
 from cvescan.output_formatters import AbstractOutputFormatter
 from cvescan.scan_result import ScanResult
 
 
 class CVEOutputFormatter(AbstractOutputFormatter):
-    def format_output(self, scan_results: List[ScanResult]) -> (str, int):
+    def format_output(
+        self, scan_results: List[ScanResult], _: TargetSysInfo
+    ) -> (str, int):
         cve_results = self._get_results_for_cve(scan_results)
 
         if len(cve_results) == 0:
