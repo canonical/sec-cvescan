@@ -215,6 +215,9 @@ def main():
 
     output_formatter = load_output_formatter(opt)
 
+    # TODO: Rather than changing directories, specify the download directory
+    #       to the downloader and anything that uses the downloaded files. This
+    #       TODO may be moot once download caching is implemented
     if local_sysinfo.is_snap:
         LOGGER.debug(
             "Running as a snap, changing to '%s' directory."
