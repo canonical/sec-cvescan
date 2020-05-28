@@ -128,7 +128,7 @@ def log_local_system_info(local_sysinfo, manifest_mode):
 
     if not manifest_mode:
         table = [
-            ["Local Ubuntu Codename", local_sysinfo.distrib_codename],
+            ["Local Ubuntu Codename", local_sysinfo.codename],
             ["Installed Package Count", local_sysinfo.package_count],
             ["ESM Apps Enabled", local_sysinfo.esm_apps_enabled],
             ["ESM Infra Enabled", local_sysinfo.esm_infra_enabled],

@@ -126,7 +126,7 @@ def test_get_codename_lsb_module(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     sysinfo = LocalSysInfo(null_logger)
-    assert sysinfo.distrib_codename == "trusty"
+    assert sysinfo.codename == "trusty"
 
 
 def test_get_codename_lsb_module_empty(monkeypatch, null_logger):
@@ -137,7 +137,7 @@ def test_get_codename_lsb_module_empty(monkeypatch, null_logger):
     with pytest.raises(DistribIDError) as di:
         sysinfo = LocalSysInfo(null_logger)
         # This property is lazy-loaded
-        sysinfo.distrib_codename
+        sysinfo.codename
 
     assert "UNKNOWN" in str(di)
 
@@ -150,7 +150,7 @@ def test_get_codename_lsb_module_other(monkeypatch, null_logger):
     with pytest.raises(DistribIDError) as di:
         sysinfo = LocalSysInfo(null_logger)
         # This property is lazy-loaded
-        sysinfo.distrib_codename
+        sysinfo.codename
 
     assert "something_else" in str(di)
 
@@ -161,7 +161,7 @@ def test_get_codename_from_file(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     sysinfo = LocalSysInfo(null_logger)
-    assert sysinfo.distrib_codename == "trusty"
+    assert sysinfo.codename == "trusty"
 
 
 def test_get_codename_from_not_ubuntu(monkeypatch, null_logger):
@@ -173,7 +173,7 @@ def test_get_codename_from_not_ubuntu(monkeypatch, null_logger):
     with pytest.raises(DistribIDError) as di:
         sysinfo = LocalSysInfo(null_logger)
         # This property is lazy-loaded
-        sysinfo.distrib_codename
+        sysinfo.codename
 
     assert "not-ubuntu" in str(di)
 

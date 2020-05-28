@@ -21,7 +21,7 @@ class TargetSysInfo:
 
     def _set_from_local_sysinfo(self, local_sysinfo):
         self.installed_pkgs = local_sysinfo.installed_packages
-        self.codename = local_sysinfo.distrib_codename
+        self.codename = local_sysinfo.codename
 
         self.esm_apps_enabled = local_sysinfo.esm_apps_enabled
         self.esm_infra_enabled = local_sysinfo.esm_infra_enabled

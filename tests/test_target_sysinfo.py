@@ -13,7 +13,7 @@ class MockOpt:
 class MockLocalSysInfo:
     def __init__(self):
         self.installed_packages = {"pkg1": "1.1.0-1", "pkg2": "2.2.0-3.1"}
-        self.distrib_codename = "bionic"
+        self.codename = "bionic"
         self.esm_apps_enabled = False
         self.esm_infra_enabled = True
 
@@ -36,7 +36,7 @@ def test_no_manifest():
     target_sys_info = TargetSysInfo(opt, local_sysinfo)
 
     assert target_sys_info.installed_pkgs == local_sysinfo.installed_packages
-    assert target_sys_info.codename == local_sysinfo.distrib_codename
+    assert target_sys_info.codename == local_sysinfo.codename
     assert target_sys_info.esm_apps_enabled is False
     assert target_sys_info.esm_infra_enabled is True
     assert target_sys_info.pkg_count == 2

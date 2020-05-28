@@ -15,7 +15,7 @@ class LocalSysInfo:
         self._set_snap_info()
         self._esm_apps_enabled = None
         self._esm_infra_enabled = None
-        self._distrib_codename = None
+        self._codename = None
         self._installed_packages = None
 
     def _set_snap_info(self):
@@ -61,14 +61,14 @@ class LocalSysInfo:
         self._esm_infra_enabled = infra
 
     @property
-    def distrib_codename(self):
-        if not self._distrib_codename:
-            self._distrib_codename = self._get_ubuntu_codename()
+    def codename(self):
+        if not self._codename:
+            self._codename = self._get_ubuntu_codename()
 
-        return self._distrib_codename
+        return self._codename
 
     def _get_ubuntu_codename(self):
-        distrib_id, distrib_codename = self.get_lsb_release_info()
+        distrib_id, codename = self.get_lsb_release_info()
 
         if distrib_id != "Ubuntu":
             raise DistribIDError(
@@ -76,7 +76,7 @@ class LocalSysInfo:
                 % distrib_id
             )
 
-        return distrib_codename
+        return codename
 
     def get_lsb_release_info(self):
         try:

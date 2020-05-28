@@ -10,25 +10,23 @@ class CVEScanner:
         self.logger = logger
 
     # TODO: Add debug logging
-    def scan(self, distrib_codename, uct_data, installed_pkgs):
+    def scan(self, codename, uct_data, installed_pkgs):
         affected_cves = list()
 
         for (cve_id, uct_record) in uct_data.items():
-            if distrib_codename not in uct_record["releases"]:
+            if codename not in uct_record["releases"]:
                 continue
 
             affected_cves = affected_cves + self._scan_for_single_cve(
-                cve_id, uct_record, distrib_codename, installed_pkgs
+                cve_id, uct_record, codename, installed_pkgs
             )
 
         return affected_cves
 
-    def _scan_for_single_cve(
-        self, cve_id, uct_record, distrib_codename, installed_pkgs
-    ):
+    def _scan_for_single_cve(self, cve_id, uct_record, codename, installed_pkgs):
         affected_cves = list()
 
-        for src_pkg_details in uct_record["releases"][distrib_codename].values():
+        for src_pkg_details in uct_record["releases"][codename].values():
             if src_pkg_details["status"][0] in {"DNE", "not-affected"}:
                 continue
 
