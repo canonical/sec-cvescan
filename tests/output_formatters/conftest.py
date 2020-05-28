@@ -24,8 +24,6 @@ class MockSysInfo:
 
 class MockOpt:
     def __init__(self):
-        self.manifest_mode = False
-        self.manifest_file = None
         self.cve = None
         self.unresolved = True
         self.priority = "all"

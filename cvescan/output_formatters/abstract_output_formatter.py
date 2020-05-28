@@ -58,7 +58,6 @@ class AbstractOutputFormatter(ABC):
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
-        installed_pkgs = self._get_package_count()
         fixable_packages = len(set([r.package_name for r in fixable_results]))
         fixable_cves = len(set([r.cve_id for r in fixable_results]))
         fixable_vulns = len(fixable_results)
@@ -75,7 +74,7 @@ class AbstractOutputFormatter(ABC):
 
         missing_fixes = fixable_vulns - upgrade_vulns
         return ScanStats(
-            installed_pkgs,
+            self.sysinfo.pkg_count,
             fixable_packages,
             fixable_cves,
             fixable_vulns,
@@ -84,25 +83,3 @@ class AbstractOutputFormatter(ABC):
             upgrade_vulns,
             missing_fixes,
         )
-
-    def _get_package_count(self):
-        if self.opt.manifest_mode:
-            package_count = AbstractOutputFormatter._count_packages_in_manifest_file(
-                const.DEFAULT_MANIFEST_FILE
-            )
-            self.logger.debug("Manifest package count is %s" % package_count)
-        else:
-            package_count = self.sysinfo.pkg_count
-
-        return package_count
-
-    # TODO: fix manifest mode
-    @staticmethod
-    def _count_packages_in_manifest_file(manifest_file):
-        with open(manifest_file) as mf:
-            package_count = len(mf.readlines())
-
-        return package_count
-
-    def _get_scanned_system_codename(self):
-        return self.sysinfo.codename
