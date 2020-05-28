@@ -50,8 +50,10 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return (msg, return_code)
 
     def _format_summary(self, stats: ScanStats, sysinfo: TargetSysInfo):
-        apps_enabled = self._format_esm_enabled(sysinfo.esm_apps_enabled)
-        infra_enabled = self._format_esm_enabled(sysinfo.esm_infra_enabled)
+        apps_enabled = CLIOutputFormatter._format_esm_enabled(sysinfo.esm_apps_enabled)
+        infra_enabled = CLIOutputFormatter._format_esm_enabled(
+            sysinfo.esm_infra_enabled
+        )
         fixable_vulns = CLIOutputFormatter._colorize_fixes(stats.fixable_vulns, True)
         apps_vulns = CLIOutputFormatter._colorize_fixes(
             stats.apps_vulns, sysinfo.esm_apps_enabled
@@ -60,7 +62,9 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             stats.infra_vulns, sysinfo.esm_infra_enabled
         )
         upgrade_vulns = CLIOutputFormatter._colorize_fixes(stats.upgrade_vulns, True)
-        missing_fixes = CLIOutputFormatter._colorize_fixes(stats.missing_fixes, False)
+        missing_fixes = CLIOutputFormatter._colorize_esm_combined_fixes(
+            stats.missing_fixes, sysinfo
+        )
 
         summary = list()
         summary.append(["Ubuntu Release", sysinfo.codename])
@@ -85,12 +89,15 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
         return "%s or higher" % self.opt.priority
 
-    def _format_esm_enabled(self, enabled):
-        yes_no = "No"
-        if enabled:
-            yes_no = "Yes"
+    @classmethod
+    def _format_esm_enabled(cls, enabled):
+        if enabled is None:
+            return cls._colorize(const.ARCHIVE_UNKNOWN_COLOR_CODE, "Unknown")
 
-        return CLIOutputFormatter._colorize_yes_no(yes_no)
+        if enabled is True:
+            return cls._colorize(const.ARCHIVE_ENABLED_COLOR_CODE, "Yes")
+
+        return cls._colorize(const.ARCHIVE_DISABLED_COLOR_CODE, "No")
 
     def _format_table(self, priority_results, fixable_results, sysinfo):
         if self.opt.unresolved:
@@ -131,20 +138,27 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         if repository == const.ARCHIVE:
             color_code = const.ARCHIVE_ENABLED_COLOR_CODE
         elif repository == const.UA_APPS:
-            if sysinfo.esm_apps_enabled:
-                color_code = const.ARCHIVE_ENABLED_COLOR_CODE
-            else:
-                color_code = const.ARCHIVE_DISABLED_COLOR_CODE
+            color_code = CLIOutputFormatter._get_ua_archive_color_code(
+                sysinfo.esm_apps_enabled
+            )
         elif repository == const.UA_INFRA:
-            if sysinfo.esm_infra_enabled:
-                color_code = const.ARCHIVE_ENABLED_COLOR_CODE
-            else:
-                color_code = const.ARCHIVE_DISABLED_COLOR_CODE
+            color_code = CLIOutputFormatter._get_ua_archive_color_code(
+                sysinfo.esm_infra_enabled
+            )
         else:
             self.logger.warning("Unknown repository %s" % repository)
             color_code = const.ARCHIVE_DISABLED_COLOR_CODE
 
         return CLIOutputFormatter._colorize(color_code, repository)
+
+    @staticmethod
+    def _get_ua_archive_color_code(enabled):
+        if enabled:
+            return const.ARCHIVE_ENABLED_COLOR_CODE
+        elif enabled is None:
+            return const.ARCHIVE_UNKNOWN_COLOR_CODE
+        else:
+            return const.ARCHIVE_DISABLED_COLOR_CODE
 
     def _transform_repository(self, repository, sysinfo):
         if repository:
@@ -153,16 +167,22 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return CLIOutputFormatter.NOT_APPLICABLE
 
     @classmethod
-    def _colorize_yes_no(cls, yes_no):
-        if yes_no.lower() == "yes":
-            return cls._colorize(const.YES_COLOR_CODE, yes_no)
+    def _colorize_esm_combined_fixes(cls, fixes, sysinfo):
+        if sysinfo.esm_apps_enabled is False or sysinfo.esm_infra_enabled is False:
+            return cls._colorize_fixes(fixes, False)
 
-        return cls._colorize(const.NO_COLOR_CODE, yes_no)
+        if sysinfo.esm_apps_enabled is None or sysinfo.esm_infra_enabled is None:
+            return cls._colorize_fixes(fixes, None)
+
+        return cls._colorize_fixes(fixes, True)
 
     @classmethod
     def _colorize_fixes(cls, fixes, enabled):
         if fixes == 0:
             return str(fixes)
+
+        if enabled is None:
+            return cls._colorize(const.ARCHIVE_UNKNOWN_COLOR_CODE, fixes)
 
         if enabled:
             return cls._colorize(const.ARCHIVE_ENABLED_COLOR_CODE, fixes)

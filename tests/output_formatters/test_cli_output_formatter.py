@@ -100,11 +100,12 @@ def run_priority_color_test(
 def run_archive_color_test(
     monkeypatch, no_summary_cli_output_formatter, sysinfo, cve_id, enabled
 ):
-    archive_color_code = (
-        const.ARCHIVE_ENABLED_COLOR_CODE
-        if enabled
-        else const.ARCHIVE_DISABLED_COLOR_CODE
-    )
+    if enabled:
+        archive_color_code = const.ARCHIVE_ENABLED_COLOR_CODE
+    elif enabled is None:
+        archive_color_code = const.ARCHIVE_UNKNOWN_COLOR_CODE
+    else:
+        archive_color_code = const.ARCHIVE_DISABLED_COLOR_CODE
     run_color_test(
         monkeypatch,
         no_summary_cli_output_formatter,
@@ -205,8 +206,17 @@ def test_ua_apps_enabled_color(monkeypatch, no_summary_cli_output_formatter):
 def test_ua_apps_disabled_color(monkeypatch, no_summary_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = False
+    sysinfo.esm_infra_enabled = True
     run_archive_color_test(
         monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1009", False
+    )
+
+
+def test_ua_apps_unknown_color(monkeypatch, no_summary_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = None
+    run_archive_color_test(
+        monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1009", None
     )
 
 
@@ -220,9 +230,18 @@ def test_ua_infra_enabled_color(monkeypatch, no_summary_cli_output_formatter):
 
 def test_ua_infra_disabled_color(monkeypatch, no_summary_cli_output_formatter):
     sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = True
     sysinfo.esm_infra_enabled = False
     run_archive_color_test(
         monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1010", False
+    )
+
+
+def test_ua_infra_unknown_color(monkeypatch, no_summary_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_infra_enabled = None
+    run_archive_color_test(
+        monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1010", None
     )
 
 
@@ -271,7 +290,6 @@ def test_summary_nounresolved(monkeypatch, no_table_cli_output_formatter):
 
     (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
-    print(results_msg)
     assert re.search(r"Ubuntu Release\s+bionic", results_msg)
     assert re.search(r"Installed Packages\s+100", results_msg)
     assert re.search(r"CVE Priority\s+low or higher", results_msg)
@@ -329,52 +347,140 @@ def test_summary_apps_enabled(monkeypatch, no_table_cli_output_formatter):
     assert re.search(r"ESM Infra Enabled\s+No", results_msg)
 
 
-def test_summary_esm_enabled_color(monkeypatch, no_table_cli_output_formatter):
+def run_esm_color_code_test(
+    monkeypatch, output_formatter, sysinfo, archive_color_code, yn
+):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    cof = no_table_cli_output_formatter
+
+    sr = filter_scan_results_by_cve_ids(["CVE-2020-1005"])
+
+    (results_msg, return_code) = output_formatter.format_output(sr, sysinfo)
+
+    fixable_color_code = r"\u001b\[38;5;%dm" % archive_color_code
+    assert re.search(
+        r"Vulnerabilities Fixable by ESM Apps\s+%s2" % fixable_color_code, results_msg
+    )
+    assert re.search(
+        r"Vulnerabilities Fixable by ESM Infra\s+%s1" % fixable_color_code, results_msg
+    )
+
+    esm_color_code = r"\u001b\[38;5;%dm" % archive_color_code
+    assert re.search(r"ESM Apps Enabled\s+%s%s" % (esm_color_code, yn), results_msg)
+    assert re.search(r"ESM Infra Enabled\s+%s%s" % (esm_color_code, yn), results_msg)
+
+
+def test_summary_esm_enabled_color(monkeypatch, no_table_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = True
     sysinfo.esm_infra_enabled = True
 
-    sr = filter_scan_results_by_cve_ids(["CVE-2020-1005"])
-
-    (results_msg, return_code) = cof.format_output(sr, sysinfo)
-
-    fixable_color_code = r"\u001b\[38;5;%dm" % const.ARCHIVE_ENABLED_COLOR_CODE
-    assert re.search(
-        r"Vulnerabilities Fixable by ESM Apps\s+%s2" % fixable_color_code, results_msg
+    run_esm_color_code_test(
+        monkeypatch,
+        no_table_cli_output_formatter,
+        sysinfo,
+        const.ARCHIVE_ENABLED_COLOR_CODE,
+        "Yes",
     )
-    assert re.search(
-        r"Vulnerabilities Fixable by ESM Infra\s+%s1" % fixable_color_code, results_msg
-    )
-
-    esm_color_code = r"\u001b\[38;5;%dm" % const.YES_COLOR_CODE
-    assert re.search(r"ESM Apps Enabled\s+%sYes" % esm_color_code, results_msg)
-    assert re.search(r"ESM Infra Enabled\s+%sYes" % esm_color_code, results_msg)
 
 
 def test_summary_esm_disabled_color(monkeypatch, no_table_cli_output_formatter):
-    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    cof = no_table_cli_output_formatter
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = False
-    sysinfo.esm_inra_enabled = False
+    sysinfo.esm_infra_enabled = False
+
+    run_esm_color_code_test(
+        monkeypatch,
+        no_table_cli_output_formatter,
+        sysinfo,
+        const.ARCHIVE_DISABLED_COLOR_CODE,
+        "No",
+    )
+
+
+def test_summary_manifest_esm_unknown_color(monkeypatch, no_table_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = None
+    sysinfo.esm_infra_enabled = None
+
+    run_esm_color_code_test(
+        monkeypatch,
+        no_table_cli_output_formatter,
+        sysinfo,
+        const.ARCHIVE_UNKNOWN_COLOR_CODE,
+        "Unknown",
+    )
+
+
+def run_fixes_not_applied_color_code_test(
+    monkeypatch, output_formatter, sysinfo, archive_color_code, num_fixes
+):
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
 
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1005"])
 
-    (results_msg, return_code) = cof.format_output(sr, sysinfo)
+    (results_msg, return_code) = output_formatter.format_output(sr, sysinfo)
 
-    fixable_color_code = r"\u001b\[38;5;%dm" % const.ARCHIVE_DISABLED_COLOR_CODE
+    fixable_color_code = ""
+    if num_fixes != 0:
+        fixable_color_code = r"\u001b\[38;5;%dm" % archive_color_code
     assert re.search(
-        r"Vulnerabilities Fixable by ESM Apps\s+%s2" % fixable_color_code, results_msg
-    )
-    assert re.search(
-        r"Vulnerabilities Fixable by ESM Infra\s+%s1" % fixable_color_code, results_msg
+        r"Available Fixes Not Applied by `apt-get upgrade`\s+%s%d"
+        % (fixable_color_code, num_fixes),
+        results_msg,
     )
 
-    esm_color_code = r"\u001b\[38;5;%dm" % const.NO_COLOR_CODE
-    assert re.search(r"ESM Apps Enabled\s+%sNo" % esm_color_code, results_msg)
-    assert re.search(r"ESM Infra Enabled\s+%sNo" % esm_color_code, results_msg)
+
+def test_summary_fixes_not_applied_color(monkeypatch, no_table_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = False
+    sysinfo.esm_infra_enabled = True
+
+    run_fixes_not_applied_color_code_test(
+        monkeypatch,
+        no_table_cli_output_formatter,
+        sysinfo,
+        const.ARCHIVE_DISABLED_COLOR_CODE,
+        2,
+    )
+
+    sysinfo.esm_apps_enabled = True
+    sysinfo.esm_infra_enabled = False
+
+    run_fixes_not_applied_color_code_test(
+        monkeypatch,
+        no_table_cli_output_formatter,
+        sysinfo,
+        const.ARCHIVE_DISABLED_COLOR_CODE,
+        1,
+    )
+
+
+def test_summary_fixes_applied_color(monkeypatch, no_table_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = True
+    sysinfo.esm_infra_enabled = True
+
+    run_fixes_not_applied_color_code_test(
+        monkeypatch,
+        no_table_cli_output_formatter,
+        sysinfo,
+        const.ARCHIVE_ENABLED_COLOR_CODE,
+        0,
+    )
+
+
+def test_summary_fixes_unknown_color(monkeypatch, no_table_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = None
+    sysinfo.esm_infra_enabled = None
+
+    run_fixes_not_applied_color_code_test(
+        monkeypatch,
+        no_table_cli_output_formatter,
+        sysinfo,
+        const.ARCHIVE_UNKNOWN_COLOR_CODE,
+        3,
+    )
 
 
 def test_uct_links(run_uct_links_test):
