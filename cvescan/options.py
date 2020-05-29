@@ -40,6 +40,10 @@ class Options:
         self.nagios_mode = args.nagios
 
     def _set_uct_file_options(self, args):
+        # TODO: This really isn't an option, it's a constant. In fact, the only
+        #       "options" here ATM are whether or not use a user-specified file
+        #       or to download a new version of the file. The planned
+        #       cacher/downloader object should replace this.
         self.uct_base_url = None
 
         if args.uct_file:
