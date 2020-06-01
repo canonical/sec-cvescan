@@ -30,6 +30,12 @@ class CVEScanner:
             if src_pkg_details["status"][0] in {"DNE", "not-affected"}:
                 continue
 
+            # TODO: This is a temporary measure. The entire JSON should be
+            #       validated prior to scanning. The "binaries" key should
+            #       not be missing.
+            if "binaries" not in src_pkg_details.keys():
+                continue
+
             installed_binaries = [
                 (b, installed_pkgs[b])
                 for b in src_pkg_details["binaries"]
