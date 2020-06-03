@@ -3,7 +3,6 @@
 import argparse as ap
 import json
 import logging
-import os
 import sys
 
 from tabulate import tabulate
@@ -167,13 +166,17 @@ def load_output_sorter(opt):
     return CVEScanResultSorter(subsorters=[pkg_sorter])
 
 
-def load_uct_data(opt):
+def load_uct_data(opt, local_sysinfo):
+    uct_file_path = opt.uct_file
+
     if opt.download_uct_file:
+        if local_sysinfo.is_snap:
+            uct_file_path = "%s/%s" % (local_sysinfo.snap_user_common, uct_file_path)
         downloader.download_bz2_file(
-            LOGGER, const.UCT_DATA_URL, const.UCT_DATA_FILE, opt.uct_file
+            LOGGER, const.UCT_DATA_URL, const.UCT_DATA_FILE, uct_file_path
         )
 
-    with open(opt.uct_file) as uct_file:
+    with open(uct_file_path) as uct_file:
         uct_data = json.load(uct_file)
 
     return uct_data
@@ -216,28 +219,8 @@ def main():
 
     output_formatter = load_output_formatter(opt)
 
-    # TODO: Rather than changing directories, specify the download directory
-    #       to the downloader and anything that uses the downloaded files. This
-    #       TODO may be moot once download caching is implemented
-    if local_sysinfo.is_snap:
-        LOGGER.debug(
-            "Running as a snap, changing to '%s' directory."
-            % local_sysinfo.snap_user_common
-        )
-        LOGGER.debug(
-            "Downloaded files, log files and temporary reports will "
-            "be in '%s'" % local_sysinfo.snap_user_common
-        )
-
-        try:
-            os.chdir(local_sysinfo.snap_user_common)
-        except Exception:
-            error_exit(
-                "failed to cd to %s" % local_sysinfo.snap_user_common, error_exit_code
-            )
-
     try:
-        uct_data = load_uct_data(opt)
+        uct_data = load_uct_data(opt, local_sysinfo)
         cve_scanner = CVEScanner(LOGGER)
         scan_results = cve_scanner.scan(
             target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs
