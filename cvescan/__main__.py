@@ -108,7 +108,6 @@ def log_config_options(opt):
         ["Experimental Mode", opt.experimental_mode],
         ["Nagios Output Mode", opt.nagios_mode],
         ["UCT File Path", opt.uct_file],
-        ["UCT URL", opt.uct_base_url],
         ["Manifest File", opt.manifest_file],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
@@ -170,7 +169,9 @@ def load_output_sorter(opt):
 
 def load_uct_data(opt):
     if opt.download_uct_file:
-        downloader.download_bz2_file(LOGGER, opt.base_url, opt.uct_zip, opt.uct_file)
+        downloader.download_bz2_file(
+            LOGGER, const.UCT_DATA_URL, const.UCT_DATA_FILE, opt.uct_file
+        )
 
     with open(opt.uct_file) as uct_file:
         uct_data = json.load(uct_file)

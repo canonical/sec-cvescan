@@ -95,21 +95,6 @@ def test_set_uct_file_user_specified(monkeypatch, mock_args):
     assert opt.uct_file == "/my/path/fakefile.json"
 
 
-def test_set_uct_url_default(monkeypatch, mock_args):
-    opt = Options(mock_args)
-
-    assert opt.uct_base_url == BASE_URL
-
-
-def test_set_uct_url_user_specified(monkeypatch, mock_args):
-    monkeypatch.setattr(os.path, "isfile", lambda x: True)
-
-    mock_args.uct_file = "/my/path/fakefile.json"
-    opt = Options(mock_args)
-
-    assert opt.uct_base_url is None
-
-
 def test_set_download_uct_file_default(monkeypatch, mock_args):
     opt = Options(mock_args)
 

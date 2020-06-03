@@ -40,29 +40,18 @@ class Options:
         self.nagios_mode = args.nagios
 
     def _set_uct_file_options(self, args):
-        # TODO: This really isn't an option, it's a constant. In fact, the only
-        #       "options" here ATM are whether or not use a user-specified file
-        #       or to download a new version of the file. The planned
-        #       cacher/downloader object should replace this.
-        self.uct_base_url = None
-
         if args.uct_file:
+            self.download_uct_file = False
             self.uct_file = args.uct_file
             return
 
-        self.uct_base_url = "https://people.canonical.com/~ubuntu-security/cvescan"
+        self.download_uct_file = True
         self.uct_file = "uct.json"
-
-        self.uct_zip = "%s.bz2" % self.uct_file
 
     def _set_manifest_file_options(self, args):
         self.manifest_file = (
             os.path.abspath(args.manifest_file) if args.manifest_file else None
         )
-
-    @property
-    def download_uct_file(self):
-        return self.uct_base_url is not None
 
 
 def raise_on_invalid_args(args):

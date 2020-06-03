@@ -1,4 +1,5 @@
 import hashlib
+import os
 import tempfile
 
 import pycurl
@@ -43,6 +44,8 @@ def test_bz2decompress():
 
     orig_hash = hash_file(orig_file)
     new_hash = hash_file(unzipped_file)
+
+    os.remove(unzipped_file)
 
     assert orig_hash == new_hash
 
