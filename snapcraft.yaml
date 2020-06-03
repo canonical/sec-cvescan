@@ -1,6 +1,6 @@
 name: cvescan
 base: core18
-version: '1.2.01'
+version: '2.0.0~alpha1'
 summary: Security/CVE vulnerability monitoring for Ubuntu
 license: GPL-3.0
 description: |
@@ -43,7 +43,7 @@ layout:
 
 
 apps:
-  py:
+  cvescan:
     command: bin/cvescan
     environment:
       PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
@@ -54,15 +54,6 @@ apps:
     - apt-dpkg-db
     - ua-status
   sh:
-    command: ./cvescan.sh
-    environment:
-      PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
-      APT_CONFIG: $SNAP/etc/apt.conf
-    plugs:
-    - home
-    - network
-    - apt-dpkg-db
-  cvescan:
     command: ./cvescan.sh
     environment:
       PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
