@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
 
 import argparse as ap
-import cvescan.constants as const
-from cvescan.cvescanner import CVEScanner
-from cvescan.errors import *
-from cvescan.options import Options
-from cvescan.sysinfo import SysInfo
+import json
 import logging
-import os
-from shutil import which
 import sys
+
 from tabulate import tabulate
+
+import cvescan.constants as const
+import cvescan.downloader as downloader
+from cvescan import TargetSysInfo
+from cvescan.cvescanner import CVEScanner
+from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
+from cvescan.local_sysinfo import LocalSysInfo
+from cvescan.options import Options
+from cvescan.output_formatters import (
+    CLIOutputFormatter,
+    CVEOutputFormatter,
+    CVEScanResultSorter,
+    NagiosOutputFormatter,
+    PackageScanResultSorter,
+)
+
 
 def set_output_verbosity(args):
     if args.silent:
@@ -30,6 +41,7 @@ def set_output_verbosity(args):
 
     return logger
 
+
 def get_null_logger():
     logger = logging.getLogger("cvescan.null")
     if not logger.hasHandlers():
@@ -37,63 +49,138 @@ def get_null_logger():
 
     return logger
 
+
 LOGGER = get_null_logger()
+
 
 def error_exit(msg, code=const.ERROR_RETURN_CODE):
     print("Error: %s" % msg, file=sys.stderr)
     sys.exit(code)
 
-def parse_args():
-    # TODO: Consider a more flexible solution than storing this in code (e.g. config file or launchpad query)
-    acceptable_codenames = ["xenial","bionic","eoan","focal"]
 
-    cvescan_ap = ap.ArgumentParser(description=const.CVESCAN_DESCRIPTION, formatter_class=ap.RawTextHelpFormatter)
-    cvescan_ap.add_argument("-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP)
-    cvescan_ap.add_argument("-p", "--priority", help=const.PRIORITY_HELP, choices=["critical","high","medium","all"], default="high")
-    cvescan_ap.add_argument("-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP)
-    cvescan_ap.add_argument("-o", "--oval-file", help=const.OVAL_FILE_HELP)
-    cvescan_ap.add_argument("-m", "--manifest", help=const.MANIFEST_HELP,choices=acceptable_codenames)
-    cvescan_ap.add_argument("-f", "--file", metavar="manifest-file", help=const.FILE_HELP)
-    cvescan_ap.add_argument("-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP)
-    cvescan_ap.add_argument("-l", "--list", action="store_true", default=False, help=const.LIST_HELP)
-    cvescan_ap.add_argument("-t", "--test", action="store_true", default=False, help=const.TEST_HELP)
-    cvescan_ap.add_argument("-u", "--updates", action="store_true", default=False, help=const.UPDATES_HELP)
-    cvescan_ap.add_argument("-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP)
-    cvescan_ap.add_argument("-x", "--experimental", action="store_true", default=False, help=const.EXPERIMENTAL_HELP)
+def parse_args():
+    cvescan_ap = ap.ArgumentParser(
+        description=const.CVESCAN_DESCRIPTION, formatter_class=ap.RawTextHelpFormatter
+    )
+    cvescan_ap.add_argument(
+        "-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP
+    )
+    cvescan_ap.add_argument(
+        "-p",
+        "--priority",
+        help=const.PRIORITY_HELP,
+        choices=[const.CRITICAL, const.HIGH, const.MEDIUM, const.ALL],
+        default="high",
+    )
+    cvescan_ap.add_argument(
+        "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
+    )
+    cvescan_ap.add_argument("-u", "--uct-file", help=const.UCT_FILE_HELP)
+    cvescan_ap.add_argument("-m", "--manifest-file", help=const.MANIFEST_HELP)
+    cvescan_ap.add_argument(
+        "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
+    )
+    cvescan_ap.add_argument(
+        "--uct-links", action="store_true", default=False, help=const.UCT_LINKS_HELP
+    )
+    cvescan_ap.add_argument(
+        "--unresolved", action="store_true", default=False, help=const.UNRESOLVED_HELP
+    )
+    cvescan_ap.add_argument(
+        "-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP
+    )
+    cvescan_ap.add_argument(
+        "-x",
+        "--experimental",
+        action="store_true",
+        default=False,
+        help=const.EXPERIMENTAL_HELP,
+    )
 
     return cvescan_ap.parse_args()
+
 
 def log_config_options(opt):
     LOGGER.debug("Config Options")
     table = [
-        ["Test Mode", opt.test_mode],
         ["Manifest Mode", opt.manifest_mode],
         ["Experimental Mode", opt.experimental_mode],
         ["Nagios Output Mode", opt.nagios_mode],
-        ["Target Ubuntu Codename", opt.distrib_codename],
-        ["OVAL File Path", opt.oval_file],
-        ["OVAL URL", opt.oval_base_url],
+        ["UCT File Path", opt.uct_file],
         ["Manifest File", opt.manifest_file],
-        ["Manifest URL", opt.manifest_url],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
-        ["Only Show Updates Available", (not opt.all_cve)]]
+        ["Show Unresolved CVEs", opt.unresolved],
+    ]
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
 
-def log_system_info(sysinfo):
-    LOGGER.debug("System Info")
+
+def log_local_system_info(local_sysinfo, manifest_mode):
+    LOGGER.debug("Local System Info")
     table = [
-        ["Local Ubuntu Codename", sysinfo.distrib_codename],
-        ["Installed Package Count", sysinfo.package_count],
-        ["CVEScan is a Snap", sysinfo.is_snap],
-        ["$SNAP_USER_COMMON", sysinfo.snap_user_common],
-        ["Scripts Directory", sysinfo.scriptdir],
-        ["XSLT File", sysinfo.xslt_file]]
+        ["CVEScan is a Snap", local_sysinfo.is_snap],
+        ["$SNAP_USER_COMMON", local_sysinfo.snap_user_common],
+    ]
+
+    if not manifest_mode:
+        table = [
+            ["Local Ubuntu Codename", local_sysinfo.codename],
+            ["Installed Package Count", local_sysinfo.package_count],
+            ["ESM Apps Enabled", local_sysinfo.esm_apps_enabled],
+            ["ESM Infra Enabled", local_sysinfo.esm_infra_enabled],
+        ] + table
 
     LOGGER.debug(tabulate(table))
     LOGGER.debug("")
+
+
+def log_target_system_info(target_sysinfo):
+    LOGGER.debug("Target System Info")
+
+    table = [
+        ["Local Ubuntu Codename", target_sysinfo.codename],
+        ["Installed Package Count", target_sysinfo.pkg_count],
+        ["ESM Apps Enabled", target_sysinfo.esm_apps_enabled],
+        ["ESM Infra Enabled", target_sysinfo.esm_infra_enabled],
+    ]
+
+    LOGGER.debug(tabulate(table))
+    LOGGER.debug("")
+
+
+def load_output_formatter(opt):
+    if opt.cve:
+        return CVEOutputFormatter(opt, LOGGER)
+
+    sorter = load_output_sorter(opt)
+    if opt.nagios_mode:
+        return NagiosOutputFormatter(opt, LOGGER, sorter=sorter)
+
+    return CLIOutputFormatter(opt, LOGGER, sorter=sorter)
+
+
+def load_output_sorter(opt):
+    pkg_sorter = PackageScanResultSorter()
+    return CVEScanResultSorter(subsorters=[pkg_sorter])
+
+
+def load_uct_data(opt, local_sysinfo):
+    uct_file_path = opt.uct_file
+
+    if opt.download_uct_file:
+        if local_sysinfo.is_snap:
+            uct_file_path = "%s/%s" % (local_sysinfo.snap_user_common, uct_file_path)
+        downloader.download_bz2_file(
+            LOGGER, const.UCT_DATA_URL, const.UCT_DATA_FILE, uct_file_path
+        )
+
+    with open(uct_file_path) as uct_file:
+        uct_data = json.load(uct_file)
+
+    return uct_data
+
 
 def main():
     global LOGGER
@@ -103,56 +190,53 @@ def main():
     # Configure debug logging as early as possible
     LOGGER = set_output_verbosity(args)
 
-    try:
-        sysinfo = SysInfo(LOGGER)
-    except (FileNotFoundError, PermissionError) as err:
-        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
-    except DistribIDError as di:
-        error_exit("Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s" % di)
-    except PkgCountError as pke:
-        error_exit("Failed to determine the local package count: %s" % pke)
+    local_sysinfo = LocalSysInfo(LOGGER)
 
     try:
-        opt = Options(args, sysinfo)
+        opt = Options(args)
     except (ArgumentError, ValueError) as err:
         error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
 
-    error_exit_code = const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
-
-    log_config_options(opt)
-    log_system_info(sysinfo)
-
-    if sysinfo.is_snap:
-        LOGGER.debug("Running as a snap, changing to '%s' directory." % sysinfo.snap_user_common)
-        LOGGER.debug("Downloaded files, log files and temporary reports will " \
-                "be in '%s'" % sysinfo.snap_user_common)
-
-        try:
-            os.chdir(sysinfo.snap_user_common)
-        except:
-            error_exit("failed to cd to %s" % sysinfo.snap_user_common, error_exit_code)
-
-    # TODO: Consider moving this check to SysInfo, though it may be moot if we
-    #       can use python bindings for oscap and xsltproc
-    if not sysinfo.is_snap:
-        for i in [["oscap", "libopenscap8"], ["xsltproc", "xsltproc"]]:
-            if which(i[0]) == None:
-                error_exit("Missing %s command. Run 'sudo apt install %s'" % (i[0], i[1]), error_exit_code)
-
-    # TODO: Consider moving this check into SysInfo, but it may be moot if we
-    #       use python to get rid of the xslt file.
-    if not os.path.isfile(sysinfo.xslt_file):
-        error_exit("Missing text.xsl file at '%s', this file should have installed with cvescan"
-                % sysinfo.xslt_file, error_exit_code)
+    error_exit_code = (
+        const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
+    )
 
     try:
-        cve_scanner = CVEScanner(sysinfo, LOGGER)
-        (results, return_code) = cve_scanner.scan(opt)
+        target_sysinfo = TargetSysInfo(opt, local_sysinfo)
+
+        log_config_options(opt)
+        log_local_system_info(local_sysinfo, opt.manifest_mode)
+        log_target_system_info(target_sysinfo)
+    except (FileNotFoundError, PermissionError) as err:
+        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
+    except DistribIDError as di:
+        error_exit(
+            "Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s"
+            % di
+        )
+    except PkgCountError as pke:
+        error_exit("Failed to determine the local package count: %s" % pke)
+
+    output_formatter = load_output_formatter(opt)
+
+    try:
+        uct_data = load_uct_data(opt, local_sysinfo)
+        cve_scanner = CVEScanner(LOGGER)
+        scan_results = cve_scanner.scan(
+            target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs
+        )
+        (results, return_code) = output_formatter.format_output(
+            scan_results, target_sysinfo
+        )
     except Exception as ex:
-        error_exit("An unexpected error occurred while running CVEScan: %s" % ex, error_exit_code)
+        error_exit(
+            "An unexpected error occurred while running CVEScan: %s" % ex,
+            error_exit_code,
+        )
 
     LOGGER.info(results)
     sys.exit(return_code)
+
 
 if __name__ == "__main__":
     main()

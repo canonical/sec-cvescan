@@ -1,0 +1,20 @@
+language: python
+os: linux
+dist: bionic
+python:
+    - "3.6"
+virtualenv:
+    # This is needed because lsb-release and python3-apt are not installable via
+    # pip at the moment. This means that on bionic we can only test with python
+    # v3.6 or python v3.8 on focal
+    system_site_packages: true
+before_install:
+    - sudo apt-get install -y libssl-dev libcurl4-openssl-dev python3-apt lsb-release
+    - pip install codecov
+    - pip install pytest-cov
+install:
+    - pip install .
+script:
+    - py.test -vv --cov-report=term --cov=cvescan
+after_success:
+    codecov
