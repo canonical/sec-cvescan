@@ -512,3 +512,20 @@ def test_summary_experimental_filter(monkeypatch, no_table_cli_output_formatter)
     assert "ESM Apps Enabled" not in results_msg
     assert "ESM Infra Enabled" not in results_msg
     assert "Available Fixes Not Applied" not in results_msg
+
+
+def test_no_results_no_header(monkeypatch):
+    header_regex = r"CVE ID\s+PRIORITY\s+PACKAGE\s+FIXED VERSION\s+ARCHIVE"
+
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
+    cof = CLIOutputFormatter(MockOpt(), null_logger())
+    sysinfo = MockSysInfo()
+
+    cof.opt.experimental_mode = True
+    cof.opt.unresolved = False
+
+    sr = filter_scan_results_by_cve_ids(["CVE-2020-1003"])
+
+    (results_msg, return_code) = cof.format_output(sr, sysinfo)
+
+    assert not re.search(header_regex, results_msg)

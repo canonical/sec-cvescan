@@ -106,10 +106,15 @@ class CLIOutputFormatter(AbstractOutputFormatter):
     def _format_table(self, priority_results, fixable_results, sysinfo):
         if self.opt.unresolved:
             self.sort(priority_results)
-            formatted_results = self._transform_results(priority_results, sysinfo)
+            results = priority_results
         else:
             self.sort(fixable_results)
-            formatted_results = self._transform_results(fixable_results, sysinfo)
+            results = fixable_results
+
+        if len(results) == 0:
+            return ""
+
+        formatted_results = self._transform_results(results, sysinfo)
 
         headers = ["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "ARCHIVE"]
         if self.opt.uct_links:
