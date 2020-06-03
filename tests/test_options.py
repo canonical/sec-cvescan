@@ -6,7 +6,7 @@ from cvescan.errors import ArgumentError
 from cvescan.options import Options
 
 SCRIPTDIR = "fakedir/"
-BASE_URL = "https://people.canonical.com/~ubuntu-security/uct/json"
+BASE_URL = "https://people.canonical.com/~ubuntu-security/cvescan"
 
 
 class MockArgs:

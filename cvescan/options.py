@@ -50,7 +50,7 @@ class Options:
             self.uct_file = args.uct_file
             return
 
-        self.uct_base_url = "https://people.canonical.com/~ubuntu-security/uct/json"
+        self.uct_base_url = "https://people.canonical.com/~ubuntu-security/cvescan"
         self.uct_file = "uct.json"
 
         self.uct_zip = "%s.bz2" % self.uct_file
