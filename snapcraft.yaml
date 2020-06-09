@@ -24,10 +24,10 @@ plugs:
     - /var/lib/snapd/hostfs/var/cache/apt
     - /etc/apt
     - /etc/dpkg
-  ua-status:
+  hostfs-var-lib-ubuntu-advantage-status-json:
     interface: system-files
-    read: 
-    - /var/lib/snapd/hostfs/var/lib/ubuntu-advantage
+    read:
+    - /var/lib/snapd/hostfs/var/lib/ubuntu-advantage/status.json
 
 layout:
   /usr/lib/x86_64-linux-gnu/openscap:
@@ -52,7 +52,7 @@ apps:
     - home
     - network
     - apt-dpkg-db
-    - ua-status
+    - hostfs-var-lib-ubuntu-advantage-status-json
   sh:
     command: ./cvescan.sh
     environment:
