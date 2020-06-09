@@ -1,6 +1,6 @@
 name: cvescan
 base: core18
-version: '1.2.01'
+version: '2.0.0~alpha1'
 summary: Security/CVE vulnerability monitoring for Ubuntu
 license: GPL-3.0
 description: |
@@ -24,6 +24,10 @@ plugs:
     - /var/lib/snapd/hostfs/var/cache/apt
     - /etc/apt
     - /etc/dpkg
+  hostfs-var-lib-ubuntu-advantage-status-json:
+    interface: system-files
+    read:
+    - /var/lib/snapd/hostfs/var/lib/ubuntu-advantage/status.json
 
 layout:
   /usr/lib/x86_64-linux-gnu/openscap:
@@ -39,7 +43,7 @@ layout:
 
 
 apps:
-  py:
+  cvescan:
     command: bin/cvescan
     environment:
       PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
@@ -48,16 +52,8 @@ apps:
     - home
     - network
     - apt-dpkg-db
+    - hostfs-var-lib-ubuntu-advantage-status-json
   sh:
-    command: ./cvescan.sh
-    environment:
-      PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
-      APT_CONFIG: $SNAP/etc/apt.conf
-    plugs:
-    - home
-    - network
-    - apt-dpkg-db
-  cvescan:
     command: ./cvescan.sh
     environment:
       PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
@@ -73,6 +69,7 @@ parts:
     stage-packages:
       - libssl-dev
       - libcurl4-openssl-dev
+      - python3-apt
     source: .
   cvescan-bash:
     plugin: dump
