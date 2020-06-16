@@ -1,6 +1,6 @@
 name: cvescan
 base: core18
-version: '2.0.0~alpha1'
+version: '2.0.0~alpha2'
 summary: Security/CVE vulnerability monitoring for Ubuntu
 license: GPL-3.0
 description: |
