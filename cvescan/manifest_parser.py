@@ -48,9 +48,10 @@ def _get_codename(installed_pkgs):
         if bionic_regex.match(update_manager_core_ver):
             return "bionic"
 
+        apt_pkg.init_system()
+
         # At the moment, groovy is a special case
         if focal_regex.match(update_manager_core_ver):
-            apt_pkg.init_system()
             base_files_ver = installed_pkgs.get("base-files", "")
 
             if apt_pkg.version_compare(base_files_ver, "11ubuntu7") >= 0:
