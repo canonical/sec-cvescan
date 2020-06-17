@@ -81,7 +81,7 @@ def parse_args():
         "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
     )
     cvescan_ap.add_argument(
-        "--uct-links", action="store_true", default=False, help=const.UCT_LINKS_HELP
+        "--show-links", action="store_true", default=False, help=const.UCT_LINKS_HELP
     )
     cvescan_ap.add_argument(
         "--unresolved", action="store_true", default=False, help=const.UNRESOLVED_HELP

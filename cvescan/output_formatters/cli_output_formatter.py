@@ -117,7 +117,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         formatted_results = self._transform_results(results, sysinfo)
 
         headers = ["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "ARCHIVE"]
-        if self.opt.uct_links:
+        if self.opt.show_links:
             headers.append("URL")
 
         return tabulate(formatted_results, headers, tablefmt="plain")
@@ -129,7 +129,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             repository = self._transform_repository(sr.repository, sysinfo)
 
             result = [sr.cve_id, priority, sr.package_name, fixed_version, repository]
-            if self.opt.uct_links:
+            if self.opt.show_links:
                 uct_link = const.UCT_URL % sr.cve_id
                 result.append(uct_link)
 
