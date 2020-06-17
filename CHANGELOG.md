@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-# Added
+### Added
 - A total rewrite of CVEScan in python.
 - Unit test suite for python implementation.
 - An ESM status check and report ([issue #8](https://github.com/canonical/sec-cvescan/issues/8)).
@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Colors to default output.
 - Continuous integration with Travis-CI.
 - The ability to use pip to install from source.
-# Changed
+### Changed
 - Certain options are fundamentally incompatible. Attempting to use these options
   together will result in an error message, whereas the previous version would
   ignore the incompatibilities and the behavior was undefined.
@@ -37,9 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not been patched.
 - The default behavior is to show CVE IDs, not URLS. The --list option is no longer
   included. The --show-links option can be used to show links to the Ubuntu CVE Tracker.
-# Deprecated
+### Deprecated
 - The entire bash implementation of CVEScan
-# Removed
+### Removed
 - Test mode
 - All file/download caching
 - Dependencies on oscap/xsltproc
@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The --reuse option
 - The --file option
 - Support for running on disco.
-# Fixed
+### Fixed
 - Manifest mode does not check Ubuntu version and can be run on any version of Linux.
 - CVEScan runs on Focal ([issue #37](https://github.com/canonical/sec-cvescan/issues/37))
 - Correct version verbiage in python version ([issue #34](https://github.com/canonical/sec-cvescan/issues/34))
@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Run 10x faster.
 
 ## [1.0.0] - 2020-04-15
-# Added
+### Added
 - CVEScan implementation in bash
 - snapcraft.yaml to package CVEScan as a snap
 - Nagios output mode
