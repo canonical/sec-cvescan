@@ -76,7 +76,9 @@ def parse_args():
         "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
     )
     cvescan_ap.add_argument("-u", "--uct-file", help=const.UCT_FILE_HELP)
-    cvescan_ap.add_argument("-m", "--manifest-file", help=const.MANIFEST_HELP)
+    cvescan_ap.add_argument(
+        "-m", "--manifest", metavar="MANIFEST_FILE", help=const.MANIFEST_HELP
+    )
     cvescan_ap.add_argument(
         "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
     )

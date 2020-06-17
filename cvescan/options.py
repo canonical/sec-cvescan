@@ -35,7 +35,7 @@ class Options:
         self.show_links = args.show_links
 
     def _set_mode(self, args):
-        self.manifest_mode = True if args.manifest_file else False
+        self.manifest_mode = True if args.manifest else False
         self.experimental_mode = args.experimental
         self.nagios_mode = args.nagios
 
@@ -49,9 +49,7 @@ class Options:
         self.uct_file = "uct.json"
 
     def _set_manifest_file_options(self, args):
-        self.manifest_file = (
-            os.path.abspath(args.manifest_file) if args.manifest_file else None
-        )
+        self.manifest_file = os.path.abspath(args.manifest) if args.manifest else None
 
 
 def raise_on_invalid_args(args):
@@ -135,7 +133,7 @@ def raise_incompatible_arguments_error(arg1, arg2):
 
 
 def raise_on_missing_manifest_file(args):
-    raise_on_missing_file(args.manifest_file)
+    raise_on_missing_file(args.manifest)
 
 
 def raise_on_missing_uct_file(args):

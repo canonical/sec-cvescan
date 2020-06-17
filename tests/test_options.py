@@ -15,7 +15,7 @@ class MockArgs:
         self.priority = "high"
         self.silent = False
         self.uct_file = None
-        self.manifest_file = None
+        self.manifest = None
         self.nagios = False
         self.show_links = False
         self.test = False
@@ -49,7 +49,7 @@ def test_set_experimental(mock_args):
 def test_set_manifest_mode(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
     monkeypatch.setattr(os.path, "abspath", lambda x: "/tmp/testmanifest")
-    mock_args.manifest_file = "tests/assets/manifest/bionic.manifest"
+    mock_args.manifest = "tests/assets/manifest/bionic.manifest"
     opt = Options(mock_args)
 
     assert opt.experimental_mode is False
@@ -71,7 +71,7 @@ def test_set_experimental_nagios_manifest(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "abspath", lambda x: "/tmp/testmanifest")
 
     mock_args.experimental = True
-    mock_args.manifest_file = "tests/assets/manifest/bionic.manifest"
+    mock_args.manifest = "tests/assets/manifest/bionic.manifest"
     mock_args.nagios = True
     opt = Options(mock_args)
 
@@ -119,7 +119,7 @@ def test_set_manifest_file_none(mock_args):
 def test_set_manifest_file_user_specified(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
 
-    mock_args.manifest_file = "/tmp/testmanifest"
+    mock_args.manifest = "/tmp/testmanifest"
     opt = Options(mock_args)
 
     assert opt.manifest_file == "/tmp/testmanifest"
@@ -129,7 +129,7 @@ def test_set_manifest_file_abspath(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
     monkeypatch.setattr(os.path, "abspath", lambda x: "/tmp/testmanifest")
 
-    mock_args.manifest_file = "../../../../../../../../../../../../tmp/testmanifest"
+    mock_args.manifest = "../../../../../../../../../../../../tmp/testmanifest"
     opt = Options(mock_args)
 
     assert opt.manifest_file == "/tmp/testmanifest"
@@ -254,7 +254,7 @@ def test_invalid_manifest_file_not_found(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: False)
 
     with pytest.raises(ArgumentError) as ae:
-        mock_args.manifest_file = "test"
+        mock_args.manifest = "test"
         Options(mock_args)
 
     assert "Cannot find file" in str(ae)
