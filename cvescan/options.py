@@ -9,7 +9,7 @@ FMT_FILE_OPTION = "-f|--file"
 FMT_MANIFEST_OPTION = "-m|--manifest"
 FMT_NAGIOS_OPTION = "-n|--nagios"
 FMT_SHOW_LINKS_OPTION = "--show-links"
-FMT_UCT_FILE_OPTION = "-u|--uct_file"
+FMT_DB_FILE_OPTION = "--db"
 FMT_PRIORITY_OPTION = "-p|priority"
 FMT_SILENT_OPTION = "-s|--silent"
 FMT_UNRESOLVED_OPTION = "--unresolved"
@@ -25,7 +25,7 @@ class Options:
         raise_on_invalid_args(args)
 
         self._set_mode(args)
-        self._set_uct_file_options(args)
+        self._set_db_file_options(args)
         self._set_manifest_file_options(args)
 
         self.cve = args.cve
@@ -39,14 +39,14 @@ class Options:
         self.experimental_mode = args.experimental
         self.nagios_mode = args.nagios
 
-    def _set_uct_file_options(self, args):
-        if args.uct_file:
-            self.download_uct_file = False
-            self.uct_file = args.uct_file
+    def _set_db_file_options(self, args):
+        if args.db:
+            self.download_uct_db_file = False
+            self.db_file = args.db
             return
 
-        self.download_uct_file = True
-        self.uct_file = "uct.json"
+        self.download_uct_db_file = True
+        self.db_file = "uct.json"
 
     def _set_manifest_file_options(self, args):
         self.manifest_file = os.path.abspath(args.manifest) if args.manifest else None
@@ -56,7 +56,7 @@ def raise_on_invalid_args(args):
     raise_on_invalid_cve(args)
     raise_on_invalid_combinations(args)
     raise_on_missing_manifest_file(args)
-    raise_on_missing_uct_file(args)
+    raise_on_missing_db_file(args)
 
 
 def raise_on_invalid_cve(args):
@@ -136,8 +136,8 @@ def raise_on_missing_manifest_file(args):
     raise_on_missing_file(args.manifest)
 
 
-def raise_on_missing_uct_file(args):
-    raise_on_missing_file(args.uct_file)
+def raise_on_missing_db_file(args):
+    raise_on_missing_file(args.db)
 
 
 def raise_on_missing_file(file_path):

@@ -44,8 +44,8 @@ optional arguments:
                         'all'      = show all CVES (no filtering based on priority)
   -s, --silent          Enable script/Silent mode: To be used with '-c <cve-identifier>'.
                         Do not print text output; exit 0 if not vulnerable, exit 1 if vulnerable.
-  -u UCT_FILE, --uct-file UCT_FILE
-                        Specify an UCT JSON file to use instead of downloading the latest from people.canonical.com.
+  --db UBUNTU_DB_FILE   Specify an Ubuntu vulnerability datbase file to use instead of downloading the
+                        latest from people.canonical.com.
   -m MANIFEST_FILE, --manifest MANIFEST_FILE
                         Enable manifest mode. Do not scan the localhost. Instead, run a scan against the
                         specified package manifest file.

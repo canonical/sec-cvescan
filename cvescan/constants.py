@@ -29,8 +29,8 @@ FILE_HELP = (
     "will likely work, /tmp will likely not work."
 )
 
-UCT_FILE_HELP = (
-    "Specify an UCT JSON file to use instead of downloading the "
+DB_FILE_HELP = (
+    "Specify an Ubuntu vulnerability datbase file to use instead of downloading the \n"
     "latest from people.canonical.com."
 )
 
