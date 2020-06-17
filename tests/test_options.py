@@ -17,7 +17,7 @@ class MockArgs:
         self.uct_file = None
         self.manifest_file = None
         self.nagios = False
-        self.uct_links = False
+        self.show_links = False
         self.test = False
         self.unresolved = False
         self.verbose = False
@@ -217,7 +217,7 @@ def test_invalid_nagios_and_unresolved(mock_args):
 def test_invalid_nagios_and_links(mock_args):
     with pytest.raises(ArgumentError) as ae:
         mock_args.nagios = True
-        mock_args.uct_links = True
+        mock_args.show_links = True
         Options(mock_args)
 
     assert "options are incompatible" in str(ae)
@@ -234,7 +234,7 @@ def test_invalid_silent_without_cve(monkeypatch, mock_args):
 
 def test_invalid_silent_and_links(mock_args):
     with pytest.raises(ArgumentError) as ae:
-        mock_args.uct_links = True
+        mock_args.show_links = True
         mock_args.cve = "CVE-2020-1234"
         mock_args.silent = True
         Options(mock_args)
@@ -294,9 +294,9 @@ def test_invalid_cve_and_priority(mock_args):
         Options(mock_args)
 
 
-def test_invalid_cve_and_uct_links(mock_args):
+def test_invalid_cve_and_show_links(mock_args):
     with pytest.raises(ArgumentError):
         mock_args.cve = "CVE-2020-1234"
         mock_args.priority = "all"
-        mock_args.uct_links = True
+        mock_args.show_links = True
         Options(mock_args)

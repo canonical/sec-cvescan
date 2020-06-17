@@ -36,7 +36,7 @@ class MockOpt:
         self.cve = None
         self.unresolved = True
         self.priority = "all"
-        self.uct_links = None
+        self.show_links = None
         self.experimental_mode = True
 
 
@@ -330,12 +330,12 @@ def run_unresolved_shown_test():
 
 
 @pytest.fixture
-def run_uct_links_test():
+def run_show_links_test():
     def run_test(formatter_type):
         sr = filter_scan_results_by_cve_ids(["CVE-2020-1004", "CVE-2020-1005"])
         opt = MockOpt()
         opt.unresolved = True
-        opt.uct_links = True
+        opt.show_links = True
         formatter = formatter_type(opt, null_logger())
 
         (results_msg, return_code) = formatter.format_output(sr, MockSysInfo())
@@ -347,12 +347,12 @@ def run_uct_links_test():
 
 
 @pytest.fixture
-def run_no_uct_links_test():
+def run_no_show_links_test():
     def run_test(formatter_type):
         sr = filter_scan_results_by_cve_ids(["CVE-2020-1004", "CVE-2020-1005"])
         opt = MockOpt()
         opt.unresolved = True
-        opt.uct_links = False
+        opt.show_links = False
         formatter = formatter_type(opt, null_logger())
 
         (results_msg, return_code) = formatter.format_output(sr, MockSysInfo())

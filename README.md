@@ -28,7 +28,7 @@ There is more detailed usage information in the help.
 $> cvescan -h
 
 usage: cvescan [-h] [-c CVE-IDENTIFIER] [-p {critical,high,medium,all}] [-s]
-               [-u UCT_FILE] [-m MANIFEST_FILE] [-n] [--uct-links]
+               [-u UCT_FILE] [-m MANIFEST_FILE] [-n] [--show-links]
                [--unresolved] [-v] [-x]
 
 Scan an Ubuntu system for known vulnerabilities.
@@ -61,7 +61,7 @@ optional arguments:
                         2/CRITICAL = vulnerable to at least one known and patchable CVE of
                          the specified priority or higher.
                         3/UNKNOWN = something went wrong with the script, or oscap.
-  --uct-links           Provide links to the Ubuntu CVE Tracker for each CVE.
+  --show-links          Provide links to the Ubuntu CVE Tracker for each CVE.
   --unresolved          Show CVEs that have not yet been resolved.
   -v, --verbose         Enable verbose messages.
   -x, --experimental    Enable eXperimental mode. Use experimental (also called "alpha") data
