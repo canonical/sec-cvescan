@@ -70,7 +70,7 @@ def parse_args():
         "--priority",
         help=const.PRIORITY_HELP,
         choices=[const.CRITICAL, const.HIGH, const.MEDIUM, const.ALL],
-        default="high",
+        default=None,
     )
     cvescan_ap.add_argument(
         "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP

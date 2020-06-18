@@ -12,7 +12,7 @@ BASE_URL = "https://people.canonical.com/~ubuntu-security/cvescan"
 class MockArgs:
     def __init__(self):
         self.cve = None
-        self.priority = "high"
+        self.priority = None
         self.silent = False
         self.db = None
         self.manifest = None
@@ -143,7 +143,6 @@ def test_set_cve_default(mock_args):
 
 def test_set_cve(mock_args):
     mock_args.cve = "CVE-2020-1234"
-    mock_args.priority = "all"
     opt = Options(mock_args)
 
     assert opt.cve == "CVE-2020-1234"
@@ -277,26 +276,16 @@ def test_invalid_cve_and_unresolved(mock_args):
         Options(mock_args)
 
 
-def test_invalid_cve_and_priority(mock_args):
+@pytest.mark.parametrize("priority", ["medium", "high", "critical", "all"])
+def test_invalid_cve_and_priority(mock_args, priority):
     with pytest.raises(ArgumentError):
         mock_args.cve = "CVE-2020-1234"
-        mock_args.priority = "medium"
-        Options(mock_args)
-
-    with pytest.raises(ArgumentError):
-        mock_args.cve = "CVE-2020-1234"
-        mock_args.priority = "high"
-        Options(mock_args)
-
-    with pytest.raises(ArgumentError):
-        mock_args.cve = "CVE-2020-1234"
-        mock_args.priority = "critical"
+        mock_args.priority = priority
         Options(mock_args)
 
 
 def test_invalid_cve_and_show_links(mock_args):
     with pytest.raises(ArgumentError):
         mock_args.cve = "CVE-2020-1234"
-        mock_args.priority = "all"
         mock_args.show_links = True
         Options(mock_args)

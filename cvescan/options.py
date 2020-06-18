@@ -29,7 +29,7 @@ class Options:
         self._set_manifest_file_options(args)
 
         self.cve = args.cve
-        self.priority = args.priority
+        self.priority = args.priority if args.priority else "high"
         self.unresolved = args.unresolved
 
         self.show_links = args.show_links
@@ -118,7 +118,7 @@ def raise_on_invalid_cve_options(args):
     if not args.cve:
         return
 
-    if args.priority != "all":
+    if args.priority is not None:
         raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_PRIORITY_OPTION)
 
     if args.show_links:
