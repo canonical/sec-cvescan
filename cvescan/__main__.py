@@ -6,9 +6,9 @@ import logging
 import sys
 
 from tabulate import tabulate
+from ust_download_cache import USTDownloadCache
 
 import cvescan.constants as const
-import cvescan.downloader as downloader
 from cvescan import TargetSysInfo
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
@@ -70,18 +70,20 @@ def parse_args():
         "--priority",
         help=const.PRIORITY_HELP,
         choices=[const.CRITICAL, const.HIGH, const.MEDIUM, const.ALL],
-        default="high",
+        default=None,
     )
     cvescan_ap.add_argument(
         "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
     )
-    cvescan_ap.add_argument("-u", "--uct-file", help=const.UCT_FILE_HELP)
-    cvescan_ap.add_argument("-m", "--manifest-file", help=const.MANIFEST_HELP)
+    cvescan_ap.add_argument("--db", metavar="UBUNTU_DB_FILE", help=const.DB_FILE_HELP)
+    cvescan_ap.add_argument(
+        "-m", "--manifest", metavar="MANIFEST_FILE", help=const.MANIFEST_HELP
+    )
     cvescan_ap.add_argument(
         "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
     )
     cvescan_ap.add_argument(
-        "--uct-links", action="store_true", default=False, help=const.UCT_LINKS_HELP
+        "--show-links", action="store_true", default=False, help=const.UCT_LINKS_HELP
     )
     cvescan_ap.add_argument(
         "--unresolved", action="store_true", default=False, help=const.UNRESOLVED_HELP
@@ -106,7 +108,7 @@ def log_config_options(opt):
         ["Manifest Mode", opt.manifest_mode],
         ["Experimental Mode", opt.experimental_mode],
         ["Nagios Output Mode", opt.nagios_mode],
-        ["UCT File Path", opt.uct_file],
+        ["Ubuntu Vulnerability DB File Path", opt.db_file],
         ["Manifest File", opt.manifest_file],
         ["Check Specific CVE", opt.cve],
         ["CVE Priority", opt.priority],
@@ -166,18 +168,15 @@ def load_output_sorter(opt):
     return CVEScanResultSorter(subsorters=[pkg_sorter])
 
 
-def load_uct_data(opt, local_sysinfo):
-    uct_file_path = opt.uct_file
+def load_uct_data(opt, download_cache):
+    db_file_path = opt.db_file
 
-    if opt.download_uct_file:
-        if local_sysinfo.is_snap:
-            uct_file_path = "%s/%s" % (local_sysinfo.snap_user_common, uct_file_path)
-        downloader.download_bz2_file(
-            LOGGER, const.UCT_DATA_URL, const.UCT_DATA_FILE, uct_file_path
-        )
+    if opt.download_uct_db_file:
+        uct_data = download_cache.get_from_url(const.UCT_DATA_URL)["data"]
 
-    with open(uct_file_path) as uct_file:
-        uct_data = json.load(uct_file)
+    else:
+        with open(db_file_path) as db_file:
+            uct_data = json.load(db_file)["data"]
 
     return uct_data
 
@@ -220,7 +219,8 @@ def main():
     output_formatter = load_output_formatter(opt)
 
     try:
-        uct_data = load_uct_data(opt, local_sysinfo)
+        download_cache = USTDownloadCache(LOGGER)
+        uct_data = load_uct_data(opt, download_cache)
         cve_scanner = CVEScanner(LOGGER)
         scan_results = cve_scanner.scan(
             target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs

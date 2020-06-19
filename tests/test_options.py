@@ -12,12 +12,12 @@ BASE_URL = "https://people.canonical.com/~ubuntu-security/cvescan"
 class MockArgs:
     def __init__(self):
         self.cve = None
-        self.priority = "high"
+        self.priority = None
         self.silent = False
-        self.uct_file = None
-        self.manifest_file = None
+        self.db = None
+        self.manifest = None
         self.nagios = False
-        self.uct_links = False
+        self.show_links = False
         self.test = False
         self.unresolved = False
         self.verbose = False
@@ -49,7 +49,7 @@ def test_set_experimental(mock_args):
 def test_set_manifest_mode(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
     monkeypatch.setattr(os.path, "abspath", lambda x: "/tmp/testmanifest")
-    mock_args.manifest_file = "tests/assets/manifest/bionic.manifest"
+    mock_args.manifest = "tests/assets/manifest/bionic.manifest"
     opt = Options(mock_args)
 
     assert opt.experimental_mode is False
@@ -71,7 +71,7 @@ def test_set_experimental_nagios_manifest(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "abspath", lambda x: "/tmp/testmanifest")
 
     mock_args.experimental = True
-    mock_args.manifest_file = "tests/assets/manifest/bionic.manifest"
+    mock_args.manifest = "tests/assets/manifest/bionic.manifest"
     mock_args.nagios = True
     opt = Options(mock_args)
 
@@ -80,34 +80,34 @@ def test_set_experimental_nagios_manifest(monkeypatch, mock_args):
     assert opt.nagios_mode is True
 
 
-def test_set_uct_file_default(monkeypatch, mock_args):
+def test_set_db_file_default(monkeypatch, mock_args):
     opt = Options(mock_args)
 
-    assert opt.uct_file == "uct.json"
+    assert opt.db_file == "uct.json"
 
 
-def test_set_uct_file_user_specified(monkeypatch, mock_args):
+def test_set_db_file_user_specified(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
 
-    mock_args.uct_file = "/my/path/fakefile.json"
+    mock_args.db = "/my/path/fakefile.json"
     opt = Options(mock_args)
 
-    assert opt.uct_file == "/my/path/fakefile.json"
+    assert opt.db_file == "/my/path/fakefile.json"
 
 
-def test_set_download_uct_file_default(monkeypatch, mock_args):
+def test_set_download_uct_db_file_default(monkeypatch, mock_args):
     opt = Options(mock_args)
 
-    assert opt.download_uct_file is True
+    assert opt.download_uct_db_file is True
 
 
-def test_set_download_uct_file_user_specified(monkeypatch, mock_args):
+def test_set_download_uct_db_file_user_specified(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
 
-    mock_args.uct_file = "/my/path/fakefile.xml"
+    mock_args.db = "/my/path/fakefile.xml"
     opt = Options(mock_args)
 
-    assert opt.download_uct_file is False
+    assert opt.download_uct_db_file is False
 
 
 def test_set_manifest_file_none(mock_args):
@@ -119,7 +119,7 @@ def test_set_manifest_file_none(mock_args):
 def test_set_manifest_file_user_specified(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
 
-    mock_args.manifest_file = "/tmp/testmanifest"
+    mock_args.manifest = "/tmp/testmanifest"
     opt = Options(mock_args)
 
     assert opt.manifest_file == "/tmp/testmanifest"
@@ -129,7 +129,7 @@ def test_set_manifest_file_abspath(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: True)
     monkeypatch.setattr(os.path, "abspath", lambda x: "/tmp/testmanifest")
 
-    mock_args.manifest_file = "../../../../../../../../../../../../tmp/testmanifest"
+    mock_args.manifest = "../../../../../../../../../../../../tmp/testmanifest"
     opt = Options(mock_args)
 
     assert opt.manifest_file == "/tmp/testmanifest"
@@ -143,7 +143,6 @@ def test_set_cve_default(mock_args):
 
 def test_set_cve(mock_args):
     mock_args.cve = "CVE-2020-1234"
-    mock_args.priority = "all"
     opt = Options(mock_args)
 
     assert opt.cve == "CVE-2020-1234"
@@ -217,7 +216,7 @@ def test_invalid_nagios_and_unresolved(mock_args):
 def test_invalid_nagios_and_links(mock_args):
     with pytest.raises(ArgumentError) as ae:
         mock_args.nagios = True
-        mock_args.uct_links = True
+        mock_args.show_links = True
         Options(mock_args)
 
     assert "options are incompatible" in str(ae)
@@ -234,7 +233,7 @@ def test_invalid_silent_without_cve(monkeypatch, mock_args):
 
 def test_invalid_silent_and_links(mock_args):
     with pytest.raises(ArgumentError) as ae:
-        mock_args.uct_links = True
+        mock_args.show_links = True
         mock_args.cve = "CVE-2020-1234"
         mock_args.silent = True
         Options(mock_args)
@@ -254,17 +253,17 @@ def test_invalid_manifest_file_not_found(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: False)
 
     with pytest.raises(ArgumentError) as ae:
-        mock_args.manifest_file = "test"
+        mock_args.manifest = "test"
         Options(mock_args)
 
     assert "Cannot find file" in str(ae)
 
 
-def test_invalid_uct_file_not_found(monkeypatch, mock_args):
+def test_invalid_db_file_not_found(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: False)
 
     with pytest.raises(ArgumentError) as ae:
-        mock_args.uct_file = "test"
+        mock_args.db = "test"
         Options(mock_args)
 
     assert "Cannot find file" in str(ae)
@@ -277,26 +276,16 @@ def test_invalid_cve_and_unresolved(mock_args):
         Options(mock_args)
 
 
-def test_invalid_cve_and_priority(mock_args):
+@pytest.mark.parametrize("priority", ["medium", "high", "critical", "all"])
+def test_invalid_cve_and_priority(mock_args, priority):
     with pytest.raises(ArgumentError):
         mock_args.cve = "CVE-2020-1234"
-        mock_args.priority = "medium"
-        Options(mock_args)
-
-    with pytest.raises(ArgumentError):
-        mock_args.cve = "CVE-2020-1234"
-        mock_args.priority = "high"
-        Options(mock_args)
-
-    with pytest.raises(ArgumentError):
-        mock_args.cve = "CVE-2020-1234"
-        mock_args.priority = "critical"
+        mock_args.priority = priority
         Options(mock_args)
 
 
-def test_invalid_cve_and_uct_links(mock_args):
+def test_invalid_cve_and_show_links(mock_args):
     with pytest.raises(ArgumentError):
         mock_args.cve = "CVE-2020-1234"
-        mock_args.priority = "all"
-        mock_args.uct_links = True
+        mock_args.show_links = True
         Options(mock_args)

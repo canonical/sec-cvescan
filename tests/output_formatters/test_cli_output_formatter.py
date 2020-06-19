@@ -483,12 +483,12 @@ def test_summary_fixes_unknown_color(monkeypatch, no_table_cli_output_formatter)
     )
 
 
-def test_uct_links(run_uct_links_test):
-    run_uct_links_test(NoSummaryCLIOutputFormatter)
+def test_show_links(run_show_links_test):
+    run_show_links_test(NoSummaryCLIOutputFormatter)
 
 
-def test_no_uct_links(run_no_uct_links_test):
-    run_no_uct_links_test(NoSummaryCLIOutputFormatter)
+def test_no_show_links(run_no_show_links_test):
+    run_no_show_links_test(NoSummaryCLIOutputFormatter)
 
 
 def test_experimental_filter(run_non_experimental_filter_test_cli):

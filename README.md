@@ -1,97 +1,86 @@
-# Using OVAL from the Ubuntu Security Team
+# CVEScan
 
-The Ubuntu Security Team produces OVAL files that can be used to help
-determine how vulnerable a system is to CVEs.
+The Ubuntu Security Team at Canonical regularly publishes a JSON file containing
+information about packages with security updates. The source of the information is
+the [Ubuntu CVE Tracker](https://launchpad.net/ubuntu-cve-tracker). The information
+contained in the JSON file is similar to the information published in OVAL files but
+the format is designed specifically to work with the CVEScan tool.
 
-The OVAL files are available from
-[here](https://people.canonical.com/~ubuntu-security/oval).
-These files are specific to a series/release of ubuntu.
-Files with an `oci.` prefix are for use with Ubuntu Offical Cloud Image
-manifest files.
-Files without the `oci.` prefix are used to scan a running Ubuntu system.
+## About CVEScan
 
-More background on [OVAL](https://oval.mitre.org/)
-and
-[OpenSCAP](http://www.open-scap.org/).
+CVEScan is a python script that downloads the JSON file described above
+and uses it to compare versions of packages with security fixes to version of packages
+installed on your Ubuntu system or listed in a package manifest file. CVEScan produces
+a useful report that tells you if you are missing any security patches.
 
-Traditionally, OVAL would be used by downloading it, running a scan and
-reviewing the generated HTML report. This method certainly has it's value
-However, there needed to be a quicker and faster way of getting some specific
-information. 
-Specifically, an easy to see if any vulnerabilities on a system could be fixed
-by a package update. And, an easy way to determine if a system is vulnerable
-to a specific CVE.
+## Using CVEScan
 
-The OVAL results in their default XML format and final HTML report format
-are not easily consumable by scripts.
-The /usr/share/openscap/xsl/oval-results-report.xsl file provided by
-the libopenscap8 package was modified to become the text.xsl file included 
-here in this repo.
-
-The `text.xsl` file can be used with the xsltproc command to turn OVAL XML
-results into text. It also allows for filtering the results.
-
-## Contents 
-* README.md                    - this file
-* snapcraft.yaml               - snap packaging metadata, this can work as a snap
-                                 or as a bash script
-* snapcraft                    - actual code and related files live in here
-* text.xsl                     - symlink to modified version of oscap xslt file to output
-                                 cve list in text format
-* cvescan                      - symlink to script to download oval and scan your system
-                                 or an image manifest
-* com.ubuntu.test.cve.oval.xml - symlink to test OVAL file, used with `cvescan -t`
-                                 to validate that oscap functions correcty in the snap
-
-## Snap usage
-Install with:
+The recommended way to use CVEScan is by using the snap.
 ```
 sudo snap install cvescan
 ```
-View help/usage message:
 ```
-cvescan -h
-```
-
-## Prereqs id not using the snap
-If you want to use cvescan as downloaded from github rather than as a snap then you
-have to install some required prerequisite packages:
-```
-sudo apt-get install -y libopenscap8 xsltproc curl
+cvescan
 ```
 
-## Below are some simple examples of using cvescan:
+There is more detailed usage information in the help.
+```
+$> cvescan -h
 
-usage/help
-```cvescan -?```
+usage: cvescan [-h] [-c CVE-IDENTIFIER] [-p {critical,high,medium,all}] [-s]
+               [-u UCT_FILE] [-m MANIFEST_FILE] [-n] [--show-links]
+               [--unresolved] [-v] [-x]
 
-display a list of high and critical priority CVEs affecting this system
-that can be fixed with package updates
-```cvescan```
+Scan an Ubuntu system for known vulnerabilities.
 
-display a list of high and critical priority CVEs affecting this system
-including those that cannot be fixed by updating packages
-```cvescan -a```
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CVE-IDENTIFIER, --cve CVE-IDENTIFIER
+                        Report if this system is vulnerable to a specific CVE.
+  -p {critical,high,medium,all}, --priority {critical,high,medium,all}
+                        'critical' = show only critical CVEs.
+                        'high'     = show critical and high CVEs (default)
+                        'medium'   = show critical and high and medium CVEs
+                        'all'      = show all CVES (no filtering based on priority)
+  -s, --silent          Enable script/Silent mode: To be used with '-c <cve-identifier>'.
+                        Do not print text output; exit 0 if not vulnerable, exit 1 if vulnerable.
+  --db UBUNTU_DB_FILE   Specify an Ubuntu vulnerability datbase file to use instead of downloading the
+                        latest from people.canonical.com.
+  -m MANIFEST_FILE, --manifest MANIFEST_FILE
+                        Enable manifest mode. Do not scan the localhost. Instead, run a scan against the
+                        specified package manifest file.
+                        Note: Package manifest files can be generated by running
+                              `dpkg-query -W > manifest.txt` on the host you wish to scan.
+  -n, --nagios          Enable Nagios mode for use with NRPE.
+                        Typical nagios-style "OK|WARNING|CRITICAL|UNKNOWN" messages
+                         and exit codes of 0, 1, 2, or 3.
+                        0/OK = not vulnerable to any known and patchable CVEs of the
+                         specified priority or higher.
+                        1/WARNING = vulnerable to at least one known CVE of the specified
+                         priority or higher for which there is no available update.
+                        2/CRITICAL = vulnerable to at least one known and patchable CVE of
+                         the specified priority or higher.
+                        3/UNKNOWN = something went wrong with the script, or oscap.
+  --show-links          Provide links to the Ubuntu CVE Tracker for each CVE.
+  --unresolved          Show CVEs that have not yet been resolved.
+  -v, --verbose         Enable verbose messages.
+  -x, --experimental    Enable eXperimental mode. Use experimental (also called "alpha") data
+                        from the Ubuntu CVE tracker. The alpha UCT files include information about
+                        package updates available for users of Ubuntu Advantage running systems
+                        with ESM Apps and ESM Infra enabled.
+```
 
+## Running CVEScan from Source
 
-Output "patch available to install" and exit 1 if vulnerable to the specified CVE and there is a patch.
-Output "patch not available" and exit 1 if vulnerable to the specified CVE and there is no patch.
-Output "patch applied or system not known to be affected" and exit 0 if not vulnerable to the specified CVE.
-```cvescan -c CVE-2019-54321```
+If you have cloned this repo you can also run CVEScan as a python script.
+```
+python3 -m cvescan
+```
 
-
-Similar to above but no printed output, only exit values
-```cvescan -c CVE-2019-54321 -s```
-
-## Running the python version of CVEScan
-The python rewrite of CVEScan is still in development. You can run the python
-version of CVEScan by running
-
-    python -m cvescan
-
-You can install CVEScan locally by running
-
-    pip3 install --user .
+Or, you can install it as a python module.
+```
+pip3 install --user .
+```
 
 ## Development
 
