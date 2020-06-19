@@ -6,9 +6,9 @@ import logging
 import sys
 
 from tabulate import tabulate
+from ust_download_cache import USTDownloadCache
 
 import cvescan.constants as const
-import cvescan.downloader as downloader
 from cvescan import TargetSysInfo
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
@@ -168,18 +168,15 @@ def load_output_sorter(opt):
     return CVEScanResultSorter(subsorters=[pkg_sorter])
 
 
-def load_uct_data(opt, local_sysinfo):
+def load_uct_data(opt, download_cache):
     db_file_path = opt.db_file
 
     if opt.download_uct_db_file:
-        if local_sysinfo.is_snap:
-            db_file_path = "%s/%s" % (local_sysinfo.snap_user_common, db_file_path)
-        downloader.download_bz2_file(
-            LOGGER, const.UCT_DATA_URL, const.UCT_DATA_FILE, db_file_path
-        )
+        uct_data = download_cache.get_from_url(const.UCT_DATA_URL)["data"]
 
-    with open(db_file_path) as db_file:
-        uct_data = json.load(db_file)
+    else:
+        with open(db_file_path) as db_file:
+            uct_data = json.load(db_file)["data"]
 
     return uct_data
 
@@ -222,7 +219,8 @@ def main():
     output_formatter = load_output_formatter(opt)
 
     try:
-        uct_data = load_uct_data(opt, local_sysinfo)
+        download_cache = USTDownloadCache(LOGGER)
+        uct_data = load_uct_data(opt, download_cache)
         cve_scanner = CVEScanner(LOGGER)
         scan_results = cve_scanner.scan(
             target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs

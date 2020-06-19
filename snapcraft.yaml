@@ -1,6 +1,6 @@
 name: cvescan
 base: core18
-version: '2.0.0'
+version: '2.0.0~beta1'
 summary: Security/CVE vulnerability monitoring for Ubuntu
 license: GPL-3.0
 description: |
@@ -70,6 +70,7 @@ parts:
       - libssl-dev
       - libcurl4-openssl-dev
       - python3-apt
+      - python3-pycurl
     source: .
   cvescan-bash:
     plugin: dump

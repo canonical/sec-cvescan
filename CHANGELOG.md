@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Colors to default output.
 - Continuous integration with Travis-CI.
 - The ability to use pip to install from source.
+- Smart caching so that a new db/vulnerability file is only downloaded if the
+  previously downloaded version is stale ([issue #40](https://github.com/canonical/sec-cvescan/issues/40)).
 ### Changed
 - Certain options are fundamentally incompatible. Attempting to use these options
   together will result in an error message, whereas the previous version would
