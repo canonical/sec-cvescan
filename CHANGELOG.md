@@ -58,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CVEScan uses less memory and can run on lightweight AWS instances ([issue #2](https://github.com/canonical/sec-cvescan/issues/2).)
 - Run 10x faster.
 
-## [1.0.0] - 2020-04-15
+## [1.0.10] - 2020-04-13
 ### Added
 - CVEScan implementation in bash
 - snapcraft.yaml to package CVEScan as a snap
