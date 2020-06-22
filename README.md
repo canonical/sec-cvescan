@@ -9,7 +9,7 @@
 		<img src="https://travis-ci.org/canonical/sec-cvescan.svg?branch=master" alt="Build Status">
 	</a>
 	<img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/canonical/sec-cvescan">
-	<a href="https://snapcraft.io/owwatcher">
+	<a href="https://snapcraft.io/cvescan">
 		<img src="https://snapcraft.io//cvescan/badge.svg" alt="cvescan">
 	</a>
 </p>
