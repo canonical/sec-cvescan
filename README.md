@@ -1,5 +1,19 @@
 # CVEScan
 
+<p align="center">
+	<a href="https://github.com/canonical/sec-cvescan">
+		<img alt="GitHub license" src="https://img.shields.io/github/license/canonical/sec-cvescan">
+	</a>
+	<img src="https://img.shields.io/github/v/tag/canonical/sec-cvescan" alt="GitHub tag (latest by date)">
+	<a href="https://travis-ci.org/canonical/sec-cvescan">
+		<img src="https://travis-ci.org/canonical/sec-cvescan.svg?branch=master" alt="Build Status">
+	</a>
+	<img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/canonical/sec-cvescan">
+	<a href="https://snapcraft.io/owwatcher">
+		<img src="https://snapcraft.io//cvescan/badge.svg" alt="cvescan">
+	</a>
+</p>
+
 The Ubuntu Security Team at Canonical regularly publishes a JSON file containing
 information about packages with security updates. The source of the information is
 the [Ubuntu CVE Tracker](https://launchpad.net/ubuntu-cve-tracker). The information
