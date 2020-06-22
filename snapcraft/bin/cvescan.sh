@@ -8,6 +8,8 @@ error() {
 	exit 4
 }
 
+echo "WARNING: This version (v1.0.10) of CVEScan has been deprecated. Please use v2.0.0 instead. See https://github.com/canonical/sec-cvescan for more details."
+
 needs_arg() { [[ -z $OPTARG ]] && error "No argument provided for --${OPT} option" ; }
 no_arg() {    [[ -n $OPTARG ]] && error "No argument allowed for --${OPT} option" ; }
 
