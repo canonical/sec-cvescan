@@ -81,7 +81,9 @@ def test_nagios_critical_all():
     opt = MockOpt()
     opt.priority = "all"
 
-    sr = [ScanResult("CVE-2020-1000", "medium", "pkg1", "1.2.3-2", const.ARCHIVE)]
+    sr = [
+        ScanResult("CVE-2020-1000", "medium", "pkg1", "1.2.3-2", const.UBUNTU_ARCHIVE)
+    ]
 
     nof = NagiosOutputFormatter(opt, None)
     (results_msg, return_code) = nof.format_output(sr, None)
@@ -94,7 +96,9 @@ def test_nagios_critical_medium():
     opt = MockOpt()
     opt.priority = "medium"
 
-    sr = [ScanResult("CVE-2020-1000", "medium", "pkg1", "1.2.3-2", const.ARCHIVE)]
+    sr = [
+        ScanResult("CVE-2020-1000", "medium", "pkg1", "1.2.3-2", const.UBUNTU_ARCHIVE)
+    ]
 
     nof = NagiosOutputFormatter(opt, None)
     (results_msg, return_code) = nof.format_output(sr, None)

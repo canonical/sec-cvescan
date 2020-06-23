@@ -97,21 +97,21 @@ def run_priority_color_test(
     )
 
 
-def run_archive_color_test(
+def run_repository_color_test(
     monkeypatch, no_summary_cli_output_formatter, sysinfo, cve_id, enabled
 ):
     if enabled:
-        archive_color_code = const.ARCHIVE_ENABLED_COLOR_CODE
+        repository_color_code = const.REPOSITORY_ENABLED_COLOR_CODE
     elif enabled is None:
-        archive_color_code = const.ARCHIVE_UNKNOWN_COLOR_CODE
+        repository_color_code = const.REPOSITORY_UNKNOWN_COLOR_CODE
     else:
-        archive_color_code = const.ARCHIVE_DISABLED_COLOR_CODE
+        repository_color_code = const.REPOSITORY_DISABLED_COLOR_CODE
     run_color_test(
         monkeypatch,
         no_summary_cli_output_formatter,
         sysinfo,
         cve_id,
-        archive_color_code,
+        repository_color_code,
     )
 
 
@@ -198,7 +198,7 @@ def test_critical_color(monkeypatch, no_summary_cli_output_formatter):
 def test_ua_apps_enabled_color(monkeypatch, no_summary_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = True
-    run_archive_color_test(
+    run_repository_color_test(
         monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1009", True
     )
 
@@ -207,7 +207,7 @@ def test_ua_apps_disabled_color(monkeypatch, no_summary_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = False
     sysinfo.esm_infra_enabled = True
-    run_archive_color_test(
+    run_repository_color_test(
         monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1009", False
     )
 
@@ -215,7 +215,7 @@ def test_ua_apps_disabled_color(monkeypatch, no_summary_cli_output_formatter):
 def test_ua_apps_unknown_color(monkeypatch, no_summary_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = None
-    run_archive_color_test(
+    run_repository_color_test(
         monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1009", None
     )
 
@@ -223,7 +223,7 @@ def test_ua_apps_unknown_color(monkeypatch, no_summary_cli_output_formatter):
 def test_ua_infra_enabled_color(monkeypatch, no_summary_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_infra_enabled = True
-    run_archive_color_test(
+    run_repository_color_test(
         monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1010", True
     )
 
@@ -232,7 +232,7 @@ def test_ua_infra_disabled_color(monkeypatch, no_summary_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = True
     sysinfo.esm_infra_enabled = False
-    run_archive_color_test(
+    run_repository_color_test(
         monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1010", False
     )
 
@@ -240,13 +240,13 @@ def test_ua_infra_disabled_color(monkeypatch, no_summary_cli_output_formatter):
 def test_ua_infra_unknown_color(monkeypatch, no_summary_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_infra_enabled = None
-    run_archive_color_test(
+    run_repository_color_test(
         monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1010", None
     )
 
 
-def test_ubuntu_archive_enabled_color(monkeypatch, no_summary_cli_output_formatter):
-    run_archive_color_test(
+def test_ubuntu_repository_enabled_color(monkeypatch, no_summary_cli_output_formatter):
+    run_repository_color_test(
         monkeypatch,
         no_summary_cli_output_formatter,
         MockSysInfo(),
@@ -255,13 +255,15 @@ def test_ubuntu_archive_enabled_color(monkeypatch, no_summary_cli_output_formatt
     )
 
 
-def test_invalid_archive_disabled_color(monkeypatch, no_summary_cli_output_formatter):
+def test_invalid_repository_disabled_color(
+    monkeypatch, no_summary_cli_output_formatter
+):
     no_summary_cli_output_formatter.opt.unresolved = True
 
     sysinfo = MockSysInfo()
     sysinfo.esm_infra_enabled = True
 
-    run_archive_color_test(
+    run_repository_color_test(
         monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1011", False
     )
 
@@ -350,7 +352,7 @@ def test_summary_priority_all(monkeypatch, no_table_cli_output_formatter):
 
 
 def run_esm_color_code_test(
-    monkeypatch, output_formatter, sysinfo, archive_color_code, yn
+    monkeypatch, output_formatter, sysinfo, repository_color_code, yn
 ):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
 
@@ -358,7 +360,7 @@ def run_esm_color_code_test(
 
     (results_msg, return_code) = output_formatter.format_output(sr, sysinfo)
 
-    fixable_color_code = r"\u001b\[38;5;%dm" % archive_color_code
+    fixable_color_code = r"\u001b\[38;5;%dm" % repository_color_code
     assert re.search(
         r"Vulnerabilities Fixable by ESM Apps\s+%s2" % fixable_color_code, results_msg
     )
@@ -367,7 +369,7 @@ def run_esm_color_code_test(
     )
 
     # Disabling for now
-    # esm_color_code = r"\u001b\[38;5;%dm" % archive_color_code
+    # esm_color_code = r"\u001b\[38;5;%dm" % repository_color_code
     # assert re.search(r"ESM Apps Enabled\s+%s%s" % (esm_color_code, yn), results_msg)
     # assert re.search(r"ESM Infra Enabled\s+%s%s" % (esm_color_code, yn), results_msg)
 
@@ -381,7 +383,7 @@ def test_summary_esm_enabled_color(monkeypatch, no_table_cli_output_formatter):
         monkeypatch,
         no_table_cli_output_formatter,
         sysinfo,
-        const.ARCHIVE_ENABLED_COLOR_CODE,
+        const.REPOSITORY_ENABLED_COLOR_CODE,
         "Yes",
     )
 
@@ -395,7 +397,7 @@ def test_summary_esm_disabled_color(monkeypatch, no_table_cli_output_formatter):
         monkeypatch,
         no_table_cli_output_formatter,
         sysinfo,
-        const.ARCHIVE_DISABLED_COLOR_CODE,
+        const.REPOSITORY_DISABLED_COLOR_CODE,
         "No",
     )
 
@@ -409,13 +411,13 @@ def test_summary_manifest_esm_unknown_color(monkeypatch, no_table_cli_output_for
         monkeypatch,
         no_table_cli_output_formatter,
         sysinfo,
-        const.ARCHIVE_UNKNOWN_COLOR_CODE,
+        const.REPOSITORY_UNKNOWN_COLOR_CODE,
         "Unknown",
     )
 
 
 def run_fixes_not_applied_color_code_test(
-    monkeypatch, output_formatter, sysinfo, archive_color_code, num_fixes
+    monkeypatch, output_formatter, sysinfo, repository_color_code, num_fixes
 ):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
 
@@ -425,7 +427,7 @@ def run_fixes_not_applied_color_code_test(
 
     fixable_color_code = ""
     if num_fixes != 0:
-        fixable_color_code = r"\u001b\[38;5;%dm" % archive_color_code
+        fixable_color_code = r"\u001b\[38;5;%dm" % repository_color_code
     assert re.search(
         r"Available Fixes Not Applied by `apt-get upgrade`\s+%s%d"
         % (fixable_color_code, num_fixes),
@@ -442,7 +444,7 @@ def test_summary_fixes_not_applied_color(monkeypatch, no_table_cli_output_format
         monkeypatch,
         no_table_cli_output_formatter,
         sysinfo,
-        const.ARCHIVE_DISABLED_COLOR_CODE,
+        const.REPOSITORY_DISABLED_COLOR_CODE,
         2,
     )
 
@@ -453,7 +455,7 @@ def test_summary_fixes_not_applied_color(monkeypatch, no_table_cli_output_format
         monkeypatch,
         no_table_cli_output_formatter,
         sysinfo,
-        const.ARCHIVE_DISABLED_COLOR_CODE,
+        const.REPOSITORY_DISABLED_COLOR_CODE,
         1,
     )
 
@@ -467,7 +469,7 @@ def test_summary_fixes_applied_color(monkeypatch, no_table_cli_output_formatter)
         monkeypatch,
         no_table_cli_output_formatter,
         sysinfo,
-        const.ARCHIVE_ENABLED_COLOR_CODE,
+        const.REPOSITORY_ENABLED_COLOR_CODE,
         0,
     )
 
@@ -481,7 +483,7 @@ def test_summary_fixes_unknown_color(monkeypatch, no_table_cli_output_formatter)
         monkeypatch,
         no_table_cli_output_formatter,
         sysinfo,
-        const.ARCHIVE_UNKNOWN_COLOR_CODE,
+        const.REPOSITORY_UNKNOWN_COLOR_CODE,
         3,
     )
 
@@ -518,7 +520,7 @@ def test_summary_experimental_filter(monkeypatch, no_table_cli_output_formatter)
 
 
 def test_no_results_no_header(monkeypatch):
-    header_regex = r"CVE ID\s+PRIORITY\s+PACKAGE\s+FIXED VERSION\s+ARCHIVE"
+    header_regex = r"CVE ID\s+PRIORITY\s+PACKAGE\s+FIXED VERSION\s+REPOSITORY"
 
     monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
     cof = CLIOutputFormatter(MockOpt(), null_logger())

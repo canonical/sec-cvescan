@@ -99,12 +99,12 @@ class CLIOutputFormatter(AbstractOutputFormatter):
     #   @classmethod
     #   def _format_esm_enabled(cls, enabled):
     #       if enabled is None:
-    #           return cls._colorize(const.ARCHIVE_UNKNOWN_COLOR_CODE, "Unknown")
+    #           return cls._colorize(const.REPOSITORY_UNKNOWN_COLOR_CODE, "Unknown")
 
     #       if enabled is True:
-    #           return cls._colorize(const.ARCHIVE_ENABLED_COLOR_CODE, "Yes")
+    #           return cls._colorize(const.REPOSITORY_ENABLED_COLOR_CODE, "Yes")
 
-    #       return cls._colorize(const.ARCHIVE_DISABLED_COLOR_CODE, "No")
+    #       return cls._colorize(const.REPOSITORY_DISABLED_COLOR_CODE, "No")
 
     def _format_table(self, priority_results, fixable_results, sysinfo):
         if self.opt.unresolved:
@@ -119,7 +119,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
         formatted_results = self._transform_results(results, sysinfo)
 
-        headers = ["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "ARCHIVE"]
+        headers = ["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "REPOSITORY"]
         if self.opt.show_links:
             headers.append("URL")
 
@@ -147,30 +147,30 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         if not repository:
             return repository
 
-        if repository == const.ARCHIVE:
-            color_code = const.ARCHIVE_ENABLED_COLOR_CODE
+        if repository == const.UBUNTU_ARCHIVE:
+            color_code = const.REPOSITORY_ENABLED_COLOR_CODE
         elif repository == const.UA_APPS:
-            color_code = CLIOutputFormatter._get_ua_archive_color_code(
+            color_code = CLIOutputFormatter._get_ua_repository_color_code(
                 sysinfo.esm_apps_enabled
             )
         elif repository == const.UA_INFRA:
-            color_code = CLIOutputFormatter._get_ua_archive_color_code(
+            color_code = CLIOutputFormatter._get_ua_repository_color_code(
                 sysinfo.esm_infra_enabled
             )
         else:
             self.logger.warning("Unknown repository %s" % repository)
-            color_code = const.ARCHIVE_DISABLED_COLOR_CODE
+            color_code = const.REPOSITORY_DISABLED_COLOR_CODE
 
         return CLIOutputFormatter._colorize(color_code, repository)
 
     @staticmethod
-    def _get_ua_archive_color_code(enabled):
+    def _get_ua_repository_color_code(enabled):
         if enabled:
-            return const.ARCHIVE_ENABLED_COLOR_CODE
+            return const.REPOSITORY_ENABLED_COLOR_CODE
         elif enabled is None:
-            return const.ARCHIVE_UNKNOWN_COLOR_CODE
+            return const.REPOSITORY_UNKNOWN_COLOR_CODE
         else:
-            return const.ARCHIVE_DISABLED_COLOR_CODE
+            return const.REPOSITORY_DISABLED_COLOR_CODE
 
     def _transform_repository(self, repository, sysinfo):
         if repository:
@@ -194,12 +194,12 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             return str(fixes)
 
         if enabled is None:
-            return cls._colorize(const.ARCHIVE_UNKNOWN_COLOR_CODE, fixes)
+            return cls._colorize(const.REPOSITORY_UNKNOWN_COLOR_CODE, fixes)
 
         if enabled:
-            return cls._colorize(const.ARCHIVE_ENABLED_COLOR_CODE, fixes)
+            return cls._colorize(const.REPOSITORY_ENABLED_COLOR_CODE, fixes)
 
-        return cls._colorize(const.ARCHIVE_DISABLED_COLOR_CODE, fixes)
+        return cls._colorize(const.REPOSITORY_DISABLED_COLOR_CODE, fixes)
 
     @staticmethod
     def _colorize(color_code, value):

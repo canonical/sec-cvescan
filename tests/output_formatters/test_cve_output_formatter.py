@@ -30,9 +30,11 @@ def test_vulnerable_no_patch(cve_output_formatter):
     assert rc == 3
 
 
-def test_vulnerable_patch_available_archive(cve_output_formatter):
+def test_vulnerable_patch_available_repository(cve_output_formatter):
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1001", "CVE-2020-1003"])
-    sr.append(ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.ARCHIVE),)
+    sr.append(
+        ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.UBUNTU_ARCHIVE),
+    )
     msg, rc = cve_output_formatter.format_output(sr, MockSysInfo())
 
     expected_msg = (
@@ -93,10 +95,10 @@ def test_vulnerable_patch_available_apps_infra(cve_output_formatter):
     assert rc == 4
 
 
-def test_vulnerable_patch_available_apps_archive(cve_output_formatter):
+def test_vulnerable_patch_available_apps_repository(cve_output_formatter):
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1001", "CVE-2020-1003"])
     sr = sr + [
-        ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.ARCHIVE),
+        ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.UBUNTU_ARCHIVE),
         ScanResult("CVE-2020-1000", "low", "pkg5", "1.2.3-4", const.UA_APPS),
     ]
 
@@ -110,10 +112,10 @@ def test_vulnerable_patch_available_apps_archive(cve_output_formatter):
     assert rc == 4
 
 
-def test_vulnerable_patch_available_infra_archive(cve_output_formatter):
+def test_vulnerable_patch_available_infra_repository(cve_output_formatter):
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1001", "CVE-2020-1003"])
     sr = sr + [
-        ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.ARCHIVE),
+        ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.UBUNTU_ARCHIVE),
         ScanResult("CVE-2020-1000", "low", "pkg5", "1.2.3-4", const.UA_INFRA),
     ]
 
@@ -130,7 +132,7 @@ def test_vulnerable_patch_available_infra_archive(cve_output_formatter):
 def test_vulnerable_patch_available_all(cve_output_formatter):
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1001", "CVE-2020-1003"])
     sr = sr + [
-        ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.ARCHIVE),
+        ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.UBUNTU_ARCHIVE),
         ScanResult("CVE-2020-1000", "low", "pkg4", "1.2.3-4", const.UA_INFRA),
         ScanResult("CVE-2020-1000", "low", "pkg5", "1.2.3-4", const.UA_APPS),
     ]
@@ -145,10 +147,10 @@ def test_vulnerable_patch_available_all(cve_output_formatter):
     assert rc == 4
 
 
-def test_vulnerable_patch_available_infra_archive_duplicates(cve_output_formatter):
+def test_vulnerable_patch_available_infra_repository_duplicates(cve_output_formatter):
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1001", "CVE-2020-1003"])
     sr = sr + [
-        ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.ARCHIVE),
+        ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.UBUNTU_ARCHIVE),
         ScanResult("CVE-2020-1000", "low", "pkg5", "1.2.3-4", const.UA_INFRA),
         ScanResult("CVE-2020-1000", "low", "pkg6", "1.2.3-4", const.UA_INFRA),
     ]

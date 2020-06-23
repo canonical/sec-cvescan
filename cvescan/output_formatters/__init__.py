@@ -1,6 +1,7 @@
 from .abstract_stackable_scan_result_sorter import (  # noqa: F401
     AbstractStackableScanResultSorter,
 )
+
 from .cve_scan_result_sorter import CVEScanResultSorter  # noqa: F401
 from .package_scan_result_sorter import PackageScanResultSorter  # noqa: F401
 from .priority_scan_result_sorter import PriorityScanResultSorter  # noqa: F401
