@@ -52,10 +52,12 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return (msg, return_code)
 
     def _format_summary(self, stats: ScanStats, sysinfo: TargetSysInfo):
-        apps_enabled = CLIOutputFormatter._format_esm_enabled(sysinfo.esm_apps_enabled)
-        infra_enabled = CLIOutputFormatter._format_esm_enabled(
-            sysinfo.esm_infra_enabled
-        )
+        # Disabling for now
+        # apps_enabled =
+        # CLIOutputFormatter._format_esm_enabled(sysinfo.esm_apps_enabled)
+        # infra_enabled = CLIOutputFormatter._format_esm_enabled(
+        # sysinfo.esm_infra_enabled
+        # )
         fixable_vulns = CLIOutputFormatter._colorize_fixes(stats.fixable_vulns, True)
         apps_vulns = CLIOutputFormatter._colorize_fixes(
             stats.apps_vulns, sysinfo.esm_apps_enabled
@@ -78,8 +80,9 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         if self.opt.experimental_mode:
             summary.append(["Vulnerabilities Fixable by ESM Apps", apps_vulns])
             summary.append(["Vulnerabilities Fixable by ESM Infra", infra_vulns])
-            summary.append(["ESM Apps Enabled", apps_enabled])
-            summary.append(["ESM Infra Enabled", infra_enabled])
+            # Disabling for now
+            # summary.append(["ESM Apps Enabled", apps_enabled])
+            # summary.append(["ESM Infra Enabled", infra_enabled])
         summary.append(["Fixes Available by `apt-get upgrade`", upgrade_vulns])
         if self.opt.experimental_mode:
             summary.append(
@@ -93,15 +96,16 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
         return "%s or higher" % self.opt.priority
 
-    @classmethod
-    def _format_esm_enabled(cls, enabled):
-        if enabled is None:
-            return cls._colorize(const.ARCHIVE_UNKNOWN_COLOR_CODE, "Unknown")
+    #   Disable for now
+    #   @classmethod
+    #   def _format_esm_enabled(cls, enabled):
+    #       if enabled is None:
+    #           return cls._colorize(const.ARCHIVE_UNKNOWN_COLOR_CODE, "Unknown")
 
-        if enabled is True:
-            return cls._colorize(const.ARCHIVE_ENABLED_COLOR_CODE, "Yes")
+    #       if enabled is True:
+    #           return cls._colorize(const.ARCHIVE_ENABLED_COLOR_CODE, "Yes")
 
-        return cls._colorize(const.ARCHIVE_DISABLED_COLOR_CODE, "No")
+    #       return cls._colorize(const.ARCHIVE_DISABLED_COLOR_CODE, "No")
 
     def _format_table(self, priority_results, fixable_results, sysinfo):
         if self.opt.unresolved:

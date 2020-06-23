@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Minor copy/paste error in snap badge in README.md
+### Removed
+- ESM entitlement status from experimental and debug output 
 
 ## [2.0.0] - 2020-06-22
 ### Added

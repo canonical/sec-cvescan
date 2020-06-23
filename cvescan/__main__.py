@@ -130,8 +130,9 @@ def log_local_system_info(local_sysinfo, manifest_mode):
         table = [
             ["Local Ubuntu Codename", local_sysinfo.codename],
             ["Installed Package Count", local_sysinfo.package_count],
-            ["ESM Apps Enabled", local_sysinfo.esm_apps_enabled],
-            ["ESM Infra Enabled", local_sysinfo.esm_infra_enabled],
+            # Disabling for now
+            # ["ESM Apps Enabled", local_sysinfo.esm_apps_enabled],
+            # ["ESM Infra Enabled", local_sysinfo.esm_infra_enabled],
         ] + table
 
     LOGGER.debug(tabulate(table))
@@ -144,8 +145,9 @@ def log_target_system_info(target_sysinfo):
     table = [
         ["Local Ubuntu Codename", target_sysinfo.codename],
         ["Installed Package Count", target_sysinfo.pkg_count],
-        ["ESM Apps Enabled", target_sysinfo.esm_apps_enabled],
-        ["ESM Infra Enabled", target_sysinfo.esm_infra_enabled],
+        # Disabling for now
+        # ["ESM Apps Enabled", target_sysinfo.esm_apps_enabled],
+        # ["ESM Infra Enabled", target_sysinfo.esm_infra_enabled],
     ]
 
     LOGGER.debug(tabulate(table))
