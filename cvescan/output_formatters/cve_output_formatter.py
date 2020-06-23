@@ -49,7 +49,7 @@ class CVEOutputFormatter(AbstractOutputFormatter):
 
             repo_str += "UA for Infra"
 
-        if const.ARCHIVE in repositories:
+        if const.UBUNTU_ARCHIVE in repositories:
             if len(repositories) == 2:
                 repo_str += " and "
             elif len(repositories) == 3:

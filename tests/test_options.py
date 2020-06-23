@@ -11,7 +11,9 @@ BASE_URL = "https://people.canonical.com/~ubuntu-security/cvescan"
 
 class MockArgs:
     def __init__(self):
+        self.csv = False
         self.cve = None
+        self.json = False
         self.priority = None
         self.silent = False
         self.db = None
@@ -78,6 +80,30 @@ def test_set_experimental_nagios_manifest(monkeypatch, mock_args):
     assert opt.experimental_mode is True
     assert opt.manifest_mode is True
     assert opt.nagios_mode is True
+
+
+def test_set_csv(mock_args):
+    mock_args.csv = True
+    opt = Options(mock_args)
+
+    assert opt.csv
+
+    mock_args.csv = False
+    opt = Options(mock_args)
+
+    assert not opt.csv
+
+
+def test_set_json(mock_args):
+    mock_args.json = True
+    opt = Options(mock_args)
+
+    assert opt.json
+
+    mock_args.json = False
+    opt = Options(mock_args)
+
+    assert not opt.json
 
 
 def test_set_db_file_default(monkeypatch, mock_args):
@@ -289,3 +315,48 @@ def test_invalid_cve_and_show_links(mock_args):
         mock_args.cve = "CVE-2020-1234"
         mock_args.show_links = True
         Options(mock_args)
+
+
+def test_invalid_cve_and_json(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.cve = "CVE-2020-1000"
+        mock_args.json = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_csv_and_cve(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.csv = True
+        mock_args.cve = "CVE-2020-1000"
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_csv_and_json(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.csv = True
+        mock_args.json = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_csv_and_nagios(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.csv = True
+        mock_args.nagios = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_json_and_nagios(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.json = True
+        mock_args.nagios = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)

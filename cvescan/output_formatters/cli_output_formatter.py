@@ -8,7 +8,6 @@ from cvescan import TargetSysInfo
 from cvescan.output_formatters import (
     AbstractOutputFormatter,
     AbstractStackableScanResultSorter,
-    ScanStats,
 )
 from cvescan.scan_result import ScanResult
 
@@ -39,23 +38,25 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
-        stats = self._get_scan_stats(scan_results, sysinfo)
-
-        summary_msg = self._format_summary(stats, sysinfo)
+        summary_msg = self._format_summary(scan_results, sysinfo)
         table_msg = self._format_table(priority_results, fixable_results, sysinfo)
         msg = "\n%s\n\n%s" % (summary_msg, table_msg)
 
-        return_code = CLIOutputFormatter._get_return_code(
+        return_code = CLIOutputFormatter._determine_return_code(
             priority_results, fixable_results
         )
 
         return (msg, return_code)
 
-    def _format_summary(self, stats: ScanStats, sysinfo: TargetSysInfo):
-        apps_enabled = CLIOutputFormatter._format_esm_enabled(sysinfo.esm_apps_enabled)
-        infra_enabled = CLIOutputFormatter._format_esm_enabled(
-            sysinfo.esm_infra_enabled
-        )
+    def _format_summary(self, scan_results: List[ScanResult], sysinfo: TargetSysInfo):
+        stats = self._get_scan_stats(scan_results, sysinfo)
+
+        # Disabling for now
+        # apps_enabled =
+        # CLIOutputFormatter._format_esm_enabled(sysinfo.esm_apps_enabled)
+        # infra_enabled = CLIOutputFormatter._format_esm_enabled(
+        # sysinfo.esm_infra_enabled
+        # )
         fixable_vulns = CLIOutputFormatter._colorize_fixes(stats.fixable_vulns, True)
         apps_vulns = CLIOutputFormatter._colorize_fixes(
             stats.apps_vulns, sysinfo.esm_apps_enabled
@@ -78,8 +79,9 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         if self.opt.experimental_mode:
             summary.append(["Vulnerabilities Fixable by ESM Apps", apps_vulns])
             summary.append(["Vulnerabilities Fixable by ESM Infra", infra_vulns])
-            summary.append(["ESM Apps Enabled", apps_enabled])
-            summary.append(["ESM Infra Enabled", infra_enabled])
+            # Disabling for now
+            # summary.append(["ESM Apps Enabled", apps_enabled])
+            # summary.append(["ESM Infra Enabled", infra_enabled])
         summary.append(["Fixes Available by `apt-get upgrade`", upgrade_vulns])
         if self.opt.experimental_mode:
             summary.append(
@@ -93,15 +95,16 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
         return "%s or higher" % self.opt.priority
 
-    @classmethod
-    def _format_esm_enabled(cls, enabled):
-        if enabled is None:
-            return cls._colorize(const.ARCHIVE_UNKNOWN_COLOR_CODE, "Unknown")
+    #   Disable for now
+    #   @classmethod
+    #   def _format_esm_enabled(cls, enabled):
+    #       if enabled is None:
+    #           return cls._colorize(const.REPOSITORY_UNKNOWN_COLOR_CODE, "Unknown")
 
-        if enabled is True:
-            return cls._colorize(const.ARCHIVE_ENABLED_COLOR_CODE, "Yes")
+    #       if enabled is True:
+    #           return cls._colorize(const.REPOSITORY_ENABLED_COLOR_CODE, "Yes")
 
-        return cls._colorize(const.ARCHIVE_DISABLED_COLOR_CODE, "No")
+    #       return cls._colorize(const.REPOSITORY_DISABLED_COLOR_CODE, "No")
 
     def _format_table(self, priority_results, fixable_results, sysinfo):
         if self.opt.unresolved:
@@ -116,7 +119,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
         formatted_results = self._transform_results(results, sysinfo)
 
-        headers = ["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "ARCHIVE"]
+        headers = ["CVE ID", "PRIORITY", "PACKAGE", "FIXED VERSION", "REPOSITORY"]
         if self.opt.show_links:
             headers.append("URL")
 
@@ -144,30 +147,30 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         if not repository:
             return repository
 
-        if repository == const.ARCHIVE:
-            color_code = const.ARCHIVE_ENABLED_COLOR_CODE
+        if repository == const.UBUNTU_ARCHIVE:
+            color_code = const.REPOSITORY_ENABLED_COLOR_CODE
         elif repository == const.UA_APPS:
-            color_code = CLIOutputFormatter._get_ua_archive_color_code(
+            color_code = CLIOutputFormatter._get_ua_repository_color_code(
                 sysinfo.esm_apps_enabled
             )
         elif repository == const.UA_INFRA:
-            color_code = CLIOutputFormatter._get_ua_archive_color_code(
+            color_code = CLIOutputFormatter._get_ua_repository_color_code(
                 sysinfo.esm_infra_enabled
             )
         else:
             self.logger.warning("Unknown repository %s" % repository)
-            color_code = const.ARCHIVE_DISABLED_COLOR_CODE
+            color_code = const.REPOSITORY_DISABLED_COLOR_CODE
 
         return CLIOutputFormatter._colorize(color_code, repository)
 
     @staticmethod
-    def _get_ua_archive_color_code(enabled):
+    def _get_ua_repository_color_code(enabled):
         if enabled:
-            return const.ARCHIVE_ENABLED_COLOR_CODE
+            return const.REPOSITORY_ENABLED_COLOR_CODE
         elif enabled is None:
-            return const.ARCHIVE_UNKNOWN_COLOR_CODE
+            return const.REPOSITORY_UNKNOWN_COLOR_CODE
         else:
-            return const.ARCHIVE_DISABLED_COLOR_CODE
+            return const.REPOSITORY_DISABLED_COLOR_CODE
 
     def _transform_repository(self, repository, sysinfo):
         if repository:
@@ -191,12 +194,12 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             return str(fixes)
 
         if enabled is None:
-            return cls._colorize(const.ARCHIVE_UNKNOWN_COLOR_CODE, fixes)
+            return cls._colorize(const.REPOSITORY_UNKNOWN_COLOR_CODE, fixes)
 
         if enabled:
-            return cls._colorize(const.ARCHIVE_ENABLED_COLOR_CODE, fixes)
+            return cls._colorize(const.REPOSITORY_ENABLED_COLOR_CODE, fixes)
 
-        return cls._colorize(const.ARCHIVE_DISABLED_COLOR_CODE, fixes)
+        return cls._colorize(const.REPOSITORY_DISABLED_COLOR_CODE, fixes)
 
     @staticmethod
     def _colorize(color_code, value):
@@ -204,13 +207,3 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             return str(value)
 
         return "\u001b[38;5;%dm%s\u001b[0m" % (color_code, str(value))
-
-    @staticmethod
-    def _get_return_code(priority_results, fixable_results):
-        if len(fixable_results) > 0:
-            return const.PATCH_AVAILABLE_RETURN_CODE
-
-        if len(priority_results) > 0:
-            return const.SYSTEM_VULNERABLE_RETURN_CODE
-
-        return const.SUCCESS_RETURN_CODE

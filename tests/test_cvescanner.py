@@ -84,7 +84,7 @@ def test_fix_available_apps(default_cve_scanner, uct_data):
     assert results[0].repository == const.UA_APPS
 
 
-def test_fix_available_archive(default_cve_scanner, uct_data):
+def test_fix_available_repository(default_cve_scanner, uct_data):
     cve_id = "CVE-2020-1006"
     installed_pkgs = {"pkg5": "2.0.0+dfsg-1"}
     tmp_uct_data = {cve_id: uct_data[cve_id]}
@@ -94,7 +94,7 @@ def test_fix_available_archive(default_cve_scanner, uct_data):
     assert len(results) == 1
     assert results[0].cve_id == cve_id
     assert results[0].fixed_version == "2.0.0+dfsg-1ubuntu1"
-    assert results[0].repository == const.ARCHIVE
+    assert results[0].repository == const.UBUNTU_ARCHIVE
 
 
 def test_DNE(default_cve_scanner, uct_data):
@@ -183,10 +183,18 @@ def test_whole_uct_json_file(default_cve_scanner, uct_data, default_installed_pk
     expected_results = [
         ScanResult("CVE-2020-1000", "low", "pkg3", None, None),
         ScanResult(
-            "CVE-2020-1001", "high", "pkg1", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
+            "CVE-2020-1001",
+            "high",
+            "pkg1",
+            "1:1.2.3-4+deb9u2ubuntu0.2",
+            const.UBUNTU_ARCHIVE,
         ),
         ScanResult(
-            "CVE-2020-1001", "high", "pkg2", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
+            "CVE-2020-1001",
+            "high",
+            "pkg2",
+            "1:1.2.3-4+deb9u2ubuntu0.2",
+            const.UBUNTU_ARCHIVE,
         ),
         ScanResult(
             "CVE-2020-1002", "low", "pkg4", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS

@@ -100,3 +100,13 @@ class AbstractOutputFormatter(ABC):
             upgrade_vulns,
             missing_fixes,
         )
+
+    @staticmethod
+    def _determine_return_code(priority_results, fixable_results):
+        if len(fixable_results) > 0:
+            return const.PATCH_AVAILABLE_RETURN_CODE
+
+        if len(priority_results) > 0:
+            return const.SYSTEM_VULNERABLE_RETURN_CODE
+
+        return const.SUCCESS_RETURN_CODE

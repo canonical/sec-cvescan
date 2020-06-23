@@ -9,7 +9,7 @@ os.umask(0o022)
 
 setuptools.setup(
     name="cvescan",
-    version="2.0.0",
+    version="2.1.0",
     author=(
         "Mark Morlino <mark.morlino@canonical.com>,"
         "Mike Salvatore <mike.salvatore@canonical.com>"
@@ -27,7 +27,7 @@ setuptools.setup(
     ],
     install_requires=[
         "tabulate",
-        "ust-download-cache @ https://github.com/canonical/ust-download-cache/archive/v1.0.0-beta1.tar.gz",  # noqa: E501
+        "ust-download-cache @ https://github.com/canonical/ust-download-cache/archive/v1.0.0.tar.gz",  # noqa: E501
     ],
     python_requires=">=3.5",
     setup_requires=["pytest-runner"],

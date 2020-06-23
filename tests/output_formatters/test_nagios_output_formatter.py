@@ -1,38 +1,8 @@
-import pytest
 from conftest import MockOpt
 
 import cvescan.constants as const
 from cvescan.output_formatters import CVEScanResultSorter, NagiosOutputFormatter
 from cvescan.scan_result import ScanResult
-
-
-@pytest.fixture
-def scan_results():
-    return [
-        ScanResult("CVE-2020-1000", "low", "pkg3", None, None),
-        ScanResult(
-            "CVE-2020-1001", "high", "pkg1", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
-        ),
-        ScanResult(
-            "CVE-2020-1001", "high", "pkg2", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
-        ),
-        ScanResult(
-            "CVE-2020-1002", "low", "pkg4", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
-        ),
-        ScanResult(
-            "CVE-2020-1002", "low", "pkg5", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
-        ),
-        ScanResult(
-            "CVE-2020-1002", "low", "pkg6", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
-        ),
-        ScanResult("CVE-2020-1003", "medium", "pkg4", None, None),
-        ScanResult("CVE-2020-1003", "medium", "pkg5", None, None),
-        ScanResult("CVE-2020-1003", "medium", "pkg6", None, None),
-        ScanResult("CVE-2020-1004", "medium", "pkg7", None, None),
-        ScanResult("CVE-2020-1005", "low", "pkg1", "1:1.2.3-4+deb9u3", const.UA_APPS),
-        ScanResult("CVE-2020-1005", "low", "pkg2", "1:1.2.3-4+deb9u3", const.UA_APPS),
-        ScanResult("CVE-2020-1005", "low", "pkg3", "10.2.3-2ubuntu0.1", const.UA_INFRA),
-    ]
 
 
 def test_priority_filter_all(run_priority_filter_all_test):
@@ -111,7 +81,9 @@ def test_nagios_critical_all():
     opt = MockOpt()
     opt.priority = "all"
 
-    sr = [ScanResult("CVE-2020-1000", "medium", "pkg1", "1.2.3-2", const.ARCHIVE)]
+    sr = [
+        ScanResult("CVE-2020-1000", "medium", "pkg1", "1.2.3-2", const.UBUNTU_ARCHIVE)
+    ]
 
     nof = NagiosOutputFormatter(opt, None)
     (results_msg, return_code) = nof.format_output(sr, None)
@@ -124,7 +96,9 @@ def test_nagios_critical_medium():
     opt = MockOpt()
     opt.priority = "medium"
 
-    sr = [ScanResult("CVE-2020-1000", "medium", "pkg1", "1.2.3-2", const.ARCHIVE)]
+    sr = [
+        ScanResult("CVE-2020-1000", "medium", "pkg1", "1.2.3-2", const.UBUNTU_ARCHIVE)
+    ]
 
     nof = NagiosOutputFormatter(opt, None)
     (results_msg, return_code) = nof.format_output(sr, None)

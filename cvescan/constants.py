@@ -58,18 +58,22 @@ EXPERIMENTAL_HELP = (
     "with ESM Apps and ESM Infra enabled."
 )
 
+JSON_HELP = "Format output as JSON."
+
+CSV_HELP = "Format output as CSV."
+
 DEBUG_LOG = "debug.log"
 LSB_RELEASE_FILE = "/etc/lsb-release"
 UA_STATUS_FILE = "/var/lib/ubuntu-advantage/status.json"
 SNAPD_HOSTFS = "/var/lib/snapd/hostfs"
 
-ARCHIVE = "Ubuntu Archive"
+UBUNTU_ARCHIVE = "Ubuntu Archive"
 UA_APPS = "UA for Apps"
 UA_INFRA = "UA for Infra"
 
-ARCHIVE_ENABLED_COLOR_CODE = 2
-ARCHIVE_DISABLED_COLOR_CODE = 1
-ARCHIVE_UNKNOWN_COLOR_CODE = 3
+REPOSITORY_ENABLED_COLOR_CODE = 2
+REPOSITORY_DISABLED_COLOR_CODE = 1
+REPOSITORY_UNKNOWN_COLOR_CODE = 3
 
 
 SUCCESS_RETURN_CODE = 0
@@ -95,7 +99,7 @@ CRITICAL = "critical"
 
 PRIORITIES = [NEGLIGIBLE, LOW, MEDIUM, HIGH, CRITICAL]
 
-UCT_URL = "http://people.canonical.com/~ubuntu-security/cve/%s"
+UCT_URL = "https://people.canonical.com/~ubuntu-security/cve/%s"
 UCT_DATA_URL = (
     "https://people.canonical.com/~ubuntu-security/cvescan/ubuntu-vuln-db.json"
 )

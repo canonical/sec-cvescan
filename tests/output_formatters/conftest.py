@@ -34,6 +34,7 @@ class MockSysInfo(TargetSysInfo):
 class MockOpt:
     def __init__(self):
         self.cve = None
+        self.csv = False
         self.unresolved = True
         self.priority = "all"
         self.show_links = None
@@ -59,7 +60,9 @@ def shuffled_scan_results():
             "CVE-2020-1002", const.CRITICAL, "pkg4", "2.0.0-1+deb9u1", const.UA_INFRA
         ),
         ScanResult("CVE-2020-1000", const.MEDIUM, "pkg4", "1.2.3-4", const.UA_APPS),
-        ScanResult("CVE-2020-1005", const.HIGH, "pkg2", "2.0.0-2", const.ARCHIVE),
+        ScanResult(
+            "CVE-2020-1005", const.HIGH, "pkg2", "2.0.0-2", const.UBUNTU_ARCHIVE
+        ),
         ScanResult(
             "CVE-2020-1002", const.CRITICAL, "pkg6", "2.0.0-1+deb9u1", const.UA_APPS
         ),
@@ -71,7 +74,7 @@ def shuffled_scan_results():
             "CVE-2020-1002", const.CRITICAL, "pkg3", "2.0.0-1+deb9u1", const.UA_APPS
         ),
         ScanResult("CVE-2020-1003", const.NEGLIGIBLE, "pkg5", None, None),
-        ScanResult("CVE-2020-2000", const.LOW, "pkg1", "1.0.0-2", const.ARCHIVE),
+        ScanResult("CVE-2020-2000", const.LOW, "pkg1", "1.0.0-2", const.UBUNTU_ARCHIVE),
     ]
 
 
@@ -194,10 +197,18 @@ def misc_scan_results():
     return [
         ScanResult("CVE-2020-1000", "low", "pkg3", None, None),
         ScanResult(
-            "CVE-2020-1001", "high", "pkg1", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
+            "CVE-2020-1001",
+            "high",
+            "pkg1",
+            "1:1.2.3-4+deb9u2ubuntu0.2",
+            const.UBUNTU_ARCHIVE,
         ),
         ScanResult(
-            "CVE-2020-1001", "high", "pkg2", "1:1.2.3-4+deb9u2ubuntu0.2", const.ARCHIVE
+            "CVE-2020-1001",
+            "high",
+            "pkg2",
+            "1:1.2.3-4+deb9u2ubuntu0.2",
+            const.UBUNTU_ARCHIVE,
         ),
         ScanResult(
             "CVE-2020-1002", "low", "pkg4", "2.0.0+dfsg-1ubuntu1.1", const.UA_APPS
