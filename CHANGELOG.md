@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- A "--csv" flag to instruct CVEScan to format the output as CSV
+- A "--json" flag to instruct CVEScan to format the output as JSON
 ### Changed
 - The "ARCHIVE" column header to "REPOSITORY" for accuracy and consistency.
 ### Fixed

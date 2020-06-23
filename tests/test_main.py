@@ -4,7 +4,9 @@ import logging
 from cvescan import __main__ as main
 from cvescan.output_formatters import (
     cli_output_formatter,
+    csv_output_formatter,
     cve_output_formatter,
+    json_output_formatter,
     nagios_output_formatter,
 )
 
@@ -16,6 +18,8 @@ class MockOpt:
         self.download_uct_db_file = False
         self.db_file = "tests/assets/cache_uct.json"
         self.cve = False
+        self.csv = False
+        self.json = False
         self.nagios_mode = False
 
 
@@ -97,3 +101,21 @@ def test_cli_output_formatter():
     output_formatter = main.load_output_formatter(opt)
 
     assert isinstance(output_formatter, cli_output_formatter.CLIOutputFormatter)
+
+
+def test_csv_output_formatter():
+    opt = MockOpt()
+    opt.csv = True
+
+    output_formatter = main.load_output_formatter(opt)
+
+    assert isinstance(output_formatter, csv_output_formatter.CSVOutputFormatter)
+
+
+def test_json_output_formatter():
+    opt = MockOpt()
+    opt.json = True
+
+    output_formatter = main.load_output_formatter(opt)
+
+    assert isinstance(output_formatter, json_output_formatter.JSONOutputFormatter)

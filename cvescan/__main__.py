@@ -16,8 +16,10 @@ from cvescan.local_sysinfo import LocalSysInfo
 from cvescan.options import Options
 from cvescan.output_formatters import (
     CLIOutputFormatter,
+    CSVOutputFormatter,
     CVEOutputFormatter,
     CVEScanResultSorter,
+    JSONOutputFormatter,
     NagiosOutputFormatter,
     PackageScanResultSorter,
 )
@@ -63,9 +65,6 @@ def parse_args():
         description=const.CVESCAN_DESCRIPTION, formatter_class=ap.RawTextHelpFormatter
     )
     cvescan_ap.add_argument(
-        "-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP
-    )
-    cvescan_ap.add_argument(
         "-p",
         "--priority",
         help=const.PRIORITY_HELP,
@@ -79,6 +78,11 @@ def parse_args():
     cvescan_ap.add_argument(
         "-m", "--manifest", metavar="MANIFEST_FILE", help=const.MANIFEST_HELP
     )
+    cvescan_ap.add_argument("--csv", action="store_true", help=const.CSV_HELP)
+    cvescan_ap.add_argument(
+        "-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP
+    )
+    cvescan_ap.add_argument("--json", action="store_true", help=const.JSON_HELP)
     cvescan_ap.add_argument(
         "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
     )
@@ -155,10 +159,17 @@ def log_target_system_info(target_sysinfo):
 
 
 def load_output_formatter(opt):
+    sorter = load_output_sorter(opt)
+
+    if opt.csv:
+        return CSVOutputFormatter(opt, LOGGER, sorter=sorter)
+
     if opt.cve:
         return CVEOutputFormatter(opt, LOGGER)
 
-    sorter = load_output_sorter(opt)
+    if opt.json:
+        return JSONOutputFormatter(opt, LOGGER, sorter=sorter)
+
     if opt.nagios_mode:
         return NagiosOutputFormatter(opt, LOGGER, sorter=sorter)
 

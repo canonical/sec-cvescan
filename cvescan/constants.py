@@ -58,6 +58,10 @@ EXPERIMENTAL_HELP = (
     "with ESM Apps and ESM Infra enabled."
 )
 
+JSON_HELP = "Format output as JSON."
+
+CSV_HELP = "Format output as CSV."
+
 DEBUG_LOG = "debug.log"
 LSB_RELEASE_FILE = "/etc/lsb-release"
 UA_STATUS_FILE = "/var/lib/ubuntu-advantage/status.json"

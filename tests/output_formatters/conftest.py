@@ -34,6 +34,7 @@ class MockSysInfo(TargetSysInfo):
 class MockOpt:
     def __init__(self):
         self.cve = None
+        self.csv = False
         self.unresolved = True
         self.priority = "all"
         self.show_links = None

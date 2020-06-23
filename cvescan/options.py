@@ -3,9 +3,11 @@ import re
 
 from cvescan.errors import ArgumentError
 
+FMT_CSV_OPTION = "--csv"
 FMT_CVE_OPTION = "-c|--cve"
 FMT_EXPERIMENTAL_OPTION = "-x|--experimental"
 FMT_FILE_OPTION = "-f|--file"
+FMT_JSON_OPTION = "--JSON"
 FMT_MANIFEST_OPTION = "-m|--manifest"
 FMT_NAGIOS_OPTION = "-n|--nagios"
 FMT_SHOW_LINKS_OPTION = "--show-links"
@@ -28,7 +30,9 @@ class Options:
         self._set_db_file_options(args)
         self._set_manifest_file_options(args)
 
+        self.csv = args.csv
         self.cve = args.cve
+        self.json = args.json
         self.priority = args.priority if args.priority else "high"
         self.unresolved = args.unresolved
 
@@ -69,7 +73,9 @@ def raise_on_invalid_combinations(args):
     raise_on_invalid_nagios_options(args)
     raise_on_invalid_silent_options(args)
     raise_on_invalid_unresolved_options(args)
+    raise_on_invalid_csv_options(args)
     raise_on_invalid_cve_options(args)
+    raise_on_invalid_json_options(args)
 
 
 def raise_on_invalid_nagios_options(args):
@@ -114,15 +120,43 @@ def raise_on_invalid_unresolved_options(args):
         raise_incompatible_arguments_error(FMT_UNRESOLVED_OPTION, FMT_NAGIOS_OPTION)
 
 
+def raise_on_invalid_csv_options(args):
+    if not args.csv:
+        return
+
+    if args.silent:
+        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_SILENT_OPTION)
+
+    if args.cve:
+        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_CVE_OPTION)
+
+    if args.json:
+        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_JSON_OPTION)
+
+    if args.nagios:
+        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_NAGIOS_OPTION)
+
+
 def raise_on_invalid_cve_options(args):
     if not args.cve:
         return
+
+    if args.json:
+        raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_JSON_OPTION)
 
     if args.priority is not None:
         raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_PRIORITY_OPTION)
 
     if args.show_links:
         raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_SHOW_LINKS_OPTION)
+
+
+def raise_on_invalid_json_options(args):
+    if not args.json:
+        return
+
+    if args.nagios:
+        raise_incompatible_arguments_error(FMT_JSON_OPTION, FMT_NAGIOS_OPTION)
 
 
 def raise_incompatible_arguments_error(arg1, arg2):
