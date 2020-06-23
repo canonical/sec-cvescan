@@ -95,7 +95,7 @@ CRITICAL = "critical"
 
 PRIORITIES = [NEGLIGIBLE, LOW, MEDIUM, HIGH, CRITICAL]
 
-UCT_URL = "http://people.canonical.com/~ubuntu-security/cve/%s"
+UCT_URL = "https://people.canonical.com/~ubuntu-security/cve/%s"
 UCT_DATA_URL = (
     "https://people.canonical.com/~ubuntu-security/cvescan/ubuntu-vuln-db.json"
 )
