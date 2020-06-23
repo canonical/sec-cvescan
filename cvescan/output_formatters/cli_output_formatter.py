@@ -8,7 +8,6 @@ from cvescan import TargetSysInfo
 from cvescan.output_formatters import (
     AbstractOutputFormatter,
     AbstractStackableScanResultSorter,
-    ScanStats,
 )
 from cvescan.scan_result import ScanResult
 
@@ -39,19 +38,19 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
-        stats = self._get_scan_stats(scan_results, sysinfo)
-
-        summary_msg = self._format_summary(stats, sysinfo)
+        summary_msg = self._format_summary(scan_results, sysinfo)
         table_msg = self._format_table(priority_results, fixable_results, sysinfo)
         msg = "\n%s\n\n%s" % (summary_msg, table_msg)
 
-        return_code = CLIOutputFormatter._get_return_code(
+        return_code = CLIOutputFormatter._determine_return_code(
             priority_results, fixable_results
         )
 
         return (msg, return_code)
 
-    def _format_summary(self, stats: ScanStats, sysinfo: TargetSysInfo):
+    def _format_summary(self, scan_results: List[ScanResult], sysinfo: TargetSysInfo):
+        stats = self._get_scan_stats(scan_results, sysinfo)
+
         # Disabling for now
         # apps_enabled =
         # CLIOutputFormatter._format_esm_enabled(sysinfo.esm_apps_enabled)
@@ -208,13 +207,3 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             return str(value)
 
         return "\u001b[38;5;%dm%s\u001b[0m" % (color_code, str(value))
-
-    @staticmethod
-    def _get_return_code(priority_results, fixable_results):
-        if len(fixable_results) > 0:
-            return const.PATCH_AVAILABLE_RETURN_CODE
-
-        if len(priority_results) > 0:
-            return const.SYSTEM_VULNERABLE_RETURN_CODE
-
-        return const.SUCCESS_RETURN_CODE
