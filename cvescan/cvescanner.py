@@ -53,25 +53,20 @@ class CVEScanner:
         return affected_cves
 
     def _find_vulnerable_binaries(self, src_pkg_details, installed_binaries):
+        if src_pkg_details["status"][0] not in ["released", "released-esm"]:
+            return [[b[0], None, None] for b in installed_binaries]
+
         binary_statuses = list()
+        fixed_version = src_pkg_details["status"][1]
+        repository = src_pkg_details["repository"]
 
-        if src_pkg_details["status"][0] in ["released", "released-esm"]:
-            fixed_version = src_pkg_details["status"][1]
-            repository = src_pkg_details["repository"]
-
-            for b in installed_binaries:
-                if not self._installed_pkg_is_patched(
-                    b[1], src_pkg_details["status"][1]
-                ):
-                    binary_statuses.append([b[0], fixed_version, repository])
-        else:
-            binary_statuses = [[b[0], None, None] for b in installed_binaries]
+        for b in installed_binaries:
+            if not self._installed_pkg_is_patched(b[1], fixed_version):
+                binary_statuses.append([b[0], fixed_version, repository])
 
         return binary_statuses
 
-    def _installed_pkg_is_patched(self, installed_pkg_version, patched_version):
-        version_compare = apt_pkg.version_compare(
-            installed_pkg_version, patched_version
-        )
+    def _installed_pkg_is_patched(self, installed_version, patched_version):
+        version_compare = apt_pkg.version_compare(installed_version, patched_version)
 
         return version_compare >= 0
