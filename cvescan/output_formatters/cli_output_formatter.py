@@ -38,9 +38,9 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
-        summary_msg = self._format_summary(scan_results, sysinfo)
         table_msg = self._format_table(priority_results, fixable_results, sysinfo)
-        msg = "\n%s\n\n%s" % (summary_msg, table_msg)
+        summary_msg = self._format_summary(scan_results, sysinfo)
+        msg = "\n%s\n\n%s" % (table_msg, summary_msg)
 
         return_code = CLIOutputFormatter._determine_return_code(
             priority_results, fixable_results

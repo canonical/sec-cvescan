@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Changed
+- The ordering of the default output so that the summary is printed after the
+  list of CVEs.
+
 ## [2.1.0] - 2020-06-23
 ### Added
 - A "--csv" flag to instruct CVEScan to format the output as CSV ([issue #32](https://github.com/canonical/sec-cvescan/issues/32)).
