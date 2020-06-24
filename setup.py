@@ -27,7 +27,7 @@ setuptools.setup(
     ],
     install_requires=[
         "tabulate",
-        "ust-download-cache @ https://github.com/canonical/ust-download-cache/archive/v1.0.0.tar.gz",  # noqa: E501
+        "ust-download-cache @ https://github.com/canonical/ust-download-cache/archive/v1.0.1.tar.gz",  # noqa: E501
     ],
     python_requires=">=3.5",
     setup_requires=["pytest-runner"],
