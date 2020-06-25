@@ -9,24 +9,43 @@ from cvescan import TargetSysInfo
 from cvescan.output_formatters import CLIOutputFormatter, ScanStats
 
 
-class NoSummaryCLIOutputFormatter(CLIOutputFormatter):
+class TableOnlyCLIOutputFormatter(CLIOutputFormatter):
     def _format_summary(self, stats: ScanStats, sysinfo: TargetSysInfo):
         return ""
 
+    def _format_suggestions(self, stats: ScanStats, sysinfo: TargetSysInfo):
+        return ""
 
-class NoTableCLIOutputFormatter(CLIOutputFormatter):
+
+class SummaryOnlyCLIOutputFormatter(CLIOutputFormatter):
+    def _format_table(self, priority_results, fixable_results, sysinfo: TargetSysInfo):
+        return ""
+
+    def _format_suggestions(self, stats: ScanStats, sysinfo: TargetSysInfo):
+        return ""
+
+
+class SuggestionsOnlyCLIOutputFormatter(CLIOutputFormatter):
+    def _format_summary(self, stats: ScanStats, sysinfo: TargetSysInfo):
+        return ""
+
     def _format_table(self, priority_results, fixable_results, sysinfo: TargetSysInfo):
         return ""
 
 
 @pytest.fixture
-def no_summary_cli_output_formatter():
-    return NoSummaryCLIOutputFormatter(MockOpt(), null_logger())
+def table_only_cli_output_formatter():
+    return TableOnlyCLIOutputFormatter(MockOpt(), null_logger())
 
 
 @pytest.fixture
-def no_table_cli_output_formatter():
-    return NoTableCLIOutputFormatter(MockOpt(), null_logger())
+def summary_only_cli_output_formatter():
+    return SummaryOnlyCLIOutputFormatter(MockOpt(), null_logger())
+
+
+@pytest.fixture
+def suggestions_only_cli_output_formatter():
+    return SuggestionsOnlyCLIOutputFormatter(MockOpt(), null_logger())
 
 
 def test_no_cves_return_code(run_success_return_code_test):
@@ -73,11 +92,11 @@ def test_priority_filter_critical(run_priority_filter_critical_test):
     run_priority_filter_critical_test(CLIOutputFormatter)
 
 
-def test_no_tty_no_color(monkeypatch, no_summary_cli_output_formatter):
+def test_no_tty_no_color(monkeypatch, table_only_cli_output_formatter):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1001"])
 
-    (results_msg, return_code) = no_summary_cli_output_formatter.format_output(
+    (results_msg, return_code) = table_only_cli_output_formatter.format_output(
         sr, MockSysInfo()
     )
 
@@ -85,12 +104,12 @@ def test_no_tty_no_color(monkeypatch, no_summary_cli_output_formatter):
 
 
 def run_priority_color_test(
-    monkeypatch, no_summary_cli_output_formatter, sysinfo, cve_id, priority_name
+    monkeypatch, table_only_cli_output_formatter, sysinfo, cve_id, priority_name
 ):
     priority_color_code = CLIOutputFormatter.priority_to_color_code[priority_name]
     run_color_test(
         monkeypatch,
-        no_summary_cli_output_formatter,
+        table_only_cli_output_formatter,
         sysinfo,
         cve_id,
         priority_color_code,
@@ -98,7 +117,7 @@ def run_priority_color_test(
 
 
 def run_repository_color_test(
-    monkeypatch, no_summary_cli_output_formatter, sysinfo, cve_id, enabled
+    monkeypatch, table_only_cli_output_formatter, sysinfo, cve_id, enabled
 ):
     if enabled:
         repository_color_code = const.REPOSITORY_ENABLED_COLOR_CODE
@@ -108,7 +127,7 @@ def run_repository_color_test(
         repository_color_code = const.REPOSITORY_DISABLED_COLOR_CODE
     run_color_test(
         monkeypatch,
-        no_summary_cli_output_formatter,
+        table_only_cli_output_formatter,
         sysinfo,
         cve_id,
         repository_color_code,
@@ -116,139 +135,139 @@ def run_repository_color_test(
 
 
 def run_color_test(
-    monkeypatch, no_summary_cli_output_formatter, sysinfo, cve_id, color_code
+    monkeypatch, table_only_cli_output_formatter, sysinfo, cve_id, color_code
 ):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
 
     expected_color = "38;5;%dm" % color_code
 
-    no_summary_cli_output_formatter.opt.unresolved = True
+    table_only_cli_output_formatter.opt.unresolved = True
     sr = filter_scan_results_by_cve_ids([cve_id])
 
-    (results_msg, return_code) = no_summary_cli_output_formatter.format_output(
+    (results_msg, return_code) = table_only_cli_output_formatter.format_output(
         sr, sysinfo
     )
 
     assert expected_color in results_msg
 
 
-def test_untriaged_color(monkeypatch, no_summary_cli_output_formatter):
+def test_untriaged_color(monkeypatch, table_only_cli_output_formatter):
     run_priority_color_test(
         monkeypatch,
-        no_summary_cli_output_formatter,
+        table_only_cli_output_formatter,
         MockSysInfo(),
         "CVE-2020-1006",
         const.UNTRIAGED,
     )
 
 
-def test_negligible_color(monkeypatch, no_summary_cli_output_formatter):
+def test_negligible_color(monkeypatch, table_only_cli_output_formatter):
     run_priority_color_test(
         monkeypatch,
-        no_summary_cli_output_formatter,
+        table_only_cli_output_formatter,
         MockSysInfo(),
         "CVE-2020-1008",
         const.NEGLIGIBLE,
     )
 
 
-def test_low_color(monkeypatch, no_summary_cli_output_formatter):
+def test_low_color(monkeypatch, table_only_cli_output_formatter):
     run_priority_color_test(
         monkeypatch,
-        no_summary_cli_output_formatter,
+        table_only_cli_output_formatter,
         MockSysInfo(),
         "CVE-2020-1005",
         const.LOW,
     )
 
 
-def test_medium_color(monkeypatch, no_summary_cli_output_formatter):
+def test_medium_color(monkeypatch, table_only_cli_output_formatter):
     run_priority_color_test(
         monkeypatch,
-        no_summary_cli_output_formatter,
+        table_only_cli_output_formatter,
         MockSysInfo(),
         "CVE-2020-1003",
         const.MEDIUM,
     )
 
 
-def test_high_color(monkeypatch, no_summary_cli_output_formatter):
+def test_high_color(monkeypatch, table_only_cli_output_formatter):
     run_priority_color_test(
         monkeypatch,
-        no_summary_cli_output_formatter,
+        table_only_cli_output_formatter,
         MockSysInfo(),
         "CVE-2020-1001",
         const.HIGH,
     )
 
 
-def test_critical_color(monkeypatch, no_summary_cli_output_formatter):
+def test_critical_color(monkeypatch, table_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = True
     sysinfo.esm_infra_enabled = True
     run_priority_color_test(
         monkeypatch,
-        no_summary_cli_output_formatter,
+        table_only_cli_output_formatter,
         sysinfo,
         "CVE-2020-1007",
         const.CRITICAL,
     )
 
 
-def test_ua_apps_enabled_color(monkeypatch, no_summary_cli_output_formatter):
+def test_ua_apps_enabled_color(monkeypatch, table_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = True
     run_repository_color_test(
-        monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1009", True
+        monkeypatch, table_only_cli_output_formatter, sysinfo, "CVE-2020-1009", True
     )
 
 
-def test_ua_apps_disabled_color(monkeypatch, no_summary_cli_output_formatter):
+def test_ua_apps_disabled_color(monkeypatch, table_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = False
     sysinfo.esm_infra_enabled = True
     run_repository_color_test(
-        monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1009", False
+        monkeypatch, table_only_cli_output_formatter, sysinfo, "CVE-2020-1009", False
     )
 
 
-def test_ua_apps_unknown_color(monkeypatch, no_summary_cli_output_formatter):
+def test_ua_apps_unknown_color(monkeypatch, table_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = None
     run_repository_color_test(
-        monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1009", None
+        monkeypatch, table_only_cli_output_formatter, sysinfo, "CVE-2020-1009", None
     )
 
 
-def test_ua_infra_enabled_color(monkeypatch, no_summary_cli_output_formatter):
+def test_ua_infra_enabled_color(monkeypatch, table_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_infra_enabled = True
     run_repository_color_test(
-        monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1010", True
+        monkeypatch, table_only_cli_output_formatter, sysinfo, "CVE-2020-1010", True
     )
 
 
-def test_ua_infra_disabled_color(monkeypatch, no_summary_cli_output_formatter):
+def test_ua_infra_disabled_color(monkeypatch, table_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = True
     sysinfo.esm_infra_enabled = False
     run_repository_color_test(
-        monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1010", False
+        monkeypatch, table_only_cli_output_formatter, sysinfo, "CVE-2020-1010", False
     )
 
 
-def test_ua_infra_unknown_color(monkeypatch, no_summary_cli_output_formatter):
+def test_ua_infra_unknown_color(monkeypatch, table_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_infra_enabled = None
     run_repository_color_test(
-        monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1010", None
+        monkeypatch, table_only_cli_output_formatter, sysinfo, "CVE-2020-1010", None
     )
 
 
-def test_ubuntu_repository_enabled_color(monkeypatch, no_summary_cli_output_formatter):
+def test_ubuntu_repository_enabled_color(monkeypatch, table_only_cli_output_formatter):
     run_repository_color_test(
         monkeypatch,
-        no_summary_cli_output_formatter,
+        table_only_cli_output_formatter,
         MockSysInfo(),
         "CVE-2020-1001",
         True,
@@ -256,21 +275,21 @@ def test_ubuntu_repository_enabled_color(monkeypatch, no_summary_cli_output_form
 
 
 def test_invalid_repository_disabled_color(
-    monkeypatch, no_summary_cli_output_formatter
+    monkeypatch, table_only_cli_output_formatter
 ):
-    no_summary_cli_output_formatter.opt.unresolved = True
+    table_only_cli_output_formatter.opt.unresolved = True
 
     sysinfo = MockSysInfo()
     sysinfo.esm_infra_enabled = True
 
     run_repository_color_test(
-        monkeypatch, no_summary_cli_output_formatter, sysinfo, "CVE-2020-1011", False
+        monkeypatch, table_only_cli_output_formatter, sysinfo, "CVE-2020-1011", False
     )
 
 
-def test_summary_nounresolved(monkeypatch, no_table_cli_output_formatter):
+def test_summary_nounresolved(monkeypatch, summary_only_cli_output_formatter):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
-    cof = no_table_cli_output_formatter
+    cof = summary_only_cli_output_formatter
 
     cof.opt.priority = const.LOW
     cof.opt.unresolved = False
@@ -309,9 +328,9 @@ def test_summary_nounresolved(monkeypatch, no_table_cli_output_formatter):
     )
 
 
-def test_summary_priority_all(monkeypatch, no_table_cli_output_formatter):
+def test_summary_priority_all(monkeypatch, summary_only_cli_output_formatter):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
-    cof = no_table_cli_output_formatter
+    cof = summary_only_cli_output_formatter
 
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1001"])
 
@@ -321,9 +340,9 @@ def test_summary_priority_all(monkeypatch, no_table_cli_output_formatter):
 
 
 # Disabling for now
-# def test_summary_infra_enabled(monkeypatch, no_table_cli_output_formatter):
+# def test_summary_infra_enabled(monkeypatch, summary_only_cli_output_formatter):
 # monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
-# cof = no_table_cli_output_formatter
+# cof = summary_only_cli_output_formatter
 # sysinfo = MockSysInfo()
 # sysinfo.esm_apps_enabled = False
 # sysinfo.esm_infra_enabled = True
@@ -336,9 +355,9 @@ def test_summary_priority_all(monkeypatch, no_table_cli_output_formatter):
 # assert re.search(r"ESM Infra Enabled\s+Yes", results_msg)
 
 
-# def test_summary_apps_enabled(monkeypatch, no_table_cli_output_formatter):
+# def test_summary_apps_enabled(monkeypatch, summary_only_cli_output_formatter):
 # monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
-# cof = no_table_cli_output_formatter
+# cof = summary_only_cli_output_formatter
 # sysinfo = MockSysInfo()
 # sysinfo.esm_apps_enabled = True
 # sysinfo.esm_inra_enabled = False
@@ -374,42 +393,44 @@ def run_esm_color_code_test(
     # assert re.search(r"ESM Infra Enabled\s+%s%s" % (esm_color_code, yn), results_msg)
 
 
-def test_summary_esm_enabled_color(monkeypatch, no_table_cli_output_formatter):
+def test_summary_esm_enabled_color(monkeypatch, summary_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = True
     sysinfo.esm_infra_enabled = True
 
     run_esm_color_code_test(
         monkeypatch,
-        no_table_cli_output_formatter,
+        summary_only_cli_output_formatter,
         sysinfo,
         const.REPOSITORY_ENABLED_COLOR_CODE,
         "Yes",
     )
 
 
-def test_summary_esm_disabled_color(monkeypatch, no_table_cli_output_formatter):
+def test_summary_esm_disabled_color(monkeypatch, summary_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = False
     sysinfo.esm_infra_enabled = False
 
     run_esm_color_code_test(
         monkeypatch,
-        no_table_cli_output_formatter,
+        summary_only_cli_output_formatter,
         sysinfo,
         const.REPOSITORY_DISABLED_COLOR_CODE,
         "No",
     )
 
 
-def test_summary_manifest_esm_unknown_color(monkeypatch, no_table_cli_output_formatter):
+def test_summary_manifest_esm_unknown_color(
+    monkeypatch, summary_only_cli_output_formatter
+):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = None
     sysinfo.esm_infra_enabled = None
 
     run_esm_color_code_test(
         monkeypatch,
-        no_table_cli_output_formatter,
+        summary_only_cli_output_formatter,
         sysinfo,
         const.REPOSITORY_UNKNOWN_COLOR_CODE,
         "Unknown",
@@ -435,14 +456,16 @@ def run_fixes_not_applied_color_code_test(
     )
 
 
-def test_summary_fixes_not_applied_color(monkeypatch, no_table_cli_output_formatter):
+def test_summary_fixes_not_applied_color(
+    monkeypatch, summary_only_cli_output_formatter
+):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = False
     sysinfo.esm_infra_enabled = True
 
     run_fixes_not_applied_color_code_test(
         monkeypatch,
-        no_table_cli_output_formatter,
+        summary_only_cli_output_formatter,
         sysinfo,
         const.REPOSITORY_DISABLED_COLOR_CODE,
         2,
@@ -453,35 +476,35 @@ def test_summary_fixes_not_applied_color(monkeypatch, no_table_cli_output_format
 
     run_fixes_not_applied_color_code_test(
         monkeypatch,
-        no_table_cli_output_formatter,
+        summary_only_cli_output_formatter,
         sysinfo,
         const.REPOSITORY_DISABLED_COLOR_CODE,
         1,
     )
 
 
-def test_summary_fixes_applied_color(monkeypatch, no_table_cli_output_formatter):
+def test_summary_fixes_applied_color(monkeypatch, summary_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = True
     sysinfo.esm_infra_enabled = True
 
     run_fixes_not_applied_color_code_test(
         monkeypatch,
-        no_table_cli_output_formatter,
+        summary_only_cli_output_formatter,
         sysinfo,
         const.REPOSITORY_ENABLED_COLOR_CODE,
         0,
     )
 
 
-def test_summary_fixes_unknown_color(monkeypatch, no_table_cli_output_formatter):
+def test_summary_fixes_unknown_color(monkeypatch, summary_only_cli_output_formatter):
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = None
     sysinfo.esm_infra_enabled = None
 
     run_fixes_not_applied_color_code_test(
         monkeypatch,
-        no_table_cli_output_formatter,
+        summary_only_cli_output_formatter,
         sysinfo,
         const.REPOSITORY_UNKNOWN_COLOR_CODE,
         3,
@@ -489,20 +512,20 @@ def test_summary_fixes_unknown_color(monkeypatch, no_table_cli_output_formatter)
 
 
 def test_show_links(run_show_links_test):
-    run_show_links_test(NoSummaryCLIOutputFormatter)
+    run_show_links_test(TableOnlyCLIOutputFormatter)
 
 
 def test_no_show_links(run_no_show_links_test):
-    run_no_show_links_test(NoSummaryCLIOutputFormatter)
+    run_no_show_links_test(TableOnlyCLIOutputFormatter)
 
 
 def test_experimental_filter(run_non_experimental_filter_test_cli):
     run_non_experimental_filter_test_cli(CLIOutputFormatter)
 
 
-def test_summary_experimental_filter(monkeypatch, no_table_cli_output_formatter):
+def test_summary_experimental_filter(monkeypatch, summary_only_cli_output_formatter):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
-    cof = no_table_cli_output_formatter
+    cof = summary_only_cli_output_formatter
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = False
     sysinfo.esm_infra_enabled = True
@@ -534,3 +557,120 @@ def test_no_results_no_header(monkeypatch):
     (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
     assert not re.search(header_regex, results_msg)
+
+
+def test_suggestions_empty_experimental_infra(
+    monkeypatch, suggestions_only_cli_output_formatter
+):
+    cof = suggestions_only_cli_output_formatter
+
+    cof.opt.priority = const.LOW
+    cof.opt.experimental_mode = True
+
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = False
+    sysinfo.esm_infra_enabled = False
+
+    sr = filter_scan_results_by_cve_ids(["CVE-2020-1001", "CVE-2020-1010"])
+
+    (results_msg, return_code) = cof.format_output(sr, sysinfo)
+
+    assert not re.search(
+        r"More security patches are available if you enable UA for Infrastructure",
+        results_msg,
+    )
+
+
+def test_suggestions_empty_no_experimental_infra(
+    monkeypatch, suggestions_only_cli_output_formatter
+):
+    cof = suggestions_only_cli_output_formatter
+
+    cof.opt.priority = const.LOW
+    cof.opt.experimental_mode = False
+
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = False
+    sysinfo.esm_infra_enabled = False
+
+    sr = filter_scan_results_by_cve_ids(
+        ["CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1010"]
+    )
+
+    (results_msg, return_code) = cof.format_output(sr, sysinfo)
+
+    assert not re.search(
+        r"More security patches are available if you enable UA for Infrastructure",
+        results_msg,
+    )
+
+
+def test_suggestions_empty_experimental_infra_enabled(
+    monkeypatch, suggestions_only_cli_output_formatter
+):
+    cof = suggestions_only_cli_output_formatter
+
+    cof.opt.priority = const.LOW
+    cof.opt.experimental_mode = True
+
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = False
+    sysinfo.esm_infra_enabled = True
+
+    sr = filter_scan_results_by_cve_ids(
+        ["CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1010"]
+    )
+
+    (results_msg, return_code) = cof.format_output(sr, sysinfo)
+
+    assert not re.search(
+        r"More security patches are available if you enable UA for Infrastructure",
+        results_msg,
+    )
+
+
+def test_suggestions_empty_experimental_infra_unknown(
+    monkeypatch, suggestions_only_cli_output_formatter
+):
+    cof = suggestions_only_cli_output_formatter
+
+    cof.opt.priority = const.LOW
+    cof.opt.experimental_mode = True
+
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = False
+    sysinfo.esm_infra_enabled = None
+
+    sr = filter_scan_results_by_cve_ids(
+        ["CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1010"]
+    )
+
+    (results_msg, return_code) = cof.format_output(sr, sysinfo)
+
+    assert (
+        "1 additional security patch(es) are available if Ubuntu Advantage for Infrastructure is\nenabled."
+        not in results_msg
+    )
+
+
+def test_suggestion_ua_for_infra(monkeypatch, suggestions_only_cli_output_formatter):
+    cof = suggestions_only_cli_output_formatter
+
+    cof.opt.priority = const.LOW
+    cof.opt.experimental_mode = True
+
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = False
+    sysinfo.esm_infra_enabled = False
+
+    sr = filter_scan_results_by_cve_ids(
+        ["CVE-2020-1001", "CVE-2020-1002", "CVE-2020-1010"]
+    )
+
+    (results_msg, return_code) = cof.format_output(sr, sysinfo)
+
+    print(results_msg)
+    assert (
+        "1 additional security patch(es) are available if Ubuntu Advantage for Infrastructure is\nenabled."
+        in results_msg
+    )

@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Security suggestions to the bottom of the default output.
 ### Changed
 - The ordering of the default output so that the summary is printed after the
   list of CVEs.
