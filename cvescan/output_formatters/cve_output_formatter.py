@@ -39,7 +39,7 @@ class CVEOutputFormatter(AbstractOutputFormatter):
         repo_str = ""
 
         if const.UA_APPS in repositories:
-            repo_str = "UA for Apps"
+            repo_str = "UA Apps"
 
         if const.UA_INFRA in repositories:
             if len(repositories) == 2 and const.UA_APPS in repositories:
@@ -47,7 +47,7 @@ class CVEOutputFormatter(AbstractOutputFormatter):
             elif len(repositories) == 3:
                 repo_str += ", "
 
-            repo_str += "UA for Infra"
+            repo_str += "UA Infra"
 
         if const.UBUNTU_ARCHIVE in repositories:
             if len(repositories) == 2:

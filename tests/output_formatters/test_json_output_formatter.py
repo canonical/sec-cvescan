@@ -117,17 +117,17 @@ def test_json_format():
                         "pkg1": {
                             "priority": "low",
                             "fixed_version": "1:1.2.3-4+deb9u3",
-                            "repository": "UA for Apps",
+                            "repository": "UA Apps",
                         },
                         "pkg2": {
                             "priority": "low",
                             "fixed_version": "1:1.2.3-4+deb9u3",
-                            "repository": "UA for Apps",
+                            "repository": "UA Apps",
                         },
                         "pkg3": {
                             "priority": "low",
                             "fixed_version": "10.2.3-2ubuntu0.1",
-                            "repository": "UA for Infra",
+                            "repository": "UA Infra",
                         },
                     },
                 },

@@ -71,9 +71,9 @@ def test_csv():
     expected_csv_results += (
         "\nCVE-2020-1001,high,pkg2,1:1.2.3-4+deb9u2ubuntu0.2,Ubuntu Archive"
     )
-    expected_csv_results += "\nCVE-2020-1005,low,pkg1,1:1.2.3-4+deb9u3,UA for Apps"
-    expected_csv_results += "\nCVE-2020-1005,low,pkg2,1:1.2.3-4+deb9u3,UA for Apps"
-    expected_csv_results += "\nCVE-2020-1005,low,pkg3,10.2.3-2ubuntu0.1,UA for Infra"
+    expected_csv_results += "\nCVE-2020-1005,low,pkg1,1:1.2.3-4+deb9u3,UA Apps"
+    expected_csv_results += "\nCVE-2020-1005,low,pkg2,1:1.2.3-4+deb9u3,UA Apps"
+    expected_csv_results += "\nCVE-2020-1005,low,pkg3,10.2.3-2ubuntu0.1,UA Infra"
 
     assert results_msg == expected_csv_results
 

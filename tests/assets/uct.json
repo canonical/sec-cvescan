@@ -84,7 +84,7 @@
                         "released",
                         "2.0.0+dfsg-1ubuntu1.1"
                     ],
-                    "repository": "UA for Apps"
+                    "repository": "UA Apps"
                 }
             }
         }
@@ -137,7 +137,7 @@
                         "released",
                         "1:1.2.3-4+deb9u3"
                     ],
-                    "repository": "UA for Apps"
+                    "repository": "UA Apps"
                 },
                 "pkgB": {
                     "binaries": [
@@ -147,7 +147,7 @@
                         "released",
                         "10.2.3-2ubuntu0.1"
                     ],
-                    "repository": "UA for Infra"
+                    "repository": "UA Infra"
                 }
             }
         }

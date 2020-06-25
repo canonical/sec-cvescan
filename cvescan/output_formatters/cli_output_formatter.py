@@ -30,8 +30,6 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
     def __init__(self, opt, logger, sorter: AbstractStackableScanResultSorter = None):
         super().__init__(opt, logger, sorter)
-        # Currently, this setting is only enabled/disabled by the test suite
-        self._show_summary = True
 
     def format_output(
         self, scan_results: List[ScanResult], sysinfo: TargetSysInfo
@@ -100,11 +98,11 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         summary.append(["Unique CVEs Fixable by Patching", stats.fixable_cves])
         summary.append(["Vulnerabilities Fixable by Patching", fixable_vulns])
         if self.opt.experimental_mode:
-            summary.append(["Vulnerabilities Fixable by ESM Apps", apps_vulns])
-            summary.append(["Vulnerabilities Fixable by ESM Infra", infra_vulns])
+            summary.append(["Vulnerabilities Fixable by UA Apps", apps_vulns])
+            summary.append(["Vulnerabilities Fixable by UA Infra", infra_vulns])
             # Disabling for now
-            # summary.append(["ESM Apps Enabled", apps_enabled])
-            # summary.append(["ESM Infra Enabled", infra_enabled])
+            # summary.append(["UA Apps Enabled", apps_enabled])
+            # summary.append(["UA Infra Enabled", infra_enabled])
         summary.append(["Fixes Available by `apt-get upgrade`", upgrade_vulns])
         if self.opt.experimental_mode:
             summary.append(
@@ -202,10 +200,10 @@ class CLIOutputFormatter(AbstractOutputFormatter):
     def _transform_repository(self, repository, sysinfo):
         if repository:
             if repository == const.UA_APPS:
-                if sysinfo.esm_apps_enabled == False:  # noqa: #E712
+                if sysinfo.esm_apps_enabled is False:
                     repository += " " + CLIOutputFormatter.DISABLED
             elif repository == const.UA_INFRA:
-                if sysinfo.esm_infra_enabled == False:  # noqa: #E712
+                if sysinfo.esm_infra_enabled is False:
                     repository += " " + CLIOutputFormatter.DISABLED
 
             return self._colorize_repository(repository, sysinfo)
@@ -243,17 +241,15 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return "\u001b[38;5;%dm%s\u001b[0m" % (color_code, str(value))
 
     def _format_suggestions(self, stats: ScanStats, sysinfo: TargetSysInfo):
-        ua_msg = (
-            "%d additional security patch(es) are available if Ubuntu Advantage for %s "
-            "is enabled. For more information, see %s."
-        )
+        ua_msg = "%d additional security patch(es) are available if ESM for %s is enabled with Ubuntu Advantage. For more information, see %s."
 
-        if stats.infra_vulns > 0 and sysinfo.esm_infra_enabled == False:  # noqa: E712
+        if stats.infra_vulns > 0 and sysinfo.esm_infra_enabled is False:
             infra_msg = ua_msg % (
                 stats.infra_vulns,
                 "Infrastructure",
                 const.UA_INFRA_URL,
             )
+
             return CLIOutputFormatter._wrap_text(infra_msg)
 
         return ""

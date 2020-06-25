@@ -68,8 +68,8 @@ UA_STATUS_FILE = "/var/lib/ubuntu-advantage/status.json"
 SNAPD_HOSTFS = "/var/lib/snapd/hostfs"
 
 UBUNTU_ARCHIVE = "Ubuntu Archive"
-UA_APPS = "UA for Apps"
-UA_INFRA = "UA for Infra"
+UA_APPS = "UA Apps"
+UA_INFRA = "UA Infra"
 
 UA_INFRA_URL = "https://ubuntu.com/advantage"
 
