@@ -92,6 +92,9 @@ def test_priority_filter_critical(run_priority_filter_critical_test):
     run_priority_filter_critical_test(CLIOutputFormatter)
 
 
+# TODO: Some of these tests are unwieldy. Consider breaking the colorization
+#       functionality out into a CLIOutputColorizer submodule and testing that
+#       separately
 def test_no_tty_no_color(monkeypatch, table_only_cli_output_formatter):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: False)
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1001"])
@@ -122,7 +125,7 @@ def run_repository_color_test(
     if enabled:
         repository_color_code = const.REPOSITORY_ENABLED_COLOR_CODE
     elif enabled is None:
-        repository_color_code = const.REPOSITORY_UNKNOWN_COLOR_CODE
+        repository_color_code = None
     else:
         repository_color_code = const.REPOSITORY_DISABLED_COLOR_CODE
     run_color_test(
@@ -139,7 +142,10 @@ def run_color_test(
 ):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
 
-    expected_color = "38;5;%dm" % color_code
+    if color_code is None:
+        expected_color = ""
+    else:
+        expected_color = "38;5;%dm" % color_code
 
     table_only_cli_output_formatter.opt.unresolved = True
     sr = filter_scan_results_by_cve_ids([cve_id])
@@ -271,6 +277,14 @@ def test_ubuntu_repository_enabled_color(monkeypatch, table_only_cli_output_form
         MockSysInfo(),
         "CVE-2020-1001",
         True,
+    )
+
+
+def test_ubuntu_archive_unknown_color(monkeypatch, table_only_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = None
+    run_repository_color_test(
+        monkeypatch, table_only_cli_output_formatter, sysinfo, "CVE-2020-1001", None
     )
 
 

@@ -69,14 +69,25 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         # infra_enabled = CLIOutputFormatter._format_esm_enabled(
         # sysinfo.esm_infra_enabled
         # )
-        fixable_vulns = CLIOutputFormatter._colorize_fixes(stats.fixable_vulns, True)
+
+        # TODO: This is a hack. See issue #42
+        if sysinfo.esm_apps_enabled is None or sysinfo.esm_infra_enabled is None:
+            ua_archive_enabled = None
+        else:
+            ua_archive_enabled = True
+
+        fixable_vulns = CLIOutputFormatter._colorize_fixes(
+            stats.fixable_vulns, ua_archive_enabled
+        )
         apps_vulns = CLIOutputFormatter._colorize_fixes(
             stats.apps_vulns, sysinfo.esm_apps_enabled
         )
         infra_vulns = CLIOutputFormatter._colorize_fixes(
             stats.infra_vulns, sysinfo.esm_infra_enabled
         )
-        upgrade_vulns = CLIOutputFormatter._colorize_fixes(stats.upgrade_vulns, True)
+        upgrade_vulns = CLIOutputFormatter._colorize_fixes(
+            stats.upgrade_vulns, ua_archive_enabled
+        )
         missing_fixes = CLIOutputFormatter._colorize_esm_combined_fixes(
             stats.missing_fixes, sysinfo
         )
@@ -156,7 +167,11 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return cls._colorize(priority_color_code, priority)
 
     def _colorize_repository(self, repository, sysinfo):
-        if not repository:
+        if (
+            not repository
+            or sysinfo.esm_apps_enabled is None
+            or sysinfo.esm_infra_enabled is None
+        ):
             return repository
 
         if const.UBUNTU_ARCHIVE in repository:
@@ -213,7 +228,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             return str(fixes)
 
         if enabled is None:
-            return cls._colorize(const.REPOSITORY_UNKNOWN_COLOR_CODE, fixes)
+            return fixes
 
         if enabled:
             return cls._colorize(const.REPOSITORY_ENABLED_COLOR_CODE, fixes)

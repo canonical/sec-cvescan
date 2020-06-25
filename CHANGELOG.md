@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The ordering of the default output so that the summary is printed after the
   list of CVEs.
 - The CVE keys in the JSON output are now sub-keys under a "cves" key.
+- Since we can have no knowledge of the status of repositories in manifest
+  mode, don't colorize repositories when in manifest mode.
 
 ## [2.1.0] - 2020-06-23
 ### Added
