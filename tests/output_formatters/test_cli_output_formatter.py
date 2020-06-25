@@ -333,11 +333,11 @@ def test_summary_nounresolved(monkeypatch, summary_only_cli_output_formatter):
     assert re.search(r"Unique Packages Fixable by Patching\s+6", results_msg)
     assert re.search(r"Unique CVEs Fixable by Patching\s+5", results_msg)
     assert re.search(r"Vulnerabilities Fixable by Patching\s+10", results_msg)
-    assert re.search(r"Vulnerabilities Fixable by ESM Apps\s+6", results_msg)
-    assert re.search(r"Vulnerabilities Fixable by ESM Infra\s+2", results_msg)
+    assert re.search(r"Vulnerabilities Fixable by UA Apps\s+6", results_msg)
+    assert re.search(r"Vulnerabilities Fixable by UA Infra\s+2", results_msg)
     # Disabling for now
-    # assert re.search(r"ESM Apps Enabled\s+No", results_msg)
-    # assert re.search(r"ESM Infra Enabled\s+No", results_msg)
+    # assert re.search(r"UA Apps Enabled\s+No", results_msg)
+    # assert re.search(r"UA Infra Enabled\s+No", results_msg)
     assert re.search(r"Fixes Available by `apt-get upgrade`\s+2", results_msg)
     assert re.search(
         r"Available Fixes Not Applied by `apt-get upgrade`\s+8", results_msg
@@ -367,8 +367,8 @@ def test_summary_priority_all(monkeypatch, summary_only_cli_output_formatter):
 
 # (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
-# assert re.search(r"ESM Apps Enabled\s+No", results_msg)
-# assert re.search(r"ESM Infra Enabled\s+Yes", results_msg)
+# assert re.search(r"UA Apps Enabled\s+No", results_msg)
+# assert re.search(r"UA Infra Enabled\s+Yes", results_msg)
 
 
 # def test_summary_apps_enabled(monkeypatch, summary_only_cli_output_formatter):
@@ -382,8 +382,8 @@ def test_summary_priority_all(monkeypatch, summary_only_cli_output_formatter):
 
 # (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
-# assert re.search(r"ESM Apps Enabled\s+Yes", results_msg)
-# assert re.search(r"ESM Infra Enabled\s+No", results_msg)
+# assert re.search(r"UA Apps Enabled\s+Yes", results_msg)
+# assert re.search(r"UA Infra Enabled\s+No", results_msg)
 
 
 def run_esm_color_code_test(
@@ -400,16 +400,16 @@ def run_esm_color_code_test(
     else:
         fixable_color_code = r"\u001b\[38;5;%dm" % repository_color_code
     assert re.search(
-        r"Vulnerabilities Fixable by ESM Apps\s+%s2" % fixable_color_code, results_msg
+        r"Vulnerabilities Fixable by UA Apps\s+%s2" % fixable_color_code, results_msg
     )
     assert re.search(
-        r"Vulnerabilities Fixable by ESM Infra\s+%s1" % fixable_color_code, results_msg
+        r"Vulnerabilities Fixable by UA Infra\s+%s1" % fixable_color_code, results_msg
     )
 
     # Disabling for now
     # esm_color_code = r"\u001b\[38;5;%dm" % repository_color_code
-    # assert re.search(r"ESM Apps Enabled\s+%s%s" % (esm_color_code, yn), results_msg)
-    # assert re.search(r"ESM Infra Enabled\s+%s%s" % (esm_color_code, yn), results_msg)
+    # assert re.search(r"UA Apps Enabled\s+%s%s" % (esm_color_code, yn), results_msg)
+    # assert re.search(r"UA Infra Enabled\s+%s%s" % (esm_color_code, yn), results_msg)
 
 
 def test_summary_esm_enabled_color(monkeypatch, summary_only_cli_output_formatter):
@@ -562,8 +562,9 @@ def test_summary_experimental_filter(monkeypatch, summary_only_cli_output_format
     (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
     assert "Vulnerabilities Fixable by ESM" not in results_msg
-    assert "ESM Apps Enabled" not in results_msg
-    assert "ESM Infra Enabled" not in results_msg
+    # Disable this test for now
+    # assert "UA Apps Enabled" not in results_msg
+    # assert "UA Infra Enabled" not in results_msg
     assert "Available Fixes Not Applied" not in results_msg
 
 
@@ -584,29 +585,29 @@ def test_no_results_no_header(monkeypatch):
     assert not re.search(header_regex, results_msg)
 
 
-def test_suggestions_empty_experimental_infra(
+def test_suggestions_empty_no_experimental_infra_enabled(
     monkeypatch, suggestions_only_cli_output_formatter
 ):
     cof = suggestions_only_cli_output_formatter
 
     cof.opt.priority = const.LOW
-    cof.opt.experimental_mode = True
+    cof.opt.experimental_mode = False
 
     sysinfo = MockSysInfo()
     sysinfo.esm_apps_enabled = False
-    sysinfo.esm_infra_enabled = False
+    sysinfo.esm_infra_enabled = True
 
     sr = filter_scan_results_by_cve_ids(["CVE-2020-1001", "CVE-2020-1010"])
 
     (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
-    assert not re.search(
-        r"More security patches are available if you enable UA for Infrastructure",
-        results_msg,
+    assert (
+        "additional security patch(es) are available if ESM for Infrastructure is enabled with\nUbuntu Advantage."
+        not in results_msg
     )
 
 
-def test_suggestions_empty_no_experimental_infra(
+def test_suggestions_empty_no_experimental_infra_disabled(
     monkeypatch, suggestions_only_cli_output_formatter
 ):
     cof = suggestions_only_cli_output_formatter
@@ -624,9 +625,9 @@ def test_suggestions_empty_no_experimental_infra(
 
     (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
-    assert not re.search(
-        r"More security patches are available if you enable UA for Infrastructure",
-        results_msg,
+    assert (
+        "additional security patch(es) are available if ESM for Infrastructure is enabled with\nUbuntu Advantage."
+        not in results_msg
     )
 
 
@@ -648,9 +649,9 @@ def test_suggestions_empty_experimental_infra_enabled(
 
     (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
-    assert not re.search(
-        r"More security patches are available if you enable UA for Infrastructure",
-        results_msg,
+    assert (
+        "additional security patch(es) are available if ESM for Infrastructure is enabled with\nUbuntu Advantage."
+        not in results_msg
     )
 
 
@@ -673,7 +674,7 @@ def test_suggestions_empty_experimental_infra_unknown(
     (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
     assert (
-        "1 additional security patch(es) are available if Ubuntu Advantage for Infrastructure is\nenabled."
+        "additional security patch(es) are available if ESM for Infrastructure is enabled with\nUbuntu Advantage."
         not in results_msg
     )
 
@@ -695,7 +696,7 @@ def test_suggestion_ua_for_infra(monkeypatch, suggestions_only_cli_output_format
     (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
     assert (
-        "1 additional security patch(es) are available if Ubuntu Advantage for Infrastructure is\nenabled."
+        "additional security patch(es) are available if ESM for Infrastructure is enabled with\nUbuntu Advantage."
         in results_msg
     )
 
