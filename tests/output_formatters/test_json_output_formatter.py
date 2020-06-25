@@ -85,44 +85,50 @@ def test_json_format():
                 "num_affected_packages": 3,
                 "num_patchable_vulnerabilities": 5,
             },
-            "CVE-2020-1000": {
-                "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1000",
-                "packages": {
-                    "pkg3": {"priority": "low", "fixed_version": "", "repository": ""}
-                },
-            },
-            "CVE-2020-1001": {
-                "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1001",
-                "packages": {
-                    "pkg1": {
-                        "priority": "high",
-                        "fixed_version": "1:1.2.3-4+deb9u2ubuntu0.2",
-                        "repository": "Ubuntu Archive",
-                    },
-                    "pkg2": {
-                        "priority": "high",
-                        "fixed_version": "1:1.2.3-4+deb9u2ubuntu0.2",
-                        "repository": "Ubuntu Archive",
+            "cves": {
+                "CVE-2020-1000": {
+                    "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1000",
+                    "packages": {
+                        "pkg3": {
+                            "priority": "low",
+                            "fixed_version": "",
+                            "repository": "",
+                        }
                     },
                 },
-            },
-            "CVE-2020-1005": {
-                "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1005",
-                "packages": {
-                    "pkg1": {
-                        "priority": "low",
-                        "fixed_version": "1:1.2.3-4+deb9u3",
-                        "repository": "UA for Apps",
+                "CVE-2020-1001": {
+                    "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1001",
+                    "packages": {
+                        "pkg1": {
+                            "priority": "high",
+                            "fixed_version": "1:1.2.3-4+deb9u2ubuntu0.2",
+                            "repository": "Ubuntu Archive",
+                        },
+                        "pkg2": {
+                            "priority": "high",
+                            "fixed_version": "1:1.2.3-4+deb9u2ubuntu0.2",
+                            "repository": "Ubuntu Archive",
+                        },
                     },
-                    "pkg2": {
-                        "priority": "low",
-                        "fixed_version": "1:1.2.3-4+deb9u3",
-                        "repository": "UA for Apps",
-                    },
-                    "pkg3": {
-                        "priority": "low",
-                        "fixed_version": "10.2.3-2ubuntu0.1",
-                        "repository": "UA for Infra",
+                },
+                "CVE-2020-1005": {
+                    "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1005",
+                    "packages": {
+                        "pkg1": {
+                            "priority": "low",
+                            "fixed_version": "1:1.2.3-4+deb9u3",
+                            "repository": "UA for Apps",
+                        },
+                        "pkg2": {
+                            "priority": "low",
+                            "fixed_version": "1:1.2.3-4+deb9u3",
+                            "repository": "UA for Apps",
+                        },
+                        "pkg3": {
+                            "priority": "low",
+                            "fixed_version": "10.2.3-2ubuntu0.1",
+                            "repository": "UA for Infra",
+                        },
                     },
                 },
             },

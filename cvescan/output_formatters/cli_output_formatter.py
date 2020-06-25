@@ -1,4 +1,5 @@
 from sys import stdout
+from textwrap import wrap
 from typing import List
 
 from tabulate import tabulate
@@ -8,12 +9,14 @@ from cvescan import TargetSysInfo
 from cvescan.output_formatters import (
     AbstractOutputFormatter,
     AbstractStackableScanResultSorter,
+    ScanStats,
 )
 from cvescan.scan_result import ScanResult
 
 
 class CLIOutputFormatter(AbstractOutputFormatter):
     NOT_APPLICABLE = "N/A"
+    DISABLED = "(disabled)"
 
     # TODO: These colors don't all show clearly on a light background
     priority_to_color_code = {
@@ -38,9 +41,20 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         priority_results = self._filter_on_priority(scan_results)
         fixable_results = self._filter_on_fixable(priority_results)
 
-        summary_msg = self._format_summary(scan_results, sysinfo)
+        stats = self._get_scan_stats(scan_results, sysinfo)
+
+        msg = ""
         table_msg = self._format_table(priority_results, fixable_results, sysinfo)
-        msg = "\n%s\n\n%s" % (summary_msg, table_msg)
+
+        if table_msg:
+            msg += "%s\n\n" % table_msg
+
+        summary_msg = self._format_summary(stats, sysinfo)
+        msg += summary_msg
+
+        suggestions_msg = self._format_suggestions(stats, sysinfo)
+        if suggestions_msg:
+            msg += "\n\n%s" % suggestions_msg
 
         return_code = CLIOutputFormatter._determine_return_code(
             priority_results, fixable_results
@@ -48,23 +62,32 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
         return (msg, return_code)
 
-    def _format_summary(self, scan_results: List[ScanResult], sysinfo: TargetSysInfo):
-        stats = self._get_scan_stats(scan_results, sysinfo)
-
+    def _format_summary(self, stats: ScanStats, sysinfo: TargetSysInfo):
         # Disabling for now
         # apps_enabled =
         # CLIOutputFormatter._format_esm_enabled(sysinfo.esm_apps_enabled)
         # infra_enabled = CLIOutputFormatter._format_esm_enabled(
         # sysinfo.esm_infra_enabled
         # )
-        fixable_vulns = CLIOutputFormatter._colorize_fixes(stats.fixable_vulns, True)
+
+        # TODO: This is a hack. See issue #42
+        if sysinfo.esm_apps_enabled is None or sysinfo.esm_infra_enabled is None:
+            ua_archive_enabled = None
+        else:
+            ua_archive_enabled = True
+
+        fixable_vulns = CLIOutputFormatter._colorize_fixes(
+            stats.fixable_vulns, ua_archive_enabled
+        )
         apps_vulns = CLIOutputFormatter._colorize_fixes(
             stats.apps_vulns, sysinfo.esm_apps_enabled
         )
         infra_vulns = CLIOutputFormatter._colorize_fixes(
             stats.infra_vulns, sysinfo.esm_infra_enabled
         )
-        upgrade_vulns = CLIOutputFormatter._colorize_fixes(stats.upgrade_vulns, True)
+        upgrade_vulns = CLIOutputFormatter._colorize_fixes(
+            stats.upgrade_vulns, ua_archive_enabled
+        )
         missing_fixes = CLIOutputFormatter._colorize_esm_combined_fixes(
             stats.missing_fixes, sysinfo
         )
@@ -144,16 +167,20 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         return cls._colorize(priority_color_code, priority)
 
     def _colorize_repository(self, repository, sysinfo):
-        if not repository:
+        if (
+            not repository
+            or sysinfo.esm_apps_enabled is None
+            or sysinfo.esm_infra_enabled is None
+        ):
             return repository
 
-        if repository == const.UBUNTU_ARCHIVE:
+        if const.UBUNTU_ARCHIVE in repository:
             color_code = const.REPOSITORY_ENABLED_COLOR_CODE
-        elif repository == const.UA_APPS:
+        elif const.UA_APPS in repository:
             color_code = CLIOutputFormatter._get_ua_repository_color_code(
                 sysinfo.esm_apps_enabled
             )
-        elif repository == const.UA_INFRA:
+        elif const.UA_INFRA in repository:
             color_code = CLIOutputFormatter._get_ua_repository_color_code(
                 sysinfo.esm_infra_enabled
             )
@@ -174,6 +201,13 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
     def _transform_repository(self, repository, sysinfo):
         if repository:
+            if repository == const.UA_APPS:
+                if sysinfo.esm_apps_enabled == False:  # noqa: #E712
+                    repository += " " + CLIOutputFormatter.DISABLED
+            elif repository == const.UA_INFRA:
+                if sysinfo.esm_infra_enabled == False:  # noqa: #E712
+                    repository += " " + CLIOutputFormatter.DISABLED
+
             return self._colorize_repository(repository, sysinfo)
 
         return CLIOutputFormatter.NOT_APPLICABLE
@@ -194,7 +228,7 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             return str(fixes)
 
         if enabled is None:
-            return cls._colorize(const.REPOSITORY_UNKNOWN_COLOR_CODE, fixes)
+            return fixes
 
         if enabled:
             return cls._colorize(const.REPOSITORY_ENABLED_COLOR_CODE, fixes)
@@ -207,3 +241,23 @@ class CLIOutputFormatter(AbstractOutputFormatter):
             return str(value)
 
         return "\u001b[38;5;%dm%s\u001b[0m" % (color_code, str(value))
+
+    def _format_suggestions(self, stats: ScanStats, sysinfo: TargetSysInfo):
+        ua_msg = (
+            "%d additional security patch(es) are available if Ubuntu Advantage for %s "
+            "is enabled. For more information, see %s."
+        )
+
+        if stats.infra_vulns > 0 and sysinfo.esm_infra_enabled == False:  # noqa: E712
+            infra_msg = ua_msg % (
+                stats.infra_vulns,
+                "Infrastructure",
+                const.UA_INFRA_URL,
+            )
+            return CLIOutputFormatter._wrap_text(infra_msg)
+
+        return ""
+
+    @staticmethod
+    def _wrap_text(text):
+        return "\n".join(wrap(text, 88))

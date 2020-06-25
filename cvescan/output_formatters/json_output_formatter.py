@@ -26,8 +26,7 @@ class JSONOutputFormatter(AbstractOutputFormatter):
             self.sort(fixable_results)
             results = fixable_results
 
-        cve_results = self._get_cve_results(results)
-        output.update(cve_results)
+        output["cves"] = self._get_cve_results(results)
 
         return_code = JSONOutputFormatter._determine_return_code(
             priority_results, fixable_results

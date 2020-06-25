@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2020-06-24
+### Added
+- Security suggestions to the bottom of the default output.
+- A "(disabled)" marker next to disabled repositories in the default output ([issue #43](https://github.com/canonical/sec-cvescan/issues/43)).
+### Changed
+- The ordering of the default output so that the summary is printed after the
+  list of CVEs.
+- The CVE keys in the JSON output are now sub-keys under a "cves" key.
+- Since we can have no knowledge of the status of repositories in manifest
+  mode, don't colorize repositories when in manifest mode.
+
 ## [2.1.0] - 2020-06-23
 ### Added
 - A "--csv" flag to instruct CVEScan to format the output as CSV ([issue #32](https://github.com/canonical/sec-cvescan/issues/32)).
