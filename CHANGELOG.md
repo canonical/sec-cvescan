@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Security suggestions to the bottom of the default output.
+- A "(disabled)" marker next to disabled repositories in the default output.
 ### Changed
 - The ordering of the default output so that the summary is printed after the
   list of CVEs.

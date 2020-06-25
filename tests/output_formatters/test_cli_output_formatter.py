@@ -669,8 +669,87 @@ def test_suggestion_ua_for_infra(monkeypatch, suggestions_only_cli_output_format
 
     (results_msg, return_code) = cof.format_output(sr, sysinfo)
 
-    print(results_msg)
     assert (
         "1 additional security patch(es) are available if Ubuntu Advantage for Infrastructure is\nenabled."
         in results_msg
     )
+
+
+def test_ua_apps_enabled_text(monkeypatch, table_only_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = True
+
+    sr = filter_scan_results_by_cve_ids("CVE-2020-1009")
+
+    (results_msg, return_code) = table_only_cli_output_formatter.format_output(
+        sr, sysinfo
+    )
+
+    assert "(disabled)" not in results_msg
+
+
+def test_ua_apps_unknown_text(monkeypatch, table_only_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = None
+
+    sr = filter_scan_results_by_cve_ids("CVE-2020-1009")
+
+    (results_msg, return_code) = table_only_cli_output_formatter.format_output(
+        sr, sysinfo
+    )
+
+    assert "(disabled)" not in results_msg
+
+
+def test_ua_apps_disabled_text(monkeypatch, table_only_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = False
+    sysinfo.esm_infra_enabled = True
+
+    sr = filter_scan_results_by_cve_ids("CVE-2020-1009")
+
+    (results_msg, return_code) = table_only_cli_output_formatter.format_output(
+        sr, sysinfo
+    )
+
+    assert "(disabled)" in results_msg
+
+
+def test_ua_infra_enabled_text(monkeypatch, table_only_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_infra_enabled = True
+
+    sr = filter_scan_results_by_cve_ids("CVE-2020-1010")
+
+    (results_msg, return_code) = table_only_cli_output_formatter.format_output(
+        sr, sysinfo
+    )
+
+    assert "(disabled)" not in results_msg
+
+
+def test_ua_infra_unknown_text(monkeypatch, table_only_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_infra_enabled = None
+
+    sr = filter_scan_results_by_cve_ids("CVE-2020-1010")
+
+    (results_msg, return_code) = table_only_cli_output_formatter.format_output(
+        sr, sysinfo
+    )
+
+    assert "(disabled)" not in results_msg
+
+
+def test_ua_infra_disabled_text(monkeypatch, table_only_cli_output_formatter):
+    sysinfo = MockSysInfo()
+    sysinfo.esm_apps_enabled = True
+    sysinfo.esm_infra_enabled = False
+
+    sr = filter_scan_results_by_cve_ids("CVE-2020-1010")
+
+    (results_msg, return_code) = table_only_cli_output_formatter.format_output(
+        sr, sysinfo
+    )
+
+    assert "(disabled)" in results_msg

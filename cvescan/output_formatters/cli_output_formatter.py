@@ -16,6 +16,7 @@ from cvescan.scan_result import ScanResult
 
 class CLIOutputFormatter(AbstractOutputFormatter):
     NOT_APPLICABLE = "N/A"
+    DISABLED = "(disabled)"
 
     # TODO: These colors don't all show clearly on a light background
     priority_to_color_code = {
@@ -158,13 +159,13 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         if not repository:
             return repository
 
-        if repository == const.UBUNTU_ARCHIVE:
+        if const.UBUNTU_ARCHIVE in repository:
             color_code = const.REPOSITORY_ENABLED_COLOR_CODE
-        elif repository == const.UA_APPS:
+        elif const.UA_APPS in repository:
             color_code = CLIOutputFormatter._get_ua_repository_color_code(
                 sysinfo.esm_apps_enabled
             )
-        elif repository == const.UA_INFRA:
+        elif const.UA_INFRA in repository:
             color_code = CLIOutputFormatter._get_ua_repository_color_code(
                 sysinfo.esm_infra_enabled
             )
@@ -185,6 +186,13 @@ class CLIOutputFormatter(AbstractOutputFormatter):
 
     def _transform_repository(self, repository, sysinfo):
         if repository:
+            if repository == const.UA_APPS:
+                if sysinfo.esm_apps_enabled == False:  # noqa: #E712
+                    repository += " " + CLIOutputFormatter.DISABLED
+            elif repository == const.UA_INFRA:
+                if sysinfo.esm_infra_enabled == False:  # noqa: #E712
+                    repository += " " + CLIOutputFormatter.DISABLED
+
             return self._colorize_repository(repository, sysinfo)
 
         return CLIOutputFormatter.NOT_APPLICABLE
