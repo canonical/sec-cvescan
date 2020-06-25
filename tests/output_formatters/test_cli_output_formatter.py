@@ -8,6 +8,8 @@ import cvescan.constants as const
 from cvescan import TargetSysInfo
 from cvescan.output_formatters import CLIOutputFormatter, ScanStats
 
+# TODO: Clean this test suite up.
+
 
 class TableOnlyCLIOutputFormatter(CLIOutputFormatter):
     def _format_summary(self, stats: ScanStats, sysinfo: TargetSysInfo):
@@ -393,7 +395,10 @@ def run_esm_color_code_test(
 
     (results_msg, return_code) = output_formatter.format_output(sr, sysinfo)
 
-    fixable_color_code = r"\u001b\[38;5;%dm" % repository_color_code
+    if yn == "Unknown":
+        fixable_color_code = ""
+    else:
+        fixable_color_code = r"\u001b\[38;5;%dm" % repository_color_code
     assert re.search(
         r"Vulnerabilities Fixable by ESM Apps\s+%s2" % fixable_color_code, results_msg
     )
@@ -452,7 +457,12 @@ def test_summary_manifest_esm_unknown_color(
 
 
 def run_fixes_not_applied_color_code_test(
-    monkeypatch, output_formatter, sysinfo, repository_color_code, num_fixes
+    monkeypatch,
+    output_formatter,
+    sysinfo,
+    repository_color_code,
+    num_fixes,
+    unknown=False,
 ):
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
 
@@ -461,7 +471,7 @@ def run_fixes_not_applied_color_code_test(
     (results_msg, return_code) = output_formatter.format_output(sr, sysinfo)
 
     fixable_color_code = ""
-    if num_fixes != 0:
+    if num_fixes != 0 and not unknown:
         fixable_color_code = r"\u001b\[38;5;%dm" % repository_color_code
     assert re.search(
         r"Available Fixes Not Applied by `apt-get upgrade`\s+%s%d"
@@ -522,6 +532,7 @@ def test_summary_fixes_unknown_color(monkeypatch, summary_only_cli_output_format
         sysinfo,
         const.REPOSITORY_UNKNOWN_COLOR_CODE,
         3,
+        unknown=True,
     )
 
 
