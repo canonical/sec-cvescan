@@ -141,13 +141,8 @@ manifest.txt`
 The recommended way to install CVEScan is with `sudo snap install cvescan`
 
 ### From Source
-To install and run CVEScan from source, you'll first need to install some prerequsites:
-
-```
-$> sudo apt install python3-pip libcurl4-openssl-dev libssl-dev
-```
-
-Then you can clone this repository and install CVEScan:
+To install and run CVEScan from source, you can clone this repository and
+install run:
 
 ```
 $> git clone https://github.com/canonical/sec-cvescan

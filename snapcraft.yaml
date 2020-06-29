@@ -67,8 +67,6 @@ parts:
   cvescan-python:
     plugin: python
     stage-packages:
-      - libssl-dev
-      - libcurl4-openssl-dev
       - python3-apt
     build-packages:
       - gcc
