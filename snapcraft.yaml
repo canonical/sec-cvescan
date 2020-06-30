@@ -71,6 +71,10 @@ parts:
     build-packages:
       - gcc
     source: .
+    override-prime: |
+        snapcraftctl prime
+        echo "Compiling pyc files..."
+        "$SNAPCRAFT_PART_INSTALL/usr/bin/python3" -m compileall -q .
   cvescan-bash:
     plugin: dump
     source: snapcraft/
