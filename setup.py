@@ -19,16 +19,14 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/canonical/sec-cvescan",
     packages=setuptools.find_packages(exclude=["tests"]),
+    license="GPLv3",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: POSIX :: Linux",
         "Topic :: Security",
     ],
-    install_requires=[
-        "tabulate",
-        "ust-download-cache @ https://github.com/canonical/ust-download-cache/archive/v1.1.0.tar.gz",  # noqa: E501
-    ],
+    install_requires=["tabulate", "ust-download-cache"],
     python_requires=">=3.5",
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-cov"],
