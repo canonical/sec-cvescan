@@ -4,10 +4,9 @@ version: '2.2.1'
 summary: Security/CVE vulnerability monitoring for Ubuntu
 license: GPL-3.0
 description: |
-  A script and XSLT file that use OpenSCAP and OVAL files from the
-  Ubuntu Security Teamto output a plain text list of CVE vulnerabilities
-  that exist for currently supported Ubuntu systems or for Ubuntu
-  images (using a package manifest file).
+  CVEScan analyzes an Ubuntu system to check whether all available security
+  patches have been installed. CVEScan produces a clear, concise report that
+  tells you which, if any, security patches an Ubuntu system may be missing.
   
   Installation -> `sudo snap install cvescan`
 
