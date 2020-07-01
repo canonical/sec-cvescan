@@ -27,6 +27,14 @@ setuptools.setup(
         "Topic :: Security",
     ],
     install_requires=["tabulate", "ust-download-cache"],
+    extras_require={
+        "apt": [
+            "python-distutils-extra @ "
+            "git+https://salsa.debian.org/python-team/modules/"
+            "python-distutils-extra.git",
+            "python-apt @ git+https://salsa.debian.org/apt-team/python-apt",
+        ],
+    },
     python_requires=">=3.5",
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-cov"],
