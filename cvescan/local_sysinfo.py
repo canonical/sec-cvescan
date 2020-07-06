@@ -56,6 +56,14 @@ class LocalSysInfo:
                     infra = True if entitlement["status"] == "enabled" else False
         except (FileNotFoundError, PermissionError) as err:
             self.logger.debug("Failed to open UA Status JSON file: %s" % err)
+        except (KeyError) as ke:
+            self.logger.debug(
+                "The file '%s' is malformed and cannot be parsed: Missing key %s", ke
+            )
+        except json.decoder.JSONDecodeError:
+            self.logger.debug(
+                "The file '%s' contains malformed JSON and cannot be parsed."
+            )
 
         self._esm_apps_enabled = apps
         self._esm_infra_enabled = infra

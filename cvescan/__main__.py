@@ -216,24 +216,24 @@ def main():
     )
 
     try:
-        target_sysinfo = TargetSysInfo(opt, local_sysinfo)
+        try:
+            target_sysinfo = TargetSysInfo(opt, local_sysinfo)
 
-        log_config_options(opt)
-        log_local_system_info(local_sysinfo, opt.manifest_mode)
-        log_target_system_info(target_sysinfo)
-    except (FileNotFoundError, PermissionError) as err:
-        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
-    except DistribIDError as di:
-        error_exit(
-            "Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s"
-            % di
-        )
-    except PkgCountError as pke:
-        error_exit("Failed to determine the local package count: %s" % pke)
+            log_config_options(opt)
+            log_local_system_info(local_sysinfo, opt.manifest_mode)
+            log_target_system_info(target_sysinfo)
+        except (FileNotFoundError, PermissionError) as err:
+            error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
+        except DistribIDError as di:
+            error_exit(
+                "Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s"
+                % di
+            )
+        except PkgCountError as pke:
+            error_exit("Failed to determine the local package count: %s" % pke)
 
-    output_formatter = load_output_formatter(opt)
+        output_formatter = load_output_formatter(opt)
 
-    try:
         download_cache = USTDownloadCache(LOGGER)
         uct_data = load_uct_data(opt, download_cache, target_sysinfo)
         cve_scanner = CVEScanner(LOGGER)
