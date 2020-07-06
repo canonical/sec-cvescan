@@ -23,6 +23,11 @@ class MockOpt:
         self.nagios_mode = False
 
 
+class MockTargetSysInfo:
+    def __init__(self):
+        self.codename = "focal"
+
+
 class MockDownloadCache:
     def get_from_url(self, url):
         return {"metadata": {}, "data": {"CVE-2019-1000": "0"}}
@@ -50,12 +55,13 @@ def test_set_output_verbosity_debug():
 
 
 def test_load_uct_data_file():
+    target_sysinfo = MockTargetSysInfo()
     opt = MockOpt()
     opt.download_uct_db_file = False
 
     download_cache = MockDownloadCache()
 
-    data = main.load_uct_data(opt, download_cache)
+    data = main.load_uct_data(opt, download_cache, target_sysinfo)
 
     assert len(data.keys()) == 3
     assert "CVE-2020-1000" in data
@@ -64,15 +70,25 @@ def test_load_uct_data_file():
 
 
 def test_load_uct_data_cache():
+    target_sysinfo = MockTargetSysInfo()
     opt = MockOpt()
     opt.download_uct_db_file = True
 
     download_cache = MockDownloadCache()
 
-    data = main.load_uct_data(opt, download_cache)
+    data = main.load_uct_data(opt, download_cache, target_sysinfo)
 
     assert len(data.keys()) == 1
     assert "CVE-2019-1000" in data
+
+
+def test_uct_data_url_has_codename():
+    url = main.get_uct_data_url(MockTargetSysInfo())
+
+    assert (
+        url
+        == "https://people.canonical.com/~ubuntu-security/cvescan/ubuntu-vuln-db-focal.json.bz2"
+    )
 
 
 def test_cve_output_formatter():

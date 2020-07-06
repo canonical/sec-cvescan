@@ -181,17 +181,19 @@ def load_output_sorter(opt):
     return CVEScanResultSorter(subsorters=[pkg_sorter])
 
 
-def load_uct_data(opt, download_cache):
-    db_file_path = opt.db_file
-
+def load_uct_data(opt, download_cache, target_sysinfo):
     if opt.download_uct_db_file:
-        uct_data = download_cache.get_from_url(const.UCT_DATA_URL)["data"]
-
+        uct_data_url = get_uct_data_url(target_sysinfo)
+        uct_data = download_cache.get_from_url(uct_data_url)["data"]
     else:
-        with open(db_file_path) as db_file:
+        with open(opt.db_file) as db_file:
             uct_data = json.load(db_file)["data"]
 
     return uct_data
+
+
+def get_uct_data_url(target_sysinfo):
+    return const.UCT_DATA_URL % target_sysinfo.codename
 
 
 def main():
@@ -214,26 +216,26 @@ def main():
     )
 
     try:
-        target_sysinfo = TargetSysInfo(opt, local_sysinfo)
+        try:
+            target_sysinfo = TargetSysInfo(opt, local_sysinfo)
 
-        log_config_options(opt)
-        log_local_system_info(local_sysinfo, opt.manifest_mode)
-        log_target_system_info(target_sysinfo)
-    except (FileNotFoundError, PermissionError) as err:
-        error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
-    except DistribIDError as di:
-        error_exit(
-            "Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s"
-            % di
-        )
-    except PkgCountError as pke:
-        error_exit("Failed to determine the local package count: %s" % pke)
+            log_config_options(opt)
+            log_local_system_info(local_sysinfo, opt.manifest_mode)
+            log_target_system_info(target_sysinfo)
+        except (FileNotFoundError, PermissionError) as err:
+            error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
+        except DistribIDError as di:
+            error_exit(
+                "Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s"
+                % di
+            )
+        except PkgCountError as pke:
+            error_exit("Failed to determine the local package count: %s" % pke)
 
-    output_formatter = load_output_formatter(opt)
+        output_formatter = load_output_formatter(opt)
 
-    try:
         download_cache = USTDownloadCache(LOGGER)
-        uct_data = load_uct_data(opt, download_cache)
+        uct_data = load_uct_data(opt, download_cache, target_sysinfo)
         cve_scanner = CVEScanner(LOGGER)
         scan_results = cve_scanner.scan(
             target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs

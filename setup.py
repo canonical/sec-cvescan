@@ -9,7 +9,7 @@ os.umask(0o022)
 
 setuptools.setup(
     name="cvescan",
-    version="2.2.1",
+    version="2.3.0",
     author=(
         "Mark Morlino <mark.morlino@canonical.com>,"
         "Mike Salvatore <mike.salvatore@canonical.com>"
@@ -19,16 +19,22 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/canonical/sec-cvescan",
     packages=setuptools.find_packages(exclude=["tests"]),
+    license="GPLv3",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: POSIX :: Linux",
         "Topic :: Security",
     ],
-    install_requires=[
-        "tabulate",
-        "ust-download-cache @ https://github.com/canonical/ust-download-cache/archive/v1.0.1.tar.gz",  # noqa: E501
-    ],
+    install_requires=["tabulate", "ust-download-cache"],
+    extras_require={
+        "apt": [
+            "python-distutils-extra @ "
+            "git+https://salsa.debian.org/python-team/modules/"
+            "python-distutils-extra.git",
+            "python-apt @ git+https://salsa.debian.org/apt-team/python-apt",
+        ],
+    },
     python_requires=">=3.5",
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-cov"],

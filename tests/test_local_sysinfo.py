@@ -270,6 +270,30 @@ def test_esm_apps_missing(monkeypatch, null_logger):
     assert sysinfo.esm_infra_enabled is False
 
 
+def test_esm_apps_missing_status_field(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = (
+        "tests/assets/ubuntu-advantage-status-malformed.json"
+    )
+    apply_mock_responses(monkeypatch, mock_responses)
+    sysinfo = LocalSysInfo(null_logger)
+
+    assert sysinfo.esm_apps_enabled is False
+    assert sysinfo.esm_infra_enabled is False
+
+
+def test_esm_apps_malformed_json(monkeypatch, null_logger):
+    mock_responses = MockResponses()
+    mock_responses.ua_status_file = (
+        "tests/assets/ubuntu-advantage-status-malformed-json.json"
+    )
+    apply_mock_responses(monkeypatch, mock_responses)
+    sysinfo = LocalSysInfo(null_logger)
+
+    assert sysinfo.esm_apps_enabled is False
+    assert sysinfo.esm_infra_enabled is False
+
+
 def test_no_snap_ua_status_path(monkeypatch, null_logger):
     mock_responses = MockResponses()
     mock_responses.ua_status_file = "tests/assets/ubuntu-advantage-status-missing.json"
