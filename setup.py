@@ -9,7 +9,7 @@ os.umask(0o022)
 
 setuptools.setup(
     name="cvescan",
-    version="2.2.1",
+    version="2.3.0",
     author=(
         "Mark Morlino <mark.morlino@canonical.com>,"
         "Mike Salvatore <mike.salvatore@canonical.com>"
