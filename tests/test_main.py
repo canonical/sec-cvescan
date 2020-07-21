@@ -29,8 +29,8 @@ class MockTargetSysInfo:
 
 
 class MockDownloadCache:
-    def get_from_url(self, url):
-        return {"metadata": {}, "data": {"CVE-2019-1000": "0"}}
+    def get_data_from_url(self, url):
+        return {"CVE-2019-1000": "0"}
 
 
 def test_set_output_verbosity_info():

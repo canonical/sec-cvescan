@@ -184,7 +184,7 @@ def load_output_sorter(opt):
 def load_uct_data(opt, download_cache, target_sysinfo):
     if opt.download_uct_db_file:
         uct_data_url = get_uct_data_url(target_sysinfo)
-        uct_data = download_cache.get_from_url(uct_data_url)["data"]
+        uct_data = download_cache.get_data_from_url(uct_data_url)
     else:
         with open(opt.db_file) as db_file:
             uct_data = json.load(db_file)["data"]
