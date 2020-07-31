@@ -98,8 +98,10 @@ class CLIOutputFormatter(AbstractOutputFormatter):
         summary.append(["Unique CVEs Fixable by Patching", stats.fixable_cves])
         summary.append(["Vulnerabilities Fixable by Patching", fixable_vulns])
         if self.opt.experimental_mode:
-            summary.append(["Vulnerabilities Fixable by UA Apps", apps_vulns])
-            summary.append(["Vulnerabilities Fixable by UA Infra", infra_vulns])
+            summary.append([f"Vulnerabilities Fixable by {const.UA_APPS}", apps_vulns])
+            summary.append(
+                [f"Vulnerabilities Fixable by {const.UA_INFRA}", infra_vulns]
+            )
             # Disabling for now
             # summary.append(["UA Apps Enabled", apps_enabled])
             # summary.append(["UA Infra Enabled", infra_enabled])

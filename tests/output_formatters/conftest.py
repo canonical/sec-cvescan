@@ -251,8 +251,8 @@ def run_non_experimental_filter_test_cli():
         )
         (results_msg, return_code) = run_format(formatter_type, sr, experimental=False)
 
-        assert "UA Apps" not in results_msg
-        assert "UA Infra" not in results_msg
+        assert const.UA_APPS not in results_msg
+        assert const.UA_INFRA not in results_msg
 
     return run_test
 

@@ -1,5 +1,6 @@
 import apt_pkg
 
+import cvescan.constants as const
 from cvescan.scan_result import ScanResult
 
 
@@ -46,8 +47,17 @@ class CVEScanner:
             )
 
             for vb in vulnerable_binaries:
+                repo = vb[2]
+                # TODO: This is a hack to work around the fact that the UA
+                #       product names (presentation layer) are provided by the
+                #       JSON database (data layer). Fix the root cause of this
+                #       issue instead of working around it like this.
+                if repo == "UA Apps":
+                    repo = const.UA_APPS
+                elif repo == "UA Infra":
+                    repo = const.UA_INFRA
                 affected_cves.append(
-                    ScanResult(cve_id, uct_record["priority"], vb[0], vb[1], vb[2])
+                    ScanResult(cve_id, uct_record["priority"], vb[0], vb[1], repo)
                 )
 
         return affected_cves
