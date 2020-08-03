@@ -60,3 +60,8 @@ def test_parse_manifest_codename_failure():
 def test_parse_manifest_codename_missing_key_package():
     with pytest.raises(Exception):
         (_, codename) = mp.parse_manifest_file("/dev/null")
+
+
+def test_nonexistant_file():
+    with pytest.raises(Exception):
+        (pkgs, codename) = mp.parse_manifest_file("tests/assets/noexist")
