@@ -107,4 +107,3 @@ UCT_URL = "https://people.canonical.com/~ubuntu-security/cve/%s"
 UCT_DATA_URL = (
     "https://people.canonical.com/~ubuntu-security/cvescan/ubuntu-vuln-db-%s.json.bz2"
 )
-UCT_DATA_FILE = "uct.json.bz2"
