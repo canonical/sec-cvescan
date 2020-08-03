@@ -333,8 +333,8 @@ def test_summary_nounresolved(monkeypatch, summary_only_cli_output_formatter):
     assert re.search(r"Unique Packages Fixable by Patching\s+6", results_msg)
     assert re.search(r"Unique CVEs Fixable by Patching\s+5", results_msg)
     assert re.search(r"Vulnerabilities Fixable by Patching\s+10", results_msg)
-    assert re.search(r"Vulnerabilities Fixable by UA Apps\s+6", results_msg)
-    assert re.search(r"Vulnerabilities Fixable by UA Infra\s+2", results_msg)
+    assert re.search(r"Vulnerabilities Fixable by %s\s+6" % const.UA_APPS, results_msg)
+    assert re.search(r"Vulnerabilities Fixable by %s\s+2" % const.UA_INFRA, results_msg)
     # Disabling for now
     # assert re.search(r"UA Apps Enabled\s+No", results_msg)
     # assert re.search(r"UA Infra Enabled\s+No", results_msg)
@@ -400,10 +400,12 @@ def run_esm_color_code_test(
     else:
         fixable_color_code = r"\u001b\[38;5;%dm" % repository_color_code
     assert re.search(
-        r"Vulnerabilities Fixable by UA Apps\s+%s2" % fixable_color_code, results_msg
+        r"Vulnerabilities Fixable by %s\s+%s2" % (const.UA_APPS, fixable_color_code),
+        results_msg,
     )
     assert re.search(
-        r"Vulnerabilities Fixable by UA Infra\s+%s1" % fixable_color_code, results_msg
+        r"Vulnerabilities Fixable by %s\s+%s1" % (const.UA_INFRA, fixable_color_code),
+        results_msg,
     )
 
     # Disabling for now

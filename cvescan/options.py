@@ -47,10 +47,9 @@ class Options:
         if args.db:
             self.download_uct_db_file = False
             self.db_file = args.db
-            return
-
-        self.download_uct_db_file = True
-        self.db_file = "uct.json"
+        else:
+            self.download_uct_db_file = True
+            self.db_file = "uct.json"
 
     def _set_manifest_file_options(self, args):
         self.manifest_file = os.path.abspath(args.manifest) if args.manifest else None

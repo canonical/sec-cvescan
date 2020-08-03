@@ -1,5 +1,6 @@
 from conftest import MockOpt, MockSysInfo, filter_scan_results_by_cve_ids, null_logger
 
+import cvescan.constants as const
 from cvescan.output_formatters import CSVOutputFormatter
 
 
@@ -71,9 +72,15 @@ def test_csv():
     expected_csv_results += (
         "\nCVE-2020-1001,high,pkg2,1:1.2.3-4+deb9u2ubuntu0.2,Ubuntu Archive"
     )
-    expected_csv_results += "\nCVE-2020-1005,low,pkg1,1:1.2.3-4+deb9u3,UA Apps"
-    expected_csv_results += "\nCVE-2020-1005,low,pkg2,1:1.2.3-4+deb9u3,UA Apps"
-    expected_csv_results += "\nCVE-2020-1005,low,pkg3,10.2.3-2ubuntu0.1,UA Infra"
+    expected_csv_results += (
+        "\nCVE-2020-1005,low,pkg1,1:1.2.3-4+deb9u3,%s" % const.UA_APPS
+    )
+    expected_csv_results += (
+        "\nCVE-2020-1005,low,pkg2,1:1.2.3-4+deb9u3,%s" % const.UA_APPS
+    )
+    expected_csv_results += (
+        "\nCVE-2020-1005,low,pkg3,10.2.3-2ubuntu0.1,%s" % const.UA_INFRA
+    )
 
     assert results_msg == expected_csv_results
 

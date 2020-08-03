@@ -51,7 +51,10 @@ def test_vulnerable_patch_available_apps(cve_output_formatter):
     sr.append(ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.UA_APPS))
     msg, rc = cve_output_formatter.format_output(sr, MockSysInfo())
 
-    assert msg == "Vulnerable to CVE-2020-1000, but fixes are available from UA Apps."
+    assert (
+        msg
+        == f"Vulnerable to CVE-2020-1000, but fixes are available from {const.UA_APPS}."
+    )
     assert rc == 4
 
 
@@ -60,7 +63,10 @@ def test_vulnerable_patch_available_infra(cve_output_formatter):
     sr.append(ScanResult("CVE-2020-1000", "low", "pkg3", "1.2.3-4", const.UA_INFRA),)
     msg, rc = cve_output_formatter.format_output(sr, MockSysInfo())
 
-    assert msg == "Vulnerable to CVE-2020-1000, but fixes are available from UA Infra."
+    assert (
+        msg
+        == f"Vulnerable to CVE-2020-1000, but fixes are available from {const.UA_INFRA}."
+    )
 
 
 def test_no_patch_available_infra_experimental(cve_output_formatter):
@@ -84,7 +90,7 @@ def test_vulnerable_patch_available_apps_infra(cve_output_formatter):
 
     expected_msg = (
         "Vulnerable to CVE-2020-1000, but fixes are available from "
-        "UA Apps and UA Infra."
+        f"{const.UA_APPS} and {const.UA_INFRA}."
     )
 
     assert msg == expected_msg
@@ -101,7 +107,7 @@ def test_vulnerable_patch_available_apps_repository(cve_output_formatter):
     msg, rc = cve_output_formatter.format_output(sr, MockSysInfo())
     expected_msg = (
         "Vulnerable to CVE-2020-1000, but fixes are available from "
-        "UA Apps and the Ubuntu Archive."
+        f"{const.UA_APPS} and the Ubuntu Archive."
     )
 
     assert msg == expected_msg
@@ -118,7 +124,7 @@ def test_vulnerable_patch_available_infra_repository(cve_output_formatter):
     msg, rc = cve_output_formatter.format_output(sr, MockSysInfo())
     expected_msg = (
         "Vulnerable to CVE-2020-1000, but fixes are available from "
-        "UA Infra and the Ubuntu Archive."
+        f"{const.UA_INFRA} and the Ubuntu Archive."
     )
 
     assert msg == expected_msg
@@ -136,7 +142,7 @@ def test_vulnerable_patch_available_all(cve_output_formatter):
     msg, rc = cve_output_formatter.format_output(sr, MockSysInfo())
     expected_msg = (
         "Vulnerable to CVE-2020-1000, but fixes are available from "
-        "UA Apps, UA Infra, and the Ubuntu Archive."
+        f"{const.UA_APPS}, {const.UA_INFRA}, and the Ubuntu Archive."
     )
 
     assert msg == expected_msg
@@ -154,7 +160,7 @@ def test_vulnerable_patch_available_infra_repository_duplicates(cve_output_forma
     msg, rc = cve_output_formatter.format_output(sr, MockSysInfo())
     expected_msg = (
         "Vulnerable to CVE-2020-1000, but fixes are available from "
-        "UA Infra and the Ubuntu Archive."
+        f"{const.UA_INFRA} and the Ubuntu Archive."
     )
 
     assert msg == expected_msg

@@ -51,6 +51,8 @@ UNRESOLVED_HELP = "Show CVEs that have not yet been resolved."
 
 VERBOSE_HELP = "Enable verbose messages."
 
+VERSION_HELP = "Show CVEScan's version number and exit."
+
 EXPERIMENTAL_HELP = (
     'Enable eXperimental mode. Use experimental (also called "alpha") data \n'
     "from the Ubuntu CVE tracker. The alpha UCT files include information about\n"
@@ -68,8 +70,8 @@ UA_STATUS_FILE = "/var/lib/ubuntu-advantage/status.json"
 SNAPD_HOSTFS = "/var/lib/snapd/hostfs"
 
 UBUNTU_ARCHIVE = "Ubuntu Archive"
-UA_APPS = "UA Apps"
-UA_INFRA = "UA Infra"
+UA_APPS = "ESM Apps"
+UA_INFRA = "ESM Infra"
 
 UA_INFRA_URL = "https://ubuntu.com/advantage"
 
@@ -105,4 +107,3 @@ UCT_URL = "https://people.canonical.com/~ubuntu-security/cve/%s"
 UCT_DATA_URL = (
     "https://people.canonical.com/~ubuntu-security/cvescan/ubuntu-vuln-db-%s.json.bz2"
 )
-UCT_DATA_FILE = "uct.json.bz2"

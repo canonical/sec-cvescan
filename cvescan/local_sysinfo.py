@@ -1,10 +1,9 @@
 import configparser
 import json
 import os
-import re
-import subprocess
 
 import cvescan.constants as const
+import cvescan.dpkg_parser as dpkg_parser
 from cvescan.errors import DistribIDError, PkgCountError
 
 
@@ -136,45 +135,12 @@ class LocalSysInfo:
         return self._installed_pkgs
 
     def _get_installed_pkgs(self):
-        installed_regex = re.compile(r"^[uihrp]i")
-        installed_pkgs = {}
         try:
             self.logger.debug("Querying the local system for installed packages")
-            dpkg_output = self._get_dpkg_list()
-
-            # TODO: This code is basically duplicated in manifest_parser.py.
-            #       Replace duplicate code with a dpkg_parser module or similar.
-            for pkg in dpkg_output:
-                if installed_regex.match(str(pkg)) is not None:
-                    pkg_details = pkg.split()
-                    pkg = self.strip_architecture_extension(pkg_details[1])
-                    installed_pkgs[pkg] = pkg_details[2]
-
+            installed_pkgs = dpkg_parser.get_installed_pkgs_from_dpkg_list(self.logger)
             return installed_pkgs
         except Exception as ex:
             raise PkgCountError(ex)
-
-    def _get_dpkg_list(self):
-        self.logger.debug(
-            "Running `dpkg -l` to get a list of locally installed packages"
-        )
-        dpkg = subprocess.Popen(
-            ["dpkg", "-l"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-        )
-        out, outerr = dpkg.communicate()
-
-        if dpkg.returncode != 0:
-            raise PkgCountError(
-                "dpkg exited with code %d: %s" % (dpkg.returncode, outerr)
-            )
-
-        return out.splitlines()
-
-    def strip_architecture_extension(self, pkg):
-        return pkg.split(":")[0]
 
     def _get_ua_status_file_path(self):
         ua_status_file_path = const.UA_STATUS_FILE

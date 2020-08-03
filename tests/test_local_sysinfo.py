@@ -1,6 +1,5 @@
 import logging
 import os
-import subprocess
 import sys
 from unittest.mock import MagicMock
 
@@ -8,41 +7,26 @@ import lsb_release
 import pytest
 
 import cvescan.constants as const
+import cvescan.dpkg_parser as dpkg_parser
 from cvescan.errors import DistribIDError, PkgCountError
 from cvescan.local_sysinfo import LocalSysInfo
 
-
-class MockSubprocess:
-    def __init__(self):
-        self.out = (
-            "Desired=Unknown/Install/Remove/Purge/Hold\n"
-            "| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend\n"  # noqa: E501
-            "|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)\n"  # noqa: E501
-            "||/ Name                                            Version                                     Architecture Description\n"  # noqa: E501
-            "+++-===============================================-===========================================-============-===============================================================================\n"  # noqa: E501
-            "ii  2to3                                            3.7.5-1                                     all          2to3 binary using python3\n"  # noqa: E501
-            "ii  accountsservice                                 0.6.55-0ubuntu10                            amd64        query and manipulate user account information\n"  # noqa: E501
-            "ii  accountwizard:i386                              4:19.04.3-0ubuntu1                          amd64        wizard for KDE PIM applications account setup\n"  # noqa: E501
-            "ii  acl                                             2.2.53-4                                    amd64        access control list - utilities\n"  # noqa: E501
-            "ii  acpi-support                                    0.143                                       amd64        scripts for handling many ACPI events\n"  # noqa: E501
-            "rc  acpid                                           1:2.0.31-1ubuntu2                           amd64        Advanced Configuration and Power Interface event daemon\n"  # noqa: E501
-            "ii  adduser:amd64                                   3.118ubuntu1                                all          add and remove users and groups\n"  # noqa: E501
-            "ii  adwaita-icon-theme                              3.34.0-1ubuntu1                             all          default icon theme of GNOME (small subset)\n"  # noqa: E501
-            "ui  afl                                             2.52b-5ubuntu1                              amd64        instrumentation-driven fuzzer for binary formats\n"  # noqa: E501
-            "ii  afl-clang                                       2.52b-5ubuntu1                              amd64        instrumentation-driven fuzzer for binary formats - clang support\n"  # noqa: E501
-            "hi  afl-cov                                         0.6.2-1                                     all          code coverage for afl (American Fuzzy Lop)\n"  # noqa: E501
-            "ii  afl-doc                                         2.52b-5ubuntu1                              all          instrumentation-driven fuzzer for binary formats - documentation\n"  # noqa: E501
-            "ii  akonadi-backend-mysql                           4:19.04.3-0ubuntu3                          all          MySQL storage backend for Akonadi\n"  # noqa: E501
-            "ri  akonadi-server                                  4:19.04.3-0ubuntu3                          amd64        Akonadi PIM storage service\n"  # noqa: E501
-            "pi  akregator                                       4:19.04.3-0ubuntu1                          amd64        RSS/Atom feed aggregator\n"  # noqa: E501
-            "iH  alsa-base                                       1.0.25+dfsg-0ubuntu5                        all          ALSA driver configuration files\n"  # noqa: E501
-            "in  alsa-tools-gui                                  1.1.7-1                                     amd64        GUI based ALSA utilities for specific hardware\n "  # noqa: E501
-        )
-        self.error = None
-        self.returncode = 0
-
-    def communicate(self):
-        return (self.out, self.error)
+DEFAULT_INSTALLED_PKGS = {
+    "2to3": "3.7.5-1",
+    "accountsservice": "0.6.55-0ubuntu10",
+    "accountwizard": "4:19.04.3-0ubuntu1",
+    "acl": "2.2.53-4",
+    "acpi-support": "0.143",
+    "adduser": "3.118ubuntu1",
+    "adwaita-icon-theme": "3.34.0-1ubuntu1",
+    "afl": "2.52b-5ubuntu1",
+    "afl-clang": "2.52b-5ubuntu1",
+    "afl-cov": "0.6.2-1",
+    "afl-doc": "2.52b-5ubuntu1",
+    "akonadi-backend-mysql": "4:19.04.3-0ubuntu3",
+    "akonadi-server": "4:19.04.3-0ubuntu3",
+    "akregator": "4:19.04.3-0ubuntu1",
+}
 
 
 class MockResponses:
@@ -55,7 +39,7 @@ class MockResponses:
         self.get_distro_information = {"ID": "Ubuntu", "CODENAME": "trusty"}
         self.lsb_release_file = "tests/assets/lsb-release"
         self.ua_status_file = "tests/assets/ubuntu-advantage-status-disabled.json"
-        self.dpkg_popen = MockSubprocess()
+        self.installed_pkgs = lambda logger: DEFAULT_INSTALLED_PKGS
 
 
 def apply_mock_responses(monkeypatch, mock_responses):
@@ -79,7 +63,7 @@ def apply_mock_responses(monkeypatch, mock_responses):
     monkeypatch.setattr(const, "LSB_RELEASE_FILE", mock_responses.lsb_release_file)
     monkeypatch.setattr(const, "UA_STATUS_FILE", mock_responses.ua_status_file)
     monkeypatch.setattr(
-        subprocess, "Popen", lambda *args, **kwargs: mock_responses.dpkg_popen
+        dpkg_parser, "get_installed_pkgs_from_dpkg_list", mock_responses.installed_pkgs
     )
 
 
@@ -189,9 +173,7 @@ def test_package_count(monkeypatch, null_logger):
 
 def test_package_count_error(monkeypatch, null_logger):
     mock_responses = MockResponses()
-    ms = MockSubprocess()
-    ms.returncode = 1
-    mock_responses.dpkg_popen = ms
+    mock_responses.installed_pkgs = lambda logger: raise_mock_exception()
     apply_mock_responses(monkeypatch, mock_responses)
 
     with pytest.raises(PkgCountError):
@@ -205,23 +187,7 @@ def test_installed_pkgs_list(monkeypatch, null_logger):
     apply_mock_responses(monkeypatch, mock_responses)
 
     sysinfo = LocalSysInfo(null_logger)
-    expected_installed_pkgs = {
-        "2to3": "3.7.5-1",
-        "accountsservice": "0.6.55-0ubuntu10",
-        "accountwizard": "4:19.04.3-0ubuntu1",
-        "acl": "2.2.53-4",
-        "acpi-support": "0.143",
-        "adduser": "3.118ubuntu1",
-        "adwaita-icon-theme": "3.34.0-1ubuntu1",
-        "afl": "2.52b-5ubuntu1",
-        "afl-clang": "2.52b-5ubuntu1",
-        "afl-cov": "0.6.2-1",
-        "afl-doc": "2.52b-5ubuntu1",
-        "akonadi-backend-mysql": "4:19.04.3-0ubuntu3",
-        "akonadi-server": "4:19.04.3-0ubuntu3",
-        "akregator": "4:19.04.3-0ubuntu1",
-    }
-    assert sysinfo.installed_pkgs == expected_installed_pkgs
+    assert sysinfo.installed_pkgs == DEFAULT_INSTALLED_PKGS
 
 
 def test_esm_infra_enabled(monkeypatch, null_logger):

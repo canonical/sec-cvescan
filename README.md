@@ -99,6 +99,7 @@ optional arguments:
   --show-links          Provide links to the Ubuntu CVE Tracker for each CVE.
   --unresolved          Show CVEs that have not yet been resolved.
   -v, --verbose         Enable verbose messages.
+  --version             Show CVEScan's version number and exit
   -x, --experimental    Enable eXperimental mode. Use experimental (also called "alpha") data
                         from the Ubuntu CVE tracker. The alpha UCT files include information about
                         package updates available for users of Ubuntu Advantage running systems
@@ -173,15 +174,24 @@ $> venv/bin/cvescan
 CVEScan can be run from the source code with `python3 -m cvescan`
 
 ### Installing precommit hooks
+
 To install the precommit hooks, run
 
     pip3 install --user pre-commit
     ~/.local/bin/pre-commit install
 
 ### Running the test suite
+
 You can run the automated test suite by running
 
     python3 setup.py test
 
 An HTML code coverage report will be generated at `./htmlcov`. You can view
 this with any web browser (e.g. `firefox ./htmlcov/index.html`).
+
+### Version numbers
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+The version number used by the setup.py, snapcraft.yaml, and `cvescan
+--version` argument is stored in [cvescan/version.py](./cvescan/version.py) and
+must be updated manually when a new version of CVEScan is released.

@@ -2,6 +2,8 @@ import os
 
 import setuptools
 
+from cvescan.version import get_version
+
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -9,7 +11,7 @@ os.umask(0o022)
 
 setuptools.setup(
     name="cvescan",
-    version="2.3.1",
+    version=get_version(),
     author=(
         "Mark Morlino <mark.morlino@canonical.com>,"
         "Mike Salvatore <mike.salvatore@canonical.com>"

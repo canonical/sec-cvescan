@@ -1,6 +1,6 @@
 import re
 
-import apt_pkg
+import cvescan.dpkg_parser as dpkg_parser
 
 
 def parse_manifest_file(manifest_file_path):
@@ -8,21 +8,13 @@ def parse_manifest_file(manifest_file_path):
         with open(manifest_file_path) as mfp:
             manifest = mfp.read()
 
-        installed_pkgs = {}
-        for pkg in manifest.splitlines():
-            (pkg, version) = pkg.split("\t")
-            pkg = strip_architecture_extension(pkg)
-            installed_pkgs[pkg] = version
+        installed_pkgs = dpkg_parser.get_installed_pkgs_from_manifest(manifest)
     except Exception as e:
         raise Exception(
             "Failed to parse installed files from manifest the provided file: %s" % e
         )
 
     return (installed_pkgs, _get_codename(installed_pkgs))
-
-
-def strip_architecture_extension(pkg):
-    return pkg.split(":")[0]
 
 
 # This function uses a hack to guess the ubuntu release codename based on the
@@ -47,6 +39,8 @@ def _get_codename(installed_pkgs):
 
         if bionic_regex.match(update_manager_core_ver):
             return "bionic"
+
+        import apt_pkg
 
         apt_pkg.init_system()
 
