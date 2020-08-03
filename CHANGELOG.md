@@ -5,13 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- A --version argument that shows the version of CVEScan.
 ### Changed
 - "UA Apps" and "UA Infra" to "ESM Apps" and "ESM Infra" respectively in all
-  output formats (cli, csv, json, etc.)
+  output formats (cli, csv, json, etc.).
 
 ## [2.3.1] - 2020-07-21
 ### Changed
-- USTDownloadCache dependency from v1.1.0 to v2.0.0
+- USTDownloadCache dependency from v1.1.0 to v2.0.0.
 
 ## [2.3.0] - 2020-07-06
 ### Added

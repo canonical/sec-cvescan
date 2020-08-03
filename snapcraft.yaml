@@ -1,6 +1,6 @@
 name: cvescan
 base: core18
-version: '2.3.1'
+adopt-info: cvescan-python
 summary: Security/CVE vulnerability monitoring for Ubuntu
 license: GPL-3.0
 description: |
@@ -70,6 +70,9 @@ parts:
     build-packages:
       - gcc
     source: .
+    override-pull: |
+        snapcraftctl pull
+        snapcraftctl set-version `python3 cvescan/version.py`
     override-prime: |
         snapcraftctl prime
         echo "Compiling pyc files..."

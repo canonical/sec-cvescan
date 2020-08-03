@@ -51,6 +51,8 @@ UNRESOLVED_HELP = "Show CVEs that have not yet been resolved."
 
 VERBOSE_HELP = "Enable verbose messages."
 
+VERSION_HELP = "Show CVEScan's version number and exit."
+
 EXPERIMENTAL_HELP = (
     'Enable eXperimental mode. Use experimental (also called "alpha") data \n'
     "from the Ubuntu CVE tracker. The alpha UCT files include information about\n"

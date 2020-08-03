@@ -1,7 +1,5 @@
 import re
 
-import apt_pkg
-
 
 def parse_manifest_file(manifest_file_path):
     try:
@@ -47,6 +45,8 @@ def _get_codename(installed_pkgs):
 
         if bionic_regex.match(update_manager_core_ver):
             return "bionic"
+
+        import apt_pkg
 
         apt_pkg.init_system()
 

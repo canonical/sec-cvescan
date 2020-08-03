@@ -24,6 +24,8 @@ from cvescan.output_formatters import (
     PackageScanResultSorter,
 )
 
+from .version import get_version
+
 
 def set_output_verbosity(args):
     if args.silent:
@@ -94,6 +96,12 @@ def parse_args():
     )
     cvescan_ap.add_argument(
         "-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP
+    )
+    cvescan_ap.add_argument(
+        "--version",
+        action="version",
+        version="CVEScan, v" + get_version(),
+        help=const.VERSION_HELP,
     )
     cvescan_ap.add_argument(
         "-x",
