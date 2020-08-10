@@ -45,8 +45,10 @@ apps:
   cvescan:
     command: bin/cvescan
     environment:
-      PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
       APT_CONFIG: $SNAP/etc/apt.conf
+      PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
     plugs:
     - home
     - network

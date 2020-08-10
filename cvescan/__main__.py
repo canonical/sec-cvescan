@@ -5,6 +5,7 @@ import json
 import logging
 import sys
 
+import vistir
 from tabulate import tabulate
 from ust_download_cache import USTDownloadCache
 
@@ -189,6 +190,30 @@ def load_output_sorter(opt):
     return CVEScanResultSorter(subsorters=[pkg_sorter])
 
 
+def spin(start_text, ok, fail):
+    def spin_decorator(func):
+        def wrapper(*args, **kwargs):
+            with vistir.contextmanagers.spinner(
+                start_text=start_text, write_to_stdout=False
+            ) as spinner:
+                try:
+                    return_value = func(*args, **kwargs)
+                    spinner.ok(f"✅ {ok}")
+                    return return_value
+                except Exception as ex:
+                    spinner.fail(f"❌ {fail}")
+                    raise ex
+
+        return wrapper
+
+    return spin_decorator
+
+
+@spin(
+    "Downloading Ubuntu vulnerability database...",
+    "Ubuntu vulnerability datbase successfully downloaded!",
+    "Download Failed!",
+)
 def load_uct_data(opt, download_cache, target_sysinfo):
     if opt.download_uct_db_file:
         uct_data_url = get_uct_data_url(target_sysinfo)
@@ -202,6 +227,15 @@ def load_uct_data(opt, download_cache, target_sysinfo):
 
 def get_uct_data_url(target_sysinfo):
     return const.UCT_DATA_URL % target_sysinfo.codename
+
+
+@spin("Scanning for vulnerable pakages...", "Scan complete!\n", "Scan failed!\n")
+def run_scan(target_sysinfo, uct_data):
+    cve_scanner = CVEScanner(LOGGER)
+
+    return cve_scanner.scan(
+        target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs
+    )
 
 
 def main():
@@ -240,15 +274,13 @@ def main():
         except PkgCountError as pke:
             error_exit("Failed to determine the local package count: %s" % pke)
 
-        output_formatter = load_output_formatter(opt)
-
         download_cache = USTDownloadCache(LOGGER)
         uct_data = load_uct_data(opt, download_cache, target_sysinfo)
-        cve_scanner = CVEScanner(LOGGER)
-        scan_results = cve_scanner.scan(
-            target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs
-        )
-        (results, return_code) = output_formatter.format_output(
+
+        scan_results = run_scan(target_sysinfo, uct_data)
+
+        output_formatter = load_output_formatter(opt)
+        (formatted_output, return_code) = output_formatter.format_output(
             scan_results, target_sysinfo
         )
     except Exception as ex:
@@ -257,7 +289,7 @@ def main():
             error_exit_code,
         )
 
-    LOGGER.info(results)
+    LOGGER.info(formatted_output)
     sys.exit(return_code)
 
 
