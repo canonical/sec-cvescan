@@ -3,11 +3,11 @@ import logging
 
 from cvescan import __main__ as main
 from cvescan.output_formatters import (
-    cli_output_formatter,
-    csv_output_formatter,
-    cve_output_formatter,
-    json_output_formatter,
-    nagios_output_formatter,
+    CLIOutputFormatter,
+    CSVOutputFormatter,
+    CVEOutputFormatter,
+    JSONOutputFormatter,
+    NagiosOutputFormatter,
 )
 
 Args = collections.namedtuple("Args", "silent, verbose")
@@ -97,7 +97,7 @@ def test_cve_output_formatter():
 
     output_formatter = main.load_output_formatter(opt)
 
-    assert isinstance(output_formatter, cve_output_formatter.CVEOutputFormatter)
+    assert isinstance(output_formatter, CVEOutputFormatter)
 
 
 def test_nagios_output_formatter():
@@ -106,7 +106,7 @@ def test_nagios_output_formatter():
 
     output_formatter = main.load_output_formatter(opt)
 
-    assert isinstance(output_formatter, nagios_output_formatter.NagiosOutputFormatter)
+    assert isinstance(output_formatter, NagiosOutputFormatter)
 
 
 def test_cli_output_formatter():
@@ -116,7 +116,7 @@ def test_cli_output_formatter():
 
     output_formatter = main.load_output_formatter(opt)
 
-    assert isinstance(output_formatter, cli_output_formatter.CLIOutputFormatter)
+    assert isinstance(output_formatter, CLIOutputFormatter)
 
 
 def test_csv_output_formatter():
@@ -125,7 +125,7 @@ def test_csv_output_formatter():
 
     output_formatter = main.load_output_formatter(opt)
 
-    assert isinstance(output_formatter, csv_output_formatter.CSVOutputFormatter)
+    assert isinstance(output_formatter, CSVOutputFormatter)
 
 
 def test_json_output_formatter():
@@ -134,4 +134,4 @@ def test_json_output_formatter():
 
     output_formatter = main.load_output_formatter(opt)
 
-    assert isinstance(output_formatter, json_output_formatter.JSONOutputFormatter)
+    assert isinstance(output_formatter, JSONOutputFormatter)
