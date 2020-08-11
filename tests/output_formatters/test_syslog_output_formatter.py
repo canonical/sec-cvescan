@@ -3,6 +3,7 @@ from typing import List
 
 from conftest import MockOpt, MockSysInfo, null_logger
 
+import cvescan.constants as const
 from cvescan import TargetSysInfo
 from cvescan.output_formatters import ScanStats, SyslogOutputFormatter
 from cvescan.scan_result import ScanResult
@@ -44,17 +45,17 @@ expected_output = json.dumps(
                     "pkg1": {
                         "priority": "low",
                         "fixed_version": "1:1.2.3-4+deb9u3",
-                        "repository": "",
+                        "repository": "Ubuntu Archive",
                     },
                     "pkg2": {
                         "priority": "low",
                         "fixed_version": "1:1.2.3-4+deb9u3",
-                        "repository": "",
+                        "repository": const.UA_APPS,
                     },
                     "pkg3": {
                         "priority": "low",
                         "fixed_version": "10.2.3-2ubuntu0.1",
-                        "repository": "",
+                        "repository": const.UA_INFRA,
                     },
                 },
             },

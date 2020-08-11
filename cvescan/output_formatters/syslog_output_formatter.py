@@ -13,6 +13,8 @@ class SyslogOutputFormatter(AbstractOutputFormatter):
     def format_output(
         self, scan_results: List[ScanResult], sysinfo: TargetSysInfo
     ) -> (str, int):
+        scan_results = self._filter_on_experimental(scan_results)
+
         json_output, return_code = self.json_output_formatter.format_output(
             scan_results, sysinfo
         )
