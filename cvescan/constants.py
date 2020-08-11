@@ -45,6 +45,12 @@ NAGIOS_HELP = (
     "3/UNKNOWN = something went wrong with the script, or oscap."
 )
 
+SYSLOG_HELP = "Send JSON formatted output to a syslog server specified by HOST:PORT."
+SYSLOG_LIGHT_HELP = (
+    "Send a short log message stating how many vulnerabilities are fixable to a \n"
+    "syslog server specified by HOST:PORT."
+)
+
 UCT_LINKS_HELP = "Provide links to the Ubuntu CVE Tracker for each CVE."
 
 UNRESOLVED_HELP = "Show CVEs that have not yet been resolved."

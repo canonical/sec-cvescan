@@ -89,6 +89,10 @@ def parse_args():
     cvescan_ap.add_argument(
         "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
     )
+    cvescan_ap.add_argument("--syslog", metavar="HOST:PORT", help=const.SYSLOG_HELP)
+    cvescan_ap.add_argument(
+        "--syslog-light", metavar="HOST:PORT", help=const.SYSLOG_LIGHT_HELP
+    )
     cvescan_ap.add_argument(
         "--show-links", action="store_true", default=False, help=const.UCT_LINKS_HELP
     )
