@@ -2,12 +2,14 @@ import collections
 import logging
 
 from cvescan import __main__ as main
+from cvescan import constants as const
 from cvescan.output_formatters import (
     CLIOutputFormatter,
     CSVOutputFormatter,
     CVEOutputFormatter,
     JSONOutputFormatter,
     NagiosOutputFormatter,
+    SyslogOutputFormatter,
 )
 
 Args = collections.namedtuple("Args", "silent, verbose")
@@ -21,6 +23,10 @@ class MockOpt:
         self.csv = False
         self.json = False
         self.nagios_mode = False
+        self.syslog = False
+        self.syslog_light = False
+        self.syslog_host = "localhost"
+        self.syslog_port = 514
 
 
 class MockTargetSysInfo:
@@ -135,3 +141,86 @@ def test_json_output_formatter():
     output_formatter = main.load_output_formatter(opt)
 
     assert isinstance(output_formatter, JSONOutputFormatter)
+
+
+def test_syslog_output_formatter():
+    opt = MockOpt()
+    opt.syslog = True
+
+    output_formatter = main.load_output_formatter(opt)
+
+    assert isinstance(output_formatter, SyslogOutputFormatter)
+
+
+def test_syslog_light_output_formatter():
+    opt = MockOpt()
+    opt.syslog_light = True
+
+    output_formatter = main.load_output_formatter(opt)
+
+    assert isinstance(output_formatter, SyslogOutputFormatter)
+
+
+def test_get_output_logger_null():
+    logger = main.get_output_logger(MockOpt())
+    assert logger.name == const.NULL_LOGGER_NAME
+
+
+def test_get_output_logger_syslog():
+    opt = MockOpt()
+    opt.syslog = True
+
+    logger = main.get_output_logger(opt)
+
+    assert logger.name == const.SYSLOG_LOGGER_NAME
+
+
+def test_get_output_logger_syslog_light():
+    opt = MockOpt()
+    opt.syslog_light = True
+
+    logger = main.get_output_logger(opt)
+
+    assert logger.name == const.SYSLOG_LOGGER_NAME
+
+
+class MockLogger:
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self._warn = 0
+        self._info = 0
+
+    @property
+    def warn_count(self):
+        return self._warn
+
+    @property
+    def info_count(self):
+        return self._info
+
+    def warning(self, _):
+        self._warn += 1
+
+    def info(self, _):
+        self._info += 1
+
+
+def test_output_info(monkeypatch):
+    logger = MockLogger()
+    main.output(logger, "hello", 0)
+
+    assert logger.warn_count == 0
+    assert logger.info_count == 1
+
+
+def test_output_warn(monkeypatch):
+    logger = MockLogger()
+    main.output(logger, "hello", 1)
+    main.output(logger, "hello", 2)
+    main.output(logger, "hello", 3)
+    main.output(logger, "hello", 4)
+
+    assert logger.warn_count == 4
+    assert logger.info_count == 0

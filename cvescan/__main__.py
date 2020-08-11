@@ -3,6 +3,8 @@
 import argparse as ap
 import json
 import logging
+import logging.handlers
+import socket
 import sys
 
 import vistir
@@ -23,6 +25,7 @@ from cvescan.output_formatters import (
     JSONOutputFormatter,
     NagiosOutputFormatter,
     PackageScanResultSorter,
+    SyslogOutputFormatter,
 )
 
 from .version import get_version
@@ -32,7 +35,7 @@ def set_output_verbosity(args):
     if args.silent:
         return get_null_logger()
 
-    logger = logging.getLogger("cvescan.stdout")
+    logger = logging.getLogger(const.STDOUT_LOGGER_NAME)
 
     if args.verbose:
         logger.setLevel(logging.DEBUG)
@@ -48,7 +51,7 @@ def set_output_verbosity(args):
 
 
 def get_null_logger():
-    logger = logging.getLogger("cvescan.null")
+    logger = logging.getLogger(const.NULL_LOGGER_NAME)
     if not logger.hasHandlers():
         logger.addHandler(logging.NullHandler())
 
@@ -186,6 +189,12 @@ def load_output_formatter(opt):
     if opt.nagios_mode:
         return NagiosOutputFormatter(opt, LOGGER, sorter=sorter)
 
+    if opt.syslog or opt.syslog_light:
+        json_output_formatter = JSONOutputFormatter(
+            opt, LOGGER, sorter=sorter, indent=None
+        )
+        return SyslogOutputFormatter(opt, LOGGER, json_output_formatter)
+
     return CLIOutputFormatter(opt, LOGGER, sorter=sorter)
 
 
@@ -293,8 +302,48 @@ def main():
             error_exit_code,
         )
 
-    LOGGER.info(formatted_output)
+    output_logger = get_output_logger(opt)
+    output(output_logger, formatted_output, return_code)
     sys.exit(return_code)
+
+
+def output(output_logger, formatted_output, return_code):
+    if return_code == const.SUCCESS_RETURN_CODE:
+        output_logger.info(formatted_output)
+    else:
+        output_logger.warning(formatted_output)
+
+
+def get_output_logger(opt):
+    if opt.syslog or opt.syslog_light:
+        return get_syslog_logger(opt.syslog_host, opt.syslog_port)
+
+    return LOGGER
+
+
+def get_syslog_logger(host, port):
+    class _ContextFilter(logging.Filter):
+        def __init__(self):
+            self.hostname = socket.gethostname()
+
+        def filter(self, record):
+            record.hostname = self.hostname
+            return True
+
+    formatter = logging.Formatter(
+        "%(hostname)s - cvescan - %(levelname)s - %(message)s"
+    )
+    syslog_handler = logging.handlers.SysLogHandler(
+        address=(host, port), socktype=socket.SOCK_DGRAM
+    )
+    syslog_handler.setFormatter(formatter)
+
+    syslog_logger = logging.getLogger(const.SYSLOG_LOGGER_NAME)
+    syslog_logger.addFilter(_ContextFilter())
+    syslog_logger.addHandler(syslog_handler)
+    syslog_logger.setLevel(logging.INFO)
+
+    return syslog_logger
 
 
 if __name__ == "__main__":

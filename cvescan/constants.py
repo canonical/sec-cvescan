@@ -113,3 +113,9 @@ UCT_URL = "https://people.canonical.com/~ubuntu-security/cve/%s"
 UCT_DATA_URL = (
     "https://people.canonical.com/~ubuntu-security/cvescan/ubuntu-vuln-db-%s.json.bz2"
 )
+
+JSON_INDENT = 4
+
+NULL_LOGGER_NAME = "cvescan.null"
+STDOUT_LOGGER_NAME = "cvescan.stdout"
+SYSLOG_LOGGER_NAME = "cvescan.syslog"
