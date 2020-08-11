@@ -181,7 +181,7 @@ def load_output_formatter(opt):
         return CVEOutputFormatter(opt, LOGGER)
 
     if opt.json:
-        return JSONOutputFormatter(opt, LOGGER, sorter=sorter)
+        return JSONOutputFormatter(opt, LOGGER, sorter=sorter, indent=4)
 
     if opt.nagios_mode:
         return NagiosOutputFormatter(opt, LOGGER, sorter=sorter)
