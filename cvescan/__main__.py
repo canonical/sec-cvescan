@@ -67,8 +67,15 @@ def error_exit(msg, code=const.ERROR_RETURN_CODE):
 
 
 def parse_args():
-    cvescan_ap = ap.ArgumentParser(
-        description=const.CVESCAN_DESCRIPTION, formatter_class=ap.RawTextHelpFormatter
+    cvescan_ap = ap.ArgumentParser(description=const.CVESCAN_DESCRIPTION)
+    cvescan_ap.add_argument(
+        "--version",
+        action="version",
+        version="CVEScan, v" + get_version(),
+        help=const.VERSION_HELP,
+    )
+    cvescan_ap.add_argument(
+        "-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP
     )
     cvescan_ap.add_argument(
         "-p",
@@ -77,21 +84,12 @@ def parse_args():
         choices=[const.CRITICAL, const.HIGH, const.MEDIUM, const.ALL],
         default=None,
     )
-    cvescan_ap.add_argument(
-        "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
-    )
     cvescan_ap.add_argument("--db", metavar="UBUNTU_DB_FILE", help=const.DB_FILE_HELP)
     cvescan_ap.add_argument(
         "-m", "--manifest", metavar="MANIFEST_FILE", help=const.MANIFEST_HELP
     )
     cvescan_ap.add_argument("--csv", action="store_true", help=const.CSV_HELP)
-    cvescan_ap.add_argument(
-        "-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP
-    )
     cvescan_ap.add_argument("--json", action="store_true", help=const.JSON_HELP)
-    cvescan_ap.add_argument(
-        "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
-    )
     cvescan_ap.add_argument("--syslog", metavar="HOST:PORT", help=const.SYSLOG_HELP)
     cvescan_ap.add_argument(
         "--syslog-light", metavar="HOST:PORT", help=const.SYSLOG_LIGHT_HELP
@@ -103,20 +101,20 @@ def parse_args():
         "--unresolved", action="store_true", default=False, help=const.UNRESOLVED_HELP
     )
     cvescan_ap.add_argument(
-        "-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP
-    )
-    cvescan_ap.add_argument(
-        "--version",
-        action="version",
-        version="CVEScan, v" + get_version(),
-        help=const.VERSION_HELP,
-    )
-    cvescan_ap.add_argument(
         "-x",
         "--experimental",
         action="store_true",
         default=False,
         help=const.EXPERIMENTAL_HELP,
+    )
+    cvescan_ap.add_argument(
+        "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
+    )
+    cvescan_ap.add_argument(
+        "-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP
+    )
+    cvescan_ap.add_argument(
+        "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
     )
 
     return cvescan_ap.parse_args()
