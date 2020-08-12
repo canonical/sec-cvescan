@@ -39,6 +39,8 @@ class MockOpt:
         self.priority = "all"
         self.show_links = None
         self.experimental_mode = True
+        self.syslog = False
+        self.syslog_light = False
 
 
 @pytest.fixture

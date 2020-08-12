@@ -13,3 +13,4 @@ from .cve_output_formatter import CVEOutputFormatter  # noqa: F401
 from .csv_output_formatter import CSVOutputFormatter  # noqa: F401
 from .json_output_formatter import JSONOutputFormatter  # noqa: F401
 from .nagios_output_formatter import NagiosOutputFormatter  # noqa: F401
+from .syslog_output_formatter import SyslogOutputFormatter  # noqa: F401

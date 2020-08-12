@@ -63,7 +63,69 @@ def test_always_show_links():
     assert const.UCT_URL % "CVE-2020-1005" in results_msg
 
 
+sample_output = {
+    "summary": {
+        "ubuntu_release": "bionic",
+        "num_installed_packages": 100,
+        "num_cves": 2,
+        "num_affected_packages": 3,
+        "num_patchable_vulnerabilities": 5,
+    },
+    "cves": {
+        "CVE-2020-1000": {
+            "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1000",
+            "packages": {
+                "pkg3": {"priority": "low", "fixed_version": "", "repository": ""}
+            },
+        },
+        "CVE-2020-1001": {
+            "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1001",
+            "packages": {
+                "pkg1": {
+                    "priority": "high",
+                    "fixed_version": "1:1.2.3-4+deb9u2ubuntu0.2",
+                    "repository": "Ubuntu Archive",
+                },
+                "pkg2": {
+                    "priority": "high",
+                    "fixed_version": "1:1.2.3-4+deb9u2ubuntu0.2",
+                    "repository": "Ubuntu Archive",
+                },
+            },
+        },
+        "CVE-2020-1005": {
+            "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1005",
+            "packages": {
+                "pkg1": {
+                    "priority": "low",
+                    "fixed_version": "1:1.2.3-4+deb9u3",
+                    "repository": const.UA_APPS,
+                },
+                "pkg2": {
+                    "priority": "low",
+                    "fixed_version": "1:1.2.3-4+deb9u3",
+                    "repository": const.UA_APPS,
+                },
+                "pkg3": {
+                    "priority": "low",
+                    "fixed_version": "10.2.3-2ubuntu0.1",
+                    "repository": const.UA_INFRA,
+                },
+            },
+        },
+    },
+}
+
+
 def test_json_format():
+    run_json_format_test(4)
+
+
+def test_json_format_noindent():
+    run_json_format_test(None)
+
+
+def run_json_format_test(indent):
     sr = filter_scan_results_by_cve_ids(
         ["CVE-2020-1000", "CVE-2020-1001", "CVE-2020-1005"]
     )
@@ -72,69 +134,10 @@ def test_json_format():
     opt.priority = "all"
     opt.unresolved = True
 
-    formatter = JSONOutputFormatter(opt, null_logger())
+    formatter = JSONOutputFormatter(opt, null_logger(), indent=indent)
 
     (results_msg, return_code) = formatter.format_output(sr, MockSysInfo())
 
-    expected_output = json.dumps(
-        {
-            "summary": {
-                "ubuntu_release": "bionic",
-                "num_installed_packages": 100,
-                "num_cves": 2,
-                "num_affected_packages": 3,
-                "num_patchable_vulnerabilities": 5,
-            },
-            "cves": {
-                "CVE-2020-1000": {
-                    "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1000",
-                    "packages": {
-                        "pkg3": {
-                            "priority": "low",
-                            "fixed_version": "",
-                            "repository": "",
-                        }
-                    },
-                },
-                "CVE-2020-1001": {
-                    "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1001",
-                    "packages": {
-                        "pkg1": {
-                            "priority": "high",
-                            "fixed_version": "1:1.2.3-4+deb9u2ubuntu0.2",
-                            "repository": "Ubuntu Archive",
-                        },
-                        "pkg2": {
-                            "priority": "high",
-                            "fixed_version": "1:1.2.3-4+deb9u2ubuntu0.2",
-                            "repository": "Ubuntu Archive",
-                        },
-                    },
-                },
-                "CVE-2020-1005": {
-                    "url": "https://people.canonical.com/~ubuntu-security/cve/CVE-2020-1005",
-                    "packages": {
-                        "pkg1": {
-                            "priority": "low",
-                            "fixed_version": "1:1.2.3-4+deb9u3",
-                            "repository": const.UA_APPS,
-                        },
-                        "pkg2": {
-                            "priority": "low",
-                            "fixed_version": "1:1.2.3-4+deb9u3",
-                            "repository": const.UA_APPS,
-                        },
-                        "pkg3": {
-                            "priority": "low",
-                            "fixed_version": "10.2.3-2ubuntu0.1",
-                            "repository": const.UA_INFRA,
-                        },
-                    },
-                },
-            },
-        },
-        indent=4,
-        sort_keys=False,
-    )
+    expected_output = json.dumps(sample_output, indent=indent, sort_keys=False)
 
     assert results_msg == expected_output

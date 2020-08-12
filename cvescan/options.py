@@ -1,6 +1,8 @@
 import os
 import re
 
+import validators
+
 from cvescan.errors import ArgumentError
 
 FMT_CSV_OPTION = "--csv"
@@ -11,6 +13,7 @@ FMT_JSON_OPTION = "--JSON"
 FMT_MANIFEST_OPTION = "-m|--manifest"
 FMT_NAGIOS_OPTION = "-n|--nagios"
 FMT_SHOW_LINKS_OPTION = "--show-links"
+FMT_SYSLOG_OPTION = "--syslog|--syslog_light"
 FMT_DB_FILE_OPTION = "--db"
 FMT_PRIORITY_OPTION = "-p|priority"
 FMT_SILENT_OPTION = "-s|--silent"
@@ -29,6 +32,7 @@ class Options:
         self._set_mode(args)
         self._set_db_file_options(args)
         self._set_manifest_file_options(args)
+        self._set_syslog_options(args)
 
         self.csv = args.csv
         self.cve = args.cve
@@ -54,12 +58,23 @@ class Options:
     def _set_manifest_file_options(self, args):
         self.manifest_file = os.path.abspath(args.manifest) if args.manifest else None
 
+    def _set_syslog_options(self, args):
+        self.syslog = args.syslog is not None
+        self.syslog_light = args.syslog_light is not None
+
+        if self.syslog or self.syslog_light:
+            self.syslog_host, self.syslog_port = parse_syslog_args(args)
+        else:
+            self.syslog_host = None
+            self.syslog_port = None
+
 
 def raise_on_invalid_args(args):
     raise_on_invalid_cve(args)
     raise_on_invalid_combinations(args)
     raise_on_missing_manifest_file(args)
     raise_on_missing_db_file(args)
+    raise_on_invalid_syslog(args)
 
 
 def raise_on_invalid_cve(args):
@@ -75,6 +90,7 @@ def raise_on_invalid_combinations(args):
     raise_on_invalid_csv_options(args)
     raise_on_invalid_cve_options(args)
     raise_on_invalid_json_options(args)
+    raise_on_invalid_syslog_options(args)
 
 
 def raise_on_invalid_nagios_options(args):
@@ -92,6 +108,9 @@ def raise_on_invalid_nagios_options(args):
 
     if args.show_links:
         raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_SHOW_LINKS_OPTION)
+
+    if args.syslog or args.syslog_light:
+        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_SYSLOG_OPTION)
 
 
 def raise_on_invalid_silent_options(args):
@@ -135,6 +154,9 @@ def raise_on_invalid_csv_options(args):
     if args.nagios:
         raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_NAGIOS_OPTION)
 
+    if args.syslog or args.syslog_light:
+        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_SYSLOG_OPTION)
+
 
 def raise_on_invalid_cve_options(args):
     if not args.cve:
@@ -149,6 +171,9 @@ def raise_on_invalid_cve_options(args):
     if args.show_links:
         raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_SHOW_LINKS_OPTION)
 
+    if args.syslog or args.syslog_light:
+        raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_SYSLOG_OPTION)
+
 
 def raise_on_invalid_json_options(args):
     if not args.json:
@@ -156,6 +181,14 @@ def raise_on_invalid_json_options(args):
 
     if args.nagios:
         raise_incompatible_arguments_error(FMT_JSON_OPTION, FMT_NAGIOS_OPTION)
+
+    if args.syslog or args.syslog_light:
+        raise_incompatible_arguments_error(FMT_JSON_OPTION, FMT_SYSLOG_OPTION)
+
+
+def raise_on_invalid_syslog_options(args):
+    if args.syslog and args.syslog_light:
+        raise_incompatible_arguments_error("--syslog", "--syslog-light")
 
 
 def raise_incompatible_arguments_error(arg1, arg2):
@@ -184,3 +217,34 @@ def raise_on_missing_file(file_path):
             'Cannot find file "%s". Current '
             'working directory is "%s".' % (file_abs_path, os.getcwd())
         )
+
+
+def raise_on_invalid_syslog(args):
+    if not (args.syslog or args.syslog_light):
+        return
+
+    error_msg = "Invalid syslog server: syslog servers must be specified in the format HOST:PORT"
+
+    try:
+        # parse_syslog_args () raises a ValueError if port is not an integer
+        host, port = parse_syslog_args(args)
+    except ValueError:
+        raise ValueError(error_msg)
+
+    single_component_hostname = re.match(r"^(?!-)[a-zA-Z0-9-]{1,63}(?<!-)$", host)
+    if not (
+        single_component_hostname
+        or validators.domain(host)
+        or validators.ipv6(host)
+        or validators.ipv4(host)
+    ):
+        raise ValueError(error_msg)
+
+
+def parse_syslog_args(args):
+    syslog = args.syslog if args.syslog else args.syslog_light
+
+    (host, port) = syslog.strip().split(":")
+    port = int(port)
+
+    return (host, port)

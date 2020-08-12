@@ -14,6 +14,8 @@ class MockArgs:
         self.csv = False
         self.cve = None
         self.json = False
+        self.syslog = None
+        self.syslog_light = None
         self.priority = None
         self.silent = False
         self.db = None
@@ -104,6 +106,56 @@ def test_set_json(mock_args):
     opt = Options(mock_args)
 
     assert not opt.json
+
+
+def test_set_syslog(mock_args):
+    mock_args.syslog = "localhost:514"
+    opt = Options(mock_args)
+
+    assert opt.syslog
+    assert opt.syslog_host == "localhost"
+    assert opt.syslog_port == 514
+
+    mock_args.syslog = None
+    opt = Options(mock_args)
+
+    assert not opt.syslog
+    assert opt.syslog_host is None
+    assert opt.syslog_port is None
+
+
+def test_set_syslog_ip(mock_args):
+    mock_args.syslog = "192.168.1.50:514"
+    opt = Options(mock_args)
+
+    assert opt.syslog
+    assert opt.syslog_host == "192.168.1.50"
+    assert opt.syslog_port == 514
+
+
+def test_set_syslog_light(mock_args):
+    mock_args.syslog_light = "localhost:514"
+    opt = Options(mock_args)
+
+    assert opt.syslog_light
+    assert opt.syslog_host == "localhost"
+    assert opt.syslog_port == 514
+
+    mock_args.syslog_light = None
+    opt = Options(mock_args)
+
+    assert not opt.syslog_light
+    assert opt.syslog_host is None
+    assert opt.syslog_port is None
+
+
+def test_set_syslog_light_ip(mock_args):
+    mock_args.syslog_light = "192.168.1.50:514"
+    opt = Options(mock_args)
+
+    assert opt.syslog_light
+    assert opt.syslog_host == "192.168.1.50"
+    assert opt.syslog_port == 514
 
 
 def test_set_db_file_default(monkeypatch, mock_args):
@@ -357,6 +409,114 @@ def test_invalid_json_and_nagios(mock_args):
     with pytest.raises(ArgumentError) as ae:
         mock_args.json = True
         mock_args.nagios = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+invalid_syslog_servers = [
+    "local-.com:500",
+    "localhost",
+    "514",
+    "mike@mike.com:514",
+    "localhost:514a",
+]
+
+
+@pytest.mark.parametrize("invalid_syslog", invalid_syslog_servers)
+def test_invalid_syslog(invalid_syslog, mock_args):
+    with pytest.raises(ValueError) as ve:
+        mock_args.syslog = invalid_syslog
+        Options(mock_args)
+
+    assert "Invalid syslog server" in str(ve)
+
+
+@pytest.mark.parametrize("invalid_syslog", invalid_syslog_servers)
+def test_invalid_syslog_light(invalid_syslog, mock_args):
+    with pytest.raises(ValueError) as ve:
+        mock_args.syslog_light = invalid_syslog
+        Options(mock_args)
+
+    assert "Invalid syslog server" in str(ve)
+
+
+def test_invalid_syslog_and_csv(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.syslog = "localhost:514"
+        mock_args.csv = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_syslog_and_cve(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.syslog = "localhost:514"
+        mock_args.cve = "CVE-2020-1000"
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_syslog_and_json(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.syslog = "localhost:514"
+        mock_args.json = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_syslog_and_nagios(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.syslog = "localhost:514"
+        mock_args.nagios = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_syslog_light_and_csv(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.syslog_light = "localhost:514"
+        mock_args.csv = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_syslog_light_and_cve(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.syslog_light = "localhost:514"
+        mock_args.cve = "CVE-2020-1000"
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_syslog_light_and_json(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.syslog_light = "localhost:514"
+        mock_args.json = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_syslog_light_and_nagios(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.syslog_light = "localhost:514"
+        mock_args.nagios = True
+        Options(mock_args)
+
+    assert "options are incompatible" in str(ae)
+
+
+def test_invalid_syslog_light_and_syslog(mock_args):
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.syslog = "localhost:514"
+        mock_args.syslog_light = "localhost:515"
         Options(mock_args)
 
     assert "options are incompatible" in str(ae)
