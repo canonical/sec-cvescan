@@ -33,6 +33,7 @@ from .version import get_version
 
 def set_output_verbosity(args):
     if args.silent:
+        spin.silent = True
         return get_null_logger()
 
     logger = logging.getLogger(const.STDOUT_LOGGER_NAME)
@@ -204,6 +205,9 @@ def load_output_sorter(opt):
 def spin(start_text, ok, fail):
     def spin_decorator(func):
         def wrapper(*args, **kwargs):
+            if spin.silent:
+                return func(*args, **kwargs)
+
             with vistir.contextmanagers.spinner(
                 start_text=start_text, write_to_stdout=False
             ) as spinner:
@@ -218,6 +222,9 @@ def spin(start_text, ok, fail):
         return wrapper
 
     return spin_decorator
+
+
+spin.silent = False
 
 
 @spin(
