@@ -240,7 +240,7 @@ def get_uct_data_url(target_sysinfo):
     return const.UCT_DATA_URL % target_sysinfo.codename
 
 
-@spin("Scanning for vulnerable pakages...", "Scan complete!\n", "Scan failed!\n")
+@spin("Scanning for vulnerable packages...", "Scan complete!\n", "Scan failed!\n")
 def run_scan(target_sysinfo, uct_data):
     cve_scanner = CVEScanner(LOGGER)
 
