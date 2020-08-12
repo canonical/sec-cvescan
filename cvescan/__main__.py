@@ -8,10 +8,10 @@ import socket
 import sys
 
 import vistir
-from tabulate import tabulate
 from ust_download_cache import USTDownloadCache
 
 import cvescan.constants as const
+import cvescan.debug as debug
 from cvescan import TargetSysInfo
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
@@ -121,58 +121,6 @@ def parse_args():
     return cvescan_ap.parse_args()
 
 
-def log_config_options(opt):
-    LOGGER.debug("Config Options")
-    table = [
-        ["Manifest Mode", opt.manifest_mode],
-        ["Experimental Mode", opt.experimental_mode],
-        ["Nagios Output Mode", opt.nagios_mode],
-        ["Ubuntu Vulnerability DB File Path", opt.db_file],
-        ["Manifest File", opt.manifest_file],
-        ["Check Specific CVE", opt.cve],
-        ["CVE Priority", opt.priority],
-        ["Show Unresolved CVEs", opt.unresolved],
-    ]
-
-    LOGGER.debug(tabulate(table))
-    LOGGER.debug("")
-
-
-def log_local_system_info(local_sysinfo, manifest_mode):
-    LOGGER.debug("Local System Info")
-    table = [
-        ["CVEScan is a Snap", local_sysinfo.is_snap],
-        ["$SNAP_USER_COMMON", local_sysinfo.snap_user_common],
-    ]
-
-    if not manifest_mode:
-        table = [
-            ["Local Ubuntu Codename", local_sysinfo.codename],
-            ["Installed Package Count", local_sysinfo.package_count],
-            # Disabling for now
-            # ["ESM Apps Enabled", local_sysinfo.esm_apps_enabled],
-            # ["ESM Infra Enabled", local_sysinfo.esm_infra_enabled],
-        ] + table
-
-    LOGGER.debug(tabulate(table))
-    LOGGER.debug("")
-
-
-def log_target_system_info(target_sysinfo):
-    LOGGER.debug("Target System Info")
-
-    table = [
-        ["Local Ubuntu Codename", target_sysinfo.codename],
-        ["Installed Package Count", target_sysinfo.pkg_count],
-        # Disabling for now
-        # ["ESM Apps Enabled", target_sysinfo.esm_apps_enabled],
-        # ["ESM Infra Enabled", target_sysinfo.esm_infra_enabled],
-    ]
-
-    LOGGER.debug(tabulate(table))
-    LOGGER.debug("")
-
-
 def load_output_formatter(opt):
     sorter = load_output_sorter(opt)
 
@@ -279,9 +227,9 @@ def main():
         try:
             target_sysinfo = TargetSysInfo(opt, local_sysinfo)
 
-            log_config_options(opt)
-            log_local_system_info(local_sysinfo, opt.manifest_mode)
-            log_target_system_info(target_sysinfo)
+            debug.log_config_options(opt, LOGGER)
+            debug.log_local_system_info(local_sysinfo, opt.manifest_mode, LOGGER)
+            debug.log_target_system_info(target_sysinfo, LOGGER)
         except (FileNotFoundError, PermissionError) as err:
             error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
         except DistribIDError as di:
