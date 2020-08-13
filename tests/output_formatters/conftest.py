@@ -3,8 +3,8 @@ import logging
 import pytest
 
 import cvescan.constants as const
-from cvescan import TargetSysInfo
 from cvescan.scan_result import ScanResult
+from cvescan.target_sysinfo import TargetSysInfo
 
 
 def null_logger():

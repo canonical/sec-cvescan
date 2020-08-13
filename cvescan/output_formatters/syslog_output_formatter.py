@@ -1,6 +1,6 @@
 from typing import List
 
-from cvescan import TargetSysInfo
+import cvescan.target_sysinfo as TargetSysInfo
 from cvescan.output_formatters import AbstractOutputFormatter, JSONOutputFormatter
 from cvescan.scan_result import ScanResult
 

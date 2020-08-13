@@ -5,7 +5,7 @@ from typing import List
 from tabulate import tabulate
 
 import cvescan.constants as const
-from cvescan import TargetSysInfo
+import cvescan.target_sysinfo as TargetSysInfo
 from cvescan.output_formatters import (
     AbstractOutputFormatter,
     AbstractStackableScanResultSorter,

@@ -4,9 +4,9 @@ from typing import List
 from conftest import MockOpt, MockSysInfo, null_logger
 
 import cvescan.constants as const
-from cvescan import TargetSysInfo
 from cvescan.output_formatters import ScanStats, SyslogOutputFormatter
 from cvescan.scan_result import ScanResult
+from cvescan.target_sysinfo import TargetSysInfo
 
 expected_output = json.dumps(
     {

@@ -5,8 +5,8 @@ import pytest
 from conftest import MockOpt, MockSysInfo, filter_scan_results_by_cve_ids, null_logger
 
 import cvescan.constants as const
-from cvescan import TargetSysInfo
 from cvescan.output_formatters import CLIOutputFormatter, ScanStats
+from cvescan.target_sysinfo import TargetSysInfo
 
 # TODO: Clean this test suite up.
 

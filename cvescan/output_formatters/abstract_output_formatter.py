@@ -3,7 +3,7 @@ from collections import namedtuple
 from typing import List
 
 import cvescan.constants as const
-from cvescan import TargetSysInfo
+import cvescan.target_sysinfo as TargetSysInfo
 from cvescan.output_formatters import AbstractStackableScanResultSorter
 from cvescan.scan_result import ScanResult
 

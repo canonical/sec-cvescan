@@ -12,7 +12,6 @@ from ust_download_cache import USTDownloadCache
 
 import cvescan.constants as const
 import cvescan.debug as debug
-from cvescan import TargetSysInfo
 from cvescan.cvescanner import CVEScanner
 from cvescan.errors import ArgumentError, DistribIDError, PkgCountError
 from cvescan.local_sysinfo import LocalSysInfo
@@ -27,6 +26,7 @@ from cvescan.output_formatters import (
     PackageScanResultSorter,
     SyslogOutputFormatter,
 )
+from cvescan.target_sysinfo import TargetSysInfo
 
 from .version import get_version
 
