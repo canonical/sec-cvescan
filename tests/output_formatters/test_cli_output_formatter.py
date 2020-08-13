@@ -399,6 +399,7 @@ def run_esm_color_code_test(
         fixable_color_code = ""
     else:
         fixable_color_code = r"\u001b\[38;5;%dm" % repository_color_code
+
     assert re.search(
         r"Vulnerabilities Fixable by %s\s+%s2" % (const.UA_APPS, fixable_color_code),
         results_msg,

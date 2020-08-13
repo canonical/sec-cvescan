@@ -194,8 +194,6 @@ class CLIOutputFormatter(AbstractOutputFormatter):
     def _get_ua_repository_color_code(enabled):
         if enabled:
             return const.REPOSITORY_ENABLED_COLOR_CODE
-        elif enabled is None:
-            return const.REPOSITORY_UNKNOWN_COLOR_CODE
         else:
             return const.REPOSITORY_DISABLED_COLOR_CODE
 
