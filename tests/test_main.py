@@ -1,4 +1,3 @@
-import collections
 import logging
 
 from cvescan import __main__ as main
@@ -12,7 +11,22 @@ from cvescan.output_formatters import (
     SyslogOutputFormatter,
 )
 
-Args = collections.namedtuple("Args", "silent, verbose")
+
+def null_logger(name="test.null"):
+    logger = logging.getLogger(name)
+    print("1" + str(logger.hasHandlers()))
+    if not logger.hasHandlers():
+        logger.addHandler(logging.NullHandler())
+
+    return logger
+
+
+# THIS LINE IS A HACK
+# Running null_logger() with name "cvescan.null" is required for the tests to pass.
+# It appears that pytest creates a logger with a LogCaptureHandler, if the cvescan.null
+# logger does not exist yet. In this case, the call to "if not logger.hasHandlers()"
+# fails because pytest has set up a logger named "cvescan" that has a LogCaptureHandler.
+null_logger(const.NULL_LOGGER_NAME)
 
 
 class MockOpt:
@@ -27,6 +41,8 @@ class MockOpt:
         self.syslog_light = False
         self.syslog_host = "localhost"
         self.syslog_port = 514
+        self.silent = False
+        self.verbose = False
 
 
 class MockTargetSysInfo:
@@ -40,22 +56,26 @@ class MockDownloadCache:
 
 
 def test_set_output_verbosity_info():
-    args = Args(silent=False, verbose=False)
-    logger = main.set_output_verbosity(args)
+    opt = MockOpt()
+    logger = main.set_output_verbosity(opt)
 
     assert logger.level == logging.INFO
 
 
 def test_set_output_verbosity_silent():
-    args = Args(silent=True, verbose=False)
-    logger = main.set_output_verbosity(args)
+    opt = MockOpt()
+    opt.silent = True
+    logger = main.set_output_verbosity(opt)
+
     assert len(logger.handlers) == 1
     assert isinstance(logger.handlers[0], logging.NullHandler)
+    assert logger.name == const.NULL_LOGGER_NAME
 
 
 def test_set_output_verbosity_debug():
-    args = Args(silent=False, verbose=True)
-    logger = main.set_output_verbosity(args)
+    opt = MockOpt()
+    opt.verbose = True
+    logger = main.set_output_verbosity(opt)
 
     assert logger.level == logging.DEBUG
 
@@ -101,7 +121,7 @@ def test_cve_output_formatter():
     opt = MockOpt()
     opt.cve = True
 
-    output_formatter = main.load_output_formatter(opt)
+    output_formatter = main.load_output_formatter(opt, null_logger())
 
     assert isinstance(output_formatter, CVEOutputFormatter)
 
@@ -110,7 +130,7 @@ def test_nagios_output_formatter():
     opt = MockOpt()
     opt.nagios_mode = True
 
-    output_formatter = main.load_output_formatter(opt)
+    output_formatter = main.load_output_formatter(opt, null_logger())
 
     assert isinstance(output_formatter, NagiosOutputFormatter)
 
@@ -120,7 +140,7 @@ def test_cli_output_formatter():
     opt.cve = False
     opt.nagios_mode = False
 
-    output_formatter = main.load_output_formatter(opt)
+    output_formatter = main.load_output_formatter(opt, null_logger())
 
     assert isinstance(output_formatter, CLIOutputFormatter)
 
@@ -129,7 +149,7 @@ def test_csv_output_formatter():
     opt = MockOpt()
     opt.csv = True
 
-    output_formatter = main.load_output_formatter(opt)
+    output_formatter = main.load_output_formatter(opt, null_logger())
 
     assert isinstance(output_formatter, CSVOutputFormatter)
 
@@ -138,7 +158,7 @@ def test_json_output_formatter():
     opt = MockOpt()
     opt.json = True
 
-    output_formatter = main.load_output_formatter(opt)
+    output_formatter = main.load_output_formatter(opt, null_logger())
 
     assert isinstance(output_formatter, JSONOutputFormatter)
 
@@ -147,7 +167,7 @@ def test_syslog_output_formatter():
     opt = MockOpt()
     opt.syslog = True
 
-    output_formatter = main.load_output_formatter(opt)
+    output_formatter = main.load_output_formatter(opt, null_logger())
 
     assert isinstance(output_formatter, SyslogOutputFormatter)
 
@@ -156,21 +176,21 @@ def test_syslog_light_output_formatter():
     opt = MockOpt()
     opt.syslog_light = True
 
-    output_formatter = main.load_output_formatter(opt)
+    output_formatter = main.load_output_formatter(opt, null_logger())
 
     assert isinstance(output_formatter, SyslogOutputFormatter)
 
 
 def test_get_output_logger_null():
-    logger = main.get_output_logger(MockOpt())
-    assert logger.name == const.NULL_LOGGER_NAME
+    logger = main.get_output_logger(MockOpt(), null_logger())
+    assert logger.name == "test.null"
 
 
 def test_get_output_logger_syslog():
     opt = MockOpt()
     opt.syslog = True
 
-    logger = main.get_output_logger(opt)
+    logger = main.get_output_logger(opt, null_logger())
 
     assert logger.name == const.SYSLOG_LOGGER_NAME
 
@@ -179,7 +199,7 @@ def test_get_output_logger_syslog_light():
     opt = MockOpt()
     opt.syslog_light = True
 
-    logger = main.get_output_logger(opt)
+    logger = main.get_output_logger(opt, null_logger())
 
     assert logger.name == const.SYSLOG_LOGGER_NAME
 

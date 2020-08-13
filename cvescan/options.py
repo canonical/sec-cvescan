@@ -42,6 +42,9 @@ class Options:
 
         self.show_links = args.show_links
 
+        self.silent = args.silent
+        self.verbose = args.verbose
+
     def _set_mode(self, args):
         self.manifest_mode = True if args.manifest else False
         self.experimental_mode = args.experimental

@@ -253,6 +253,25 @@ def test_set_unresolved_true(mock_args):
     assert opt.unresolved is True
 
 
+def test_set_silent(mock_args):
+    mock_args.cve = "CVE-2020-1945"
+    opt = Options(mock_args)
+    assert opt.silent is False
+
+    mock_args.silent = True
+    opt = Options(mock_args)
+    assert opt.silent is True
+
+
+def test_set_verbose(mock_args):
+    opt = Options(mock_args)
+    assert opt.verbose is False
+
+    mock_args.verbose = True
+    opt = Options(mock_args)
+    assert opt.verbose is True
+
+
 @pytest.mark.parametrize(
     "invalid_cve", ["CE-2020-1234", "CVE-202-1234", "CVE-2020-123", "random_string"]
 )

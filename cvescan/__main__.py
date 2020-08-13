@@ -31,14 +31,14 @@ from cvescan.output_formatters import (
 from .version import get_version
 
 
-def set_output_verbosity(args):
-    if args.silent:
+def set_output_verbosity(opt):
+    if opt.silent:
         spin.silent = True
         return get_null_logger()
 
     logger = logging.getLogger(const.STDOUT_LOGGER_NAME)
 
-    if args.verbose:
+    if opt.verbose:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
@@ -57,9 +57,6 @@ def get_null_logger():
         logger.addHandler(logging.NullHandler())
 
     return logger
-
-
-LOGGER = get_null_logger()
 
 
 def error_exit(msg, code=const.ERROR_RETURN_CODE):
@@ -121,28 +118,28 @@ def parse_args():
     return cvescan_ap.parse_args()
 
 
-def load_output_formatter(opt):
+def load_output_formatter(opt, logger):
     sorter = load_output_sorter(opt)
 
     if opt.csv:
-        return CSVOutputFormatter(opt, LOGGER, sorter=sorter)
+        return CSVOutputFormatter(opt, logger, sorter=sorter)
 
     if opt.cve:
-        return CVEOutputFormatter(opt, LOGGER)
+        return CVEOutputFormatter(opt, logger)
 
     if opt.json:
-        return JSONOutputFormatter(opt, LOGGER, sorter=sorter, indent=4)
+        return JSONOutputFormatter(opt, logger, sorter=sorter, indent=4)
 
     if opt.nagios_mode:
-        return NagiosOutputFormatter(opt, LOGGER, sorter=sorter)
+        return NagiosOutputFormatter(opt, logger, sorter=sorter)
 
     if opt.syslog or opt.syslog_light:
         json_output_formatter = JSONOutputFormatter(
-            opt, LOGGER, sorter=sorter, indent=None
+            opt, logger, sorter=sorter, indent=None
         )
-        return SyslogOutputFormatter(opt, LOGGER, json_output_formatter)
+        return SyslogOutputFormatter(opt, logger, json_output_formatter)
 
-    return CLIOutputFormatter(opt, LOGGER, sorter=sorter)
+    return CLIOutputFormatter(opt, logger, sorter=sorter)
 
 
 def load_output_sorter(opt):
@@ -196,8 +193,8 @@ def get_uct_data_url(target_sysinfo):
 
 
 @spin("Scanning for vulnerable packages...", "Scan complete!\n", "Scan failed!\n")
-def run_scan(target_sysinfo, uct_data):
-    cve_scanner = CVEScanner(LOGGER)
+def run_scan(target_sysinfo, uct_data, logger):
+    cve_scanner = CVEScanner(logger)
 
     return cve_scanner.scan(
         target_sysinfo.codename, uct_data, target_sysinfo.installed_pkgs
@@ -205,14 +202,7 @@ def run_scan(target_sysinfo, uct_data):
 
 
 def main():
-    global LOGGER
-
     args = parse_args()
-
-    # Configure debug logging as early as possible
-    LOGGER = set_output_verbosity(args)
-
-    local_sysinfo = LocalSysInfo(LOGGER)
 
     try:
         opt = Options(args)
@@ -225,11 +215,13 @@ def main():
 
     try:
         try:
+            logger = set_output_verbosity(opt)
+            local_sysinfo = LocalSysInfo(logger)
             target_sysinfo = TargetSysInfo(opt, local_sysinfo)
 
-            debug.log_config_options(opt, LOGGER)
-            debug.log_local_system_info(local_sysinfo, opt.manifest_mode, LOGGER)
-            debug.log_target_system_info(target_sysinfo, LOGGER)
+            debug.log_config_options(opt, logger)
+            debug.log_local_system_info(local_sysinfo, opt.manifest_mode, logger)
+            debug.log_target_system_info(target_sysinfo, logger)
         except (FileNotFoundError, PermissionError) as err:
             error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
         except DistribIDError as di:
@@ -240,12 +232,12 @@ def main():
         except PkgCountError as pke:
             error_exit("Failed to determine the local package count: %s" % pke)
 
-        download_cache = USTDownloadCache(LOGGER)
+        download_cache = USTDownloadCache(logger)
         uct_data = load_uct_data(opt, download_cache, target_sysinfo)
 
-        scan_results = run_scan(target_sysinfo, uct_data)
+        scan_results = run_scan(target_sysinfo, uct_data, logger)
 
-        output_formatter = load_output_formatter(opt)
+        output_formatter = load_output_formatter(opt, logger)
         (formatted_output, return_code) = output_formatter.format_output(
             scan_results, target_sysinfo
         )
@@ -255,7 +247,7 @@ def main():
             error_exit_code,
         )
 
-    output_logger = get_output_logger(opt)
+    output_logger = get_output_logger(opt, logger)
     output(output_logger, formatted_output, return_code)
     sys.exit(return_code)
 
@@ -267,11 +259,11 @@ def output(output_logger, formatted_output, return_code):
         output_logger.warning(formatted_output)
 
 
-def get_output_logger(opt):
+def get_output_logger(opt, logger):
     if opt.syslog or opt.syslog_light:
         return get_syslog_logger(opt.syslog_host, opt.syslog_port)
 
-    return LOGGER
+    return logger
 
 
 def get_syslog_logger(host, port):
