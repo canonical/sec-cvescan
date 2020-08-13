@@ -241,15 +241,20 @@ def main():
         (formatted_output, return_code) = output_formatter.format_output(
             scan_results, target_sysinfo
         )
+
+        output_logger = get_output_logger(opt, logger)
+        output(output_logger, formatted_output, return_code)
+        sys.exit(return_code)
+    except socket.gaierror as se:
+        error_exit(
+            f"Failed to send syslog output to {opt.syslog_host}:{opt.syslog_port} -- {se}",
+            error_exit_code,
+        )
     except Exception as ex:
         error_exit(
             "An unexpected error occurred while running CVEScan: %s" % ex,
             error_exit_code,
         )
-
-    output_logger = get_output_logger(opt, logger)
-    output(output_logger, formatted_output, return_code)
-    sys.exit(return_code)
 
 
 def output(output_logger, formatted_output, return_code):
