@@ -59,9 +59,15 @@ def get_null_logger():
     return logger
 
 
-def error_exit(msg, code=const.ERROR_RETURN_CODE):
-    print("Error: %s" % msg, file=sys.stderr)
+def error_exit(msg, code=None):
+    if code is None:
+        code = error_exit.default_code
+
+    print(f"Error: {msg}", file=sys.stderr)
     sys.exit(code)
+
+
+error_exit.default_code = const.ERROR_RETURN_CODE
 
 
 def parse_args():
@@ -207,54 +213,53 @@ def main():
     try:
         opt = Options(args)
     except (ArgumentError, ValueError) as err:
-        error_exit("Invalid option or argument: %s" % err, const.CLI_ERROR_RETURN_CODE)
+        error_exit(f"Invalid option or argument -- {err}", const.CLI_ERROR_RETURN_CODE)
 
-    error_exit_code = (
+    error_exit.default_code = (
         const.NAGIOS_UNKNOWN_RETURN_CODE if opt.nagios_mode else const.ERROR_RETURN_CODE
     )
 
+    logger = set_output_verbosity(opt)
     try:
-        try:
-            logger = set_output_verbosity(opt)
-            local_sysinfo = LocalSysInfo(logger)
-            target_sysinfo = TargetSysInfo(opt, local_sysinfo)
-
-            debug.log_config_options(opt, logger)
-            debug.log_local_system_info(local_sysinfo, opt.manifest_mode, logger)
-            debug.log_target_system_info(target_sysinfo, logger)
-        except (FileNotFoundError, PermissionError) as err:
-            error_exit("Failed to determine the correct Ubuntu codename: %s" % err)
-        except DistribIDError as di:
-            error_exit(
-                "Invalid linux distribution detected, CVEScan must be run on Ubuntu: %s"
-                % di
-            )
-        except PkgCountError as pke:
-            error_exit("Failed to determine the local package count: %s" % pke)
-
-        download_cache = USTDownloadCache(logger)
-        uct_data = load_uct_data(opt, download_cache, target_sysinfo)
-
-        scan_results = run_scan(target_sysinfo, uct_data, logger)
-
-        output_formatter = load_output_formatter(opt, logger)
-        (formatted_output, return_code) = output_formatter.format_output(
-            scan_results, target_sysinfo
+        local_sysinfo, target_sysinfo = get_sysinfo(opt, logger)
+    except (FileNotFoundError, PermissionError) as err:
+        error_exit(f"Failed to determine the correct Ubuntu codename -- {err}")
+    except DistribIDError as di:
+        error_exit(
+            f"Invalid linux distribution detected, CVEScan must be run on Ubuntu -- {di}"
         )
+    except PkgCountError as pke:
+        error_exit(f"Failed to determine the local package count -- {pke}")
 
+    download_cache = USTDownloadCache(logger)
+    uct_data = load_uct_data(opt, download_cache, target_sysinfo)
+
+    scan_results = run_scan(target_sysinfo, uct_data, logger)
+
+    output_formatter = load_output_formatter(opt, logger)
+    (formatted_output, return_code) = output_formatter.format_output(
+        scan_results, target_sysinfo
+    )
+
+    try:
         output_logger = get_output_logger(opt, logger)
         output(output_logger, formatted_output, return_code)
         sys.exit(return_code)
     except socket.gaierror as se:
         error_exit(
-            f"Failed to send syslog output to {opt.syslog_host}:{opt.syslog_port} -- {se}",
-            error_exit_code,
+            f"Failed to send syslog output to {opt.syslog_host}:{opt.syslog_port} -- {se}"
         )
-    except Exception as ex:
-        error_exit(
-            "An unexpected error occurred while running CVEScan: %s" % ex,
-            error_exit_code,
-        )
+
+
+def get_sysinfo(opt, logger):
+    local_sysinfo = LocalSysInfo(logger)
+    target_sysinfo = TargetSysInfo(opt, local_sysinfo)
+
+    debug.log_config_options(opt, logger)
+    debug.log_local_system_info(local_sysinfo, opt.manifest_mode, logger)
+    debug.log_target_system_info(target_sysinfo, logger)
+
+    return local_sysinfo, target_sysinfo
 
 
 def output(output_logger, formatted_output, return_code):
@@ -297,4 +302,7 @@ def get_syslog_logger(host, port):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as ex:
+        error_exit(f"An unexpected error occurred while running CVEScan: {ex}")
