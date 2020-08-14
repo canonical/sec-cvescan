@@ -46,6 +46,10 @@ function as they use to. If you absolutely must have the old version of
 CVEScan, you can install the snap and run `cvescan.sh`. This will run the
 deprecated v1.0.10 of CVEScan.
 
+**WARNING**: v2.5.0 of CVEScan is the last version that will include the v1.0.10
+bash implementation. If you are still using `cvescan.sh`, please move over to
+v2.5.0 of `cvescan`.
+
 For more information about how v2.0.0 differs from v1.0.10, see the
 [CHANGELOG](./CHANGELOG.md).
 
