@@ -8,4 +8,4 @@ apport-symptoms	0.20
 apt	1.6.12
 base-files	11ubuntu7
 python3-gdbm:amd64	3.6.9-1~18.04
-update-manager-core	1:20.04.10
+update-manager-core	1:20.10.1

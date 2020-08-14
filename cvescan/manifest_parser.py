@@ -26,8 +26,8 @@ def _get_codename(installed_pkgs):
         trusty_regex = re.compile(r"1:0.196(.\d+)+")
         xenial_regex = re.compile(r"1:16.04(.\d+)+")
         bionic_regex = re.compile(r"1:18.04(.\d+)+")
-        eoan_regex = re.compile(r"1:19.04(.\d+)+")
         focal_regex = re.compile(r"1:20.04(.\d+)+")
+        groovy_regex = re.compile(r"1:20.10(.\d+)+")
 
         update_manager_core_ver = installed_pkgs.get("update-manager-core", "")
 
@@ -40,24 +40,11 @@ def _get_codename(installed_pkgs):
         if bionic_regex.match(update_manager_core_ver):
             return "bionic"
 
-        import apt_pkg
-
-        apt_pkg.init_system()
-
-        # At the moment, groovy is a special case
         if focal_regex.match(update_manager_core_ver):
-            base_files_ver = installed_pkgs.get("base-files", "")
+            return "focal"
 
-            if apt_pkg.version_compare(base_files_ver, "11ubuntu7") >= 0:
-                return "groovy"
-
-            if apt_pkg.version_compare(base_files_ver, "11ubuntu5") >= 0:
-                return "focal"
-
-        # eoan is a special case
-        if eoan_regex.match(update_manager_core_ver):
-            if apt_pkg.version_compare(update_manager_core_ver, "1:19.04.8") >= 0:
-                return "eoan"
+        if groovy_regex.match(update_manager_core_ver):
+            return "groovy"
 
         raise Exception("Could not match version to a supported release.")
     except Exception as e:

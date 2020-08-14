@@ -37,11 +37,6 @@ def test_parse_manifest_codename_bionic():
     assert codename == "bionic"
 
 
-def test_parse_manifest_codename_eoan():
-    (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "eoan")
-    assert codename == "eoan"
-
-
 def test_parse_manifest_codename_focal():
     (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "focal")
     assert codename == "focal"
