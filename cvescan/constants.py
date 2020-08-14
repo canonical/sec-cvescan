@@ -1,43 +1,58 @@
 CVESCAN_DESCRIPTION = "Scan an Ubuntu system for known vulnerabilities"
 
+VERSION_ARG_NAME = "version"
 VERSION_HELP = "Show CVEScan's version number and exit"
 
+VERBOSE_ARG_NAME = "verbose"
 VERBOSE_HELP = "enable verbose messages"
 
 
+PRIORITY_ARG_NAME = "priority"
 PRIORITY_HELP = "filter output by CVE priority"
 
+DB_ARG_NAME = "db"
 DB_FILE_HELP = (
     "Specify an Ubuntu vulnerability datbase file to use instead of downloading the"
     "  latest from people.canonical.com."
 )
 
+MANIFEST_ARG_NAME = "manifest"
 MANIFEST_HELP = "scan a package manifest file instead of the local system"
 
+CSV_ARG_NAME = "csv"
 CSV_HELP = "format output as CSV"
 
+JSON_ARG_NAME = "json"
 JSON_HELP = "format output as JSON"
 
 
+SYSLOG_ARG_NAME = "syslog"
 SYSLOG_HELP = "send JSON formatted output to a syslog server specified by <host>:<port>"
 
+SYSLOG_LIGHT_ARG_NAME = "syslog-light"
 SYSLOG_LIGHT_HELP = (
     "send a simple log message to a syslog server specified by <host>:<port>"
 )
 
-UCT_LINKS_HELP = "include links to the Ubuntu CVE Tracker in the output"
+SHOW_LINKS_ARG_NAME = "show-links"
+SHOW_LINKS_HELP = "include links to the Ubuntu CVE Tracker in the output"
 
+UNRESOLVED_ARG_NAME = "unresolved"
 UNRESOLVED_HELP = "include CVEs that have not yet been resolved in the output"
 
+EXPERIMENTAL_ARG_NAME = "experimental"
 EXPERIMENTAL_HELP = (
     'for users of Ubuntu Advantage, include eXperimental (also called "alpha")'
     "  in the output"
 )
 
+NAGIOS_ARG_NAME = "nagios"
 NAGIOS_HELP = "format output for use with  Nagios NRPE"
 
+CVE_ARG_NAME = "cve"
 CVE_HELP = "report whether or not this system is vulnerable to a specific CVE."
 
+SILENT_ARG_NAME = "silent"
 SILENT_HELP = "do not print any output (only used with --cve)"
 
 

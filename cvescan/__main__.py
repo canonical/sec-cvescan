@@ -89,52 +89,83 @@ def main():
 def parse_args():
     cvescan_ap = ap.ArgumentParser(description=const.CVESCAN_DESCRIPTION)
     cvescan_ap.add_argument(
-        "--version",
+        f"--{const.VERSION_ARG_NAME}",
         action="version",
         version="CVEScan, v" + get_version(),
         help=const.VERSION_HELP,
     )
     cvescan_ap.add_argument(
-        "-v", "--verbose", action="store_true", default=False, help=const.VERBOSE_HELP
+        "-v",
+        f"--{const.VERBOSE_ARG_NAME}",
+        action="store_true",
+        default=False,
+        help=const.VERBOSE_HELP,
     )
     cvescan_ap.add_argument(
         "-p",
-        "--priority",
+        f"--{const.PRIORITY_ARG_NAME}",
         help=const.PRIORITY_HELP,
         choices=[const.CRITICAL, const.HIGH, const.MEDIUM, const.ALL],
         default=None,
     )
-    cvescan_ap.add_argument("--db", metavar="UBUNTU_DB_FILE", help=const.DB_FILE_HELP)
     cvescan_ap.add_argument(
-        "-m", "--manifest", metavar="MANIFEST_FILE", help=const.MANIFEST_HELP
-    )
-    cvescan_ap.add_argument("--csv", action="store_true", help=const.CSV_HELP)
-    cvescan_ap.add_argument("--json", action="store_true", help=const.JSON_HELP)
-    cvescan_ap.add_argument("--syslog", metavar="HOST:PORT", help=const.SYSLOG_HELP)
-    cvescan_ap.add_argument(
-        "--syslog-light", metavar="HOST:PORT", help=const.SYSLOG_LIGHT_HELP
+        f"--{const.DB_ARG_NAME}", metavar="UBUNTU_DB_FILE", help=const.DB_FILE_HELP
     )
     cvescan_ap.add_argument(
-        "--show-links", action="store_true", default=False, help=const.UCT_LINKS_HELP
+        "-m",
+        f"--{const.MANIFEST_ARG_NAME}",
+        metavar="MANIFEST_FILE",
+        help=const.MANIFEST_HELP,
     )
     cvescan_ap.add_argument(
-        "--unresolved", action="store_true", default=False, help=const.UNRESOLVED_HELP
+        f"--{const.CSV_ARG_NAME}", action="store_true", help=const.CSV_HELP
+    )
+    cvescan_ap.add_argument(
+        f"--{const.JSON_ARG_NAME}", action="store_true", help=const.JSON_HELP
+    )
+    cvescan_ap.add_argument(
+        f"--{const.SYSLOG_ARG_NAME}", metavar="HOST:PORT", help=const.SYSLOG_HELP
+    )
+    cvescan_ap.add_argument(
+        f"--{const.SYSLOG_LIGHT_ARG_NAME}",
+        metavar="HOST:PORT",
+        help=const.SYSLOG_LIGHT_HELP,
+    )
+    cvescan_ap.add_argument(
+        f"--{const.SHOW_LINKS_ARG_NAME}",
+        action="store_true",
+        default=False,
+        help=const.SHOW_LINKS_HELP,
+    )
+    cvescan_ap.add_argument(
+        f"--{const.UNRESOLVED_ARG_NAME}",
+        action="store_true",
+        default=False,
+        help=const.UNRESOLVED_HELP,
     )
     cvescan_ap.add_argument(
         "-x",
-        "--experimental",
+        f"--{const.EXPERIMENTAL_ARG_NAME}",
         action="store_true",
         default=False,
         help=const.EXPERIMENTAL_HELP,
     )
     cvescan_ap.add_argument(
-        "-n", "--nagios", action="store_true", default=False, help=const.NAGIOS_HELP
+        "-n",
+        f"--{const.NAGIOS_ARG_NAME}",
+        action="store_true",
+        default=False,
+        help=const.NAGIOS_HELP,
     )
     cvescan_ap.add_argument(
-        "-c", "--cve", metavar="CVE-IDENTIFIER", help=const.CVE_HELP
+        "-c", f"--{const.CVE_ARG_NAME}", metavar="CVE-IDENTIFIER", help=const.CVE_HELP
     )
     cvescan_ap.add_argument(
-        "-s", "--silent", action="store_true", default=False, help=const.SILENT_HELP
+        "-s",
+        f"--{const.SILENT_ARG_NAME}",
+        action="store_true",
+        default=False,
+        help=const.SILENT_HELP,
     )
 
     return cvescan_ap.parse_args()

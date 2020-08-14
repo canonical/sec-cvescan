@@ -3,22 +3,8 @@ import re
 
 import validators
 
+from cvescan.arg_compatibility_map import arg_compatibility_map
 from cvescan.errors import ArgumentError
-
-FMT_CSV_OPTION = "--csv"
-FMT_CVE_OPTION = "-c|--cve"
-FMT_EXPERIMENTAL_OPTION = "-x|--experimental"
-FMT_FILE_OPTION = "-f|--file"
-FMT_JSON_OPTION = "--JSON"
-FMT_MANIFEST_OPTION = "-m|--manifest"
-FMT_NAGIOS_OPTION = "-n|--nagios"
-FMT_SHOW_LINKS_OPTION = "--show-links"
-FMT_SYSLOG_OPTION = "--syslog|--syslog_light"
-FMT_DB_FILE_OPTION = "--db"
-FMT_PRIORITY_OPTION = "-p|priority"
-FMT_SILENT_OPTION = "-s|--silent"
-FMT_UNRESOLVED_OPTION = "--unresolved"
-FMT_VERBOSE_OPTION = "-v|--verbose"
 
 MANIFEST_URL_TEMPLATE = (
     "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
@@ -73,132 +59,53 @@ class Options:
 
 
 def raise_on_invalid_args(args):
-    raise_on_invalid_cve(args)
     raise_on_invalid_combinations(args)
+    raise_on_invalid_cve(args)
     raise_on_missing_manifest_file(args)
     raise_on_missing_db_file(args)
     raise_on_invalid_syslog(args)
+
+
+def raise_on_invalid_combinations(args):
+    specified_args = set()
+    acm = arg_compatibility_map
+
+    for arg_name, arg_value in vars(args).items():
+        if not arg_value:
+            continue
+
+        formatted_arg_name = arg_name.replace("_", "-")
+        raise_if_incompatible_arg_specified(formatted_arg_name, specified_args, acm)
+        specified_args.add(formatted_arg_name)
+
+    for arg in specified_args:
+        raise_if_required_args_not_specified(arg, specified_args, acm)
+
+
+def raise_if_incompatible_arg_specified(formatted_arg_name, specified_args, acm):
+    incompatible_args = specified_args & acm[formatted_arg_name]["incompatible"]
+
+    if len(incompatible_args) != 0:
+        arg = list(incompatible_args)[0]
+        raise ArgumentError(
+            f"The {acm[formatted_arg_name]['flags']} and {acm[arg]['flags']} options "
+            "are incompatible and may not be specified together."
+        )
+
+
+def raise_if_required_args_not_specified(arg, specified_args, acm):
+    for required_arg in acm[arg]["required"]:
+        if required_arg not in specified_args:
+            raise ArgumentError(
+                f"Cannot specify {acm[arg]['flags']} argument "
+                f"without {acm[required_arg]['flags']}."
+            )
 
 
 def raise_on_invalid_cve(args):
     cve_regex = r"^CVE-[0-9]{4}-[0-9]{4,}$"
     if (args.cve is not None) and (not re.match(cve_regex, args.cve)):
         raise ValueError("Invalid CVE ID (%s)" % args.cve)
-
-
-def raise_on_invalid_combinations(args):
-    raise_on_invalid_nagios_options(args)
-    raise_on_invalid_silent_options(args)
-    raise_on_invalid_unresolved_options(args)
-    raise_on_invalid_csv_options(args)
-    raise_on_invalid_cve_options(args)
-    raise_on_invalid_json_options(args)
-    raise_on_invalid_syslog_options(args)
-
-
-def raise_on_invalid_nagios_options(args):
-    if not args.nagios:
-        return
-
-    if args.cve:
-        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_CVE_OPTION)
-
-    if args.silent:
-        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_SILENT_OPTION)
-
-    if args.unresolved:
-        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_UNRESOLVED_OPTION)
-
-    if args.show_links:
-        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_SHOW_LINKS_OPTION)
-
-    if args.syslog or args.syslog_light:
-        raise_incompatible_arguments_error(FMT_NAGIOS_OPTION, FMT_SYSLOG_OPTION)
-
-
-def raise_on_invalid_silent_options(args):
-    if not args.silent:
-        return
-
-    if not args.cve:
-        raise ArgumentError(
-            "Cannot specify %s argument without %s."
-            % (FMT_SILENT_OPTION, FMT_CVE_OPTION)
-        )
-
-    if args.verbose:
-        raise_incompatible_arguments_error(FMT_SILENT_OPTION, FMT_VERBOSE_OPTION)
-
-    if args.show_links:
-        raise_incompatible_arguments_error(FMT_SILENT_OPTION, FMT_SHOW_LINKS_OPTION)
-
-
-def raise_on_invalid_unresolved_options(args):
-    if args.unresolved and args.cve:
-        raise_incompatible_arguments_error(FMT_UNRESOLVED_OPTION, FMT_CVE_OPTION)
-
-    if args.unresolved and args.nagios:
-        raise_incompatible_arguments_error(FMT_UNRESOLVED_OPTION, FMT_NAGIOS_OPTION)
-
-
-def raise_on_invalid_csv_options(args):
-    if not args.csv:
-        return
-
-    if args.silent:
-        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_SILENT_OPTION)
-
-    if args.cve:
-        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_CVE_OPTION)
-
-    if args.json:
-        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_JSON_OPTION)
-
-    if args.nagios:
-        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_NAGIOS_OPTION)
-
-    if args.syslog or args.syslog_light:
-        raise_incompatible_arguments_error(FMT_CSV_OPTION, FMT_SYSLOG_OPTION)
-
-
-def raise_on_invalid_cve_options(args):
-    if not args.cve:
-        return
-
-    if args.json:
-        raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_JSON_OPTION)
-
-    if args.priority is not None:
-        raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_PRIORITY_OPTION)
-
-    if args.show_links:
-        raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_SHOW_LINKS_OPTION)
-
-    if args.syslog or args.syslog_light:
-        raise_incompatible_arguments_error(FMT_CVE_OPTION, FMT_SYSLOG_OPTION)
-
-
-def raise_on_invalid_json_options(args):
-    if not args.json:
-        return
-
-    if args.nagios:
-        raise_incompatible_arguments_error(FMT_JSON_OPTION, FMT_NAGIOS_OPTION)
-
-    if args.syslog or args.syslog_light:
-        raise_incompatible_arguments_error(FMT_JSON_OPTION, FMT_SYSLOG_OPTION)
-
-
-def raise_on_invalid_syslog_options(args):
-    if args.syslog and args.syslog_light:
-        raise_incompatible_arguments_error("--syslog", "--syslog-light")
-
-
-def raise_incompatible_arguments_error(arg1, arg2):
-    raise ArgumentError(
-        "The %s and %s options are incompatible and may not "
-        "be specified together." % (arg1, arg2)
-    )
 
 
 def raise_on_missing_manifest_file(args):
