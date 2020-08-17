@@ -245,7 +245,7 @@ def load_uct_data(opt, download_cache, target_sysinfo):
         uct_data_url = get_uct_data_url(target_sysinfo)
         uct_data = download_cache.get_data_from_url(uct_data_url)
     else:
-        with open(opt.db_file) as db_file:
+        with open(opt.db_file, "r") as db_file:
             uct_data = json.load(db_file)["data"]
 
     return uct_data

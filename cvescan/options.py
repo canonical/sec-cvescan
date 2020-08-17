@@ -122,11 +122,24 @@ def raise_on_missing_file(file_path):
 
     file_abs_path = os.path.abspath(file_path)
     if not os.path.isfile(file_abs_path):
-        # TODO: mention snap confinement in error message
-        raise ArgumentError(
-            'Cannot find file "%s". Current '
-            'working directory is "%s".' % (file_abs_path, os.getcwd())
+        raise_missing_file_error(file_abs_path)
+
+
+def raise_missing_file_error(file_abs_path):
+    error_msg = (
+        f'Cannot find file "{file_abs_path}". Current working directory is '
+        f'"{os.getcwd()}".'
+    )
+
+    user_home_dir = os.path.expanduser("~")
+    if not file_abs_path.startswith(user_home_dir):
+        error_msg += (
+            " If CVEScan is installed as a snap, ensure that the file is stored "
+            "somewhere in $HOME/, as snap confinement prevents CVEScan from "
+            "reading files outside of $HOME."
         )
+
+    raise ArgumentError(error_msg)
 
 
 def raise_on_invalid_syslog(args):

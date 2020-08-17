@@ -358,12 +358,26 @@ def test_invalid_manifest_file_not_found(monkeypatch, mock_args):
 
 def test_invalid_db_file_not_found(monkeypatch, mock_args):
     monkeypatch.setattr(os.path, "isfile", lambda x: False)
+    monkeypatch.setattr(os.path, "expanduser", lambda x: "/home/user")
 
     with pytest.raises(ArgumentError) as ae:
-        mock_args.db = "test"
+        mock_args.db = "/home/user/test"
         Options(mock_args)
 
     assert "Cannot find file" in str(ae)
+    assert "$HOME" not in str(ae)
+
+
+def test_invalid_db_file_not_found_snap_warning(monkeypatch, mock_args):
+    monkeypatch.setattr(os.path, "isfile", lambda x: False)
+    monkeypatch.setattr(os.path, "expanduser", lambda x: "/home/user")
+
+    with pytest.raises(ArgumentError) as ae:
+        mock_args.db = "/tmp/test"
+        Options(mock_args)
+
+    assert "Cannot find file" in str(ae)
+    assert "$HOME" in str(ae)
 
 
 def test_invalid_cve_and_unresolved(mock_args):

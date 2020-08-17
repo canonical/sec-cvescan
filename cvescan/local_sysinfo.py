@@ -154,7 +154,7 @@ class LocalSysInfo:
             "Attempting to read %s to determine the status of UA offerings"
             % ua_status_file_path
         )
-        with open(ua_status_file_path) as ua_status_file:
+        with open(ua_status_file_path, "r") as ua_status_file:
             ua_status = json.load(ua_status_file)
 
         return ua_status
