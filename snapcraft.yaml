@@ -7,27 +7,24 @@ description: |
   CVEScan analyzes an Ubuntu system to check whether all available security
   patches have been installed. CVEScan produces a clear, concise report that
   tells you which, if any, security patches an Ubuntu system may be missing.
-  
+
   Installation -> `sudo snap install cvescan`
 
   Usage Information -> `cvescan -h`
-
 grade: stable
 confinement: strict
-
 plugs:
   apt-dpkg-db:
     interface: system-files
-    read: 
-    - /var/lib/snapd/hostfs/var/lib/dpkg
-    - /var/lib/snapd/hostfs/var/cache/apt
-    - /etc/apt
-    - /etc/dpkg
+    read:
+      - /var/lib/snapd/hostfs/var/lib/dpkg
+      - /var/lib/snapd/hostfs/var/cache/apt
+      - /etc/apt
+      - /etc/dpkg
   hostfs-var-lib-ubuntu-advantage-status-json:
     interface: system-files
     read:
-    - /var/lib/snapd/hostfs/var/lib/ubuntu-advantage/status.json
-
+      - /var/lib/snapd/hostfs/var/lib/ubuntu-advantage/status.json
 layout:
   /usr/lib/x86_64-linux-gnu/openscap:
     bind: $SNAP/usr/lib/x86_64-linux-gnu/openscap
@@ -39,31 +36,30 @@ layout:
     bind-file: $SNAP/usr/bin/dpkg
   /etc/dpkg/dpkg.cfg:
     bind-file: $SNAP/etc/dpkg/dpkg.cfg
-
-
 apps:
   cvescan:
     command: bin/cvescan
     environment:
       APT_CONFIG: $SNAP/etc/apt.conf
-      PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
+      PATH: >-
+        $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
       LC_ALL: C.UTF-8
       LANG: C.UTF-8
     plugs:
-    - home
-    - network
-    - apt-dpkg-db
-    - hostfs-var-lib-ubuntu-advantage-status-json
+      - home
+      - network
+      - apt-dpkg-db
+      - hostfs-var-lib-ubuntu-advantage-status-json
   sh:
     command: ./cvescan.sh
     environment:
-      PATH: $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
+      PATH: >-
+        $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
       APT_CONFIG: $SNAP/etc/apt.conf
     plugs:
-    - home
-    - network
-    - apt-dpkg-db
-
+      - home
+      - network
+      - apt-dpkg-db
 parts:
   cvescan-python:
     plugin: python
@@ -73,12 +69,12 @@ parts:
       - gcc
     source: .
     override-pull: |
-        snapcraftctl pull
-        snapcraftctl set-version `python3 cvescan/version.py`
+      snapcraftctl pull
+      snapcraftctl set-version `python3 cvescan/version.py`
     override-prime: |
-        snapcraftctl prime
-        echo "Compiling pyc files..."
-        "$SNAPCRAFT_PART_INSTALL/usr/bin/python3" -m compileall -q .
+      snapcraftctl prime
+      echo "Compiling pyc files..."
+      "$SNAPCRAFT_PART_INSTALL/usr/bin/python3" -m compileall -q .
   cvescan-bash:
     plugin: dump
     source: snapcraft/
