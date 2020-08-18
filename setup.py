@@ -42,7 +42,7 @@ setuptools.setup(
             "python-apt @ git+https://salsa.debian.org/apt-team/python-apt",
         ],
     },
-    python_requires=">=3.5",
+    python_requires=">=3.7",
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-cov"],
     entry_points={"console_scripts": ["cvescan=cvescan.__main__:main"]},

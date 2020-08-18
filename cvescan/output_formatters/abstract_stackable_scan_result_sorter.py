@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -6,11 +8,8 @@ from cvescan.scan_result import ScanResult
 
 # Sorts a list of Scan Results in place
 class AbstractStackableScanResultSorter(ABC):
-    # TODO: String annotation can be removed after python 3.7
-    # https://stackoverflow.com/questions/40049016/using-the-class-as-a-type-hint-for-
-    # arguments-in-its-methods/50768146#50768146
     def __init__(
-        self, reverse=False, subsorters: List["AbstractStackableScanResultSorter"] = []
+        self, reverse=False, subsorters: List[AbstractStackableScanResultSorter] = []
     ):
         self.reverse = reverse
         self.subsorters = subsorters
