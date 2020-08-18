@@ -1,5 +1,5 @@
 name: cvescan
-base: core18
+base: core20
 adopt-info: cvescan-python
 summary: Security/CVE vulnerability monitoring for Ubuntu
 license: GPL-3.0
@@ -41,6 +41,7 @@ apps:
         $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
       LC_ALL: C.UTF-8
       LANG: C.UTF-8
+      PYTHONPATH: $SNAP/usr/lib/python3/dist-packages
     plugs:
       - home
       - network
@@ -50,8 +51,13 @@ parts:
   apt-dpkg-setup:
     plugin: dump
     source: snap_system_files/
+    after: [stagers]
+  stagers:
+    plugin: nil
     stage-packages:
       - dpkg
+    stage:
+      - -./etc/dpkg/dpkg.cfg
   cvescan-python:
     plugin: python
     stage-packages:

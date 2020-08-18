@@ -1,8 +1,8 @@
 language: python
 os: linux
-dist: bionic
+dist: focal
 python:
-    - "3.6"
+    - "3.8"
 virtualenv:
     # This is needed because lsb-release and python3-apt are not installable via
     # pip at the moment. This means that on bionic we can only test with python
