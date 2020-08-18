@@ -40,15 +40,8 @@ format and a 10x performance improvement over v1.0.10. Additionally, this
 rewrite will allow developers to add new features and capabilities more
 quickly.
 
-As might be expected with the release of a new major version, certain options
-and features included with v1.0.10 may no longer be available or may not
-function as they use to. If you absolutely must have the old version of
-CVEScan, you can install the snap and run `cvescan.sh`. This will run the
-deprecated v1.0.10 of CVEScan.
-
-**WARNING**: v2.5.0 of CVEScan is the last version that will include the v1.0.10
-bash implementation. If you are still using `cvescan.sh`, please move over to
-v2.5.0 of `cvescan`.
+The v1.0.10 version of CVEScan has been removed from this repository and the
+resulting snap package as of v3.0.0.
 
 For more information about how v2.0.0 differs from v1.0.10, see the
 [CHANGELOG](./CHANGELOG.md).

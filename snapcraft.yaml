@@ -26,12 +26,8 @@ plugs:
     read:
       - /var/lib/snapd/hostfs/var/lib/ubuntu-advantage/status.json
 layout:
-  /usr/lib/x86_64-linux-gnu/openscap:
-    bind: $SNAP/usr/lib/x86_64-linux-gnu/openscap
   /usr/share/dpkg:
     bind: $SNAP/usr/share/dpkg
-  /usr/share/openscap:
-    bind: $SNAP/usr/share/openscap
   /usr/bin/dpkg:
     bind-file: $SNAP/usr/bin/dpkg
   /etc/dpkg/dpkg.cfg:
@@ -50,17 +46,12 @@ apps:
       - network
       - apt-dpkg-db
       - hostfs-var-lib-ubuntu-advantage-status-json
-  sh:
-    command: ./cvescan.sh
-    environment:
-      PATH: >-
-        $PATH:$SNAP/usr/local/sbin:$SNAP/usr/local/bin:$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$SNAP/snap/bin
-      APT_CONFIG: $SNAP/etc/apt.conf
-    plugs:
-      - home
-      - network
-      - apt-dpkg-db
 parts:
+  apt-dpkg-setup:
+    plugin: dump
+    source: snap_system_files/
+    stage-packages:
+      - dpkg
   cvescan-python:
     plugin: python
     stage-packages:
@@ -75,15 +66,3 @@ parts:
       snapcraftctl prime
       echo "Compiling pyc files..."
       "$SNAPCRAFT_PART_INSTALL/usr/bin/python3" -m compileall -q .
-  cvescan-bash:
-    plugin: dump
-    source: snapcraft/
-    stage-packages:
-      - grep
-      - dpkg
-      - libopenscap8
-      - debianutils
-      - xsltproc
-      - coreutils
-      - curl
-      - bzip2
