@@ -193,6 +193,7 @@ def set_output_verbosity(opt):
 
 def get_null_logger():
     logger = logging.getLogger(const.NULL_LOGGER_NAME)
+    logger.propagate = False
     if not logger.hasHandlers():
         logger.addHandler(logging.NullHandler())
 
