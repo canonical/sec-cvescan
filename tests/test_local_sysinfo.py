@@ -3,7 +3,6 @@ import os
 import sys
 from unittest.mock import MagicMock
 
-import lsb_release
 import pytest
 
 import cvescan.constants as const
@@ -27,6 +26,7 @@ DEFAULT_INSTALLED_PKGS = {
     "akonadi-server": "4:19.04.3-0ubuntu3",
     "akregator": "4:19.04.3-0ubuntu1",
 }
+sys.path.append("tests/assets/syslibs")
 
 
 class MockResponses:
@@ -50,6 +50,8 @@ def apply_mock_responses(monkeypatch, mock_responses):
         monkeypatch.delenv("SNAP_USER_COMMON", raising=False)
     else:
         monkeypatch.setenv("SNAP_USER_COMMON", mock_responses.environ_snap_user_common)
+
+    import lsb_release
 
     if mock_responses.get_distro_information_raises is True:
         monkeypatch.setattr(lsb_release, "get_distro_information", raise_mock_exception)
