@@ -105,3 +105,12 @@ JSON_INDENT = 4
 NULL_LOGGER_NAME = "cvescan.null"
 STDOUT_LOGGER_NAME = "cvescan.stdout"
 SYSLOG_LOGGER_NAME = "cvescan.syslog"
+
+SUPPORTED_RELEASES = [
+    "trusty",
+    "xenial",
+    "bionic",
+    "eoan",
+    "focal",
+    "groovy",
+]
