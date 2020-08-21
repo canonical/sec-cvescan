@@ -53,6 +53,7 @@ class Options:
 
     def _set_manifest_file_options(self, args):
         self.manifest_file = os.path.abspath(args.manifest) if args.manifest else None
+        self.manifest_codename = args.manifest_codename
 
 
 def raise_on_invalid_args(args):

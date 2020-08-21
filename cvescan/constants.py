@@ -59,6 +59,7 @@ EXPERIMENTAL_HELP = (
     "package updates available for users of Ubuntu Advantage running systems \n"
     "with ESM Apps and ESM Infra enabled."
 )
+MANIFEST_CODENAME_HELP = "Explicitly specify the release codename for supplied manifest. Argument is ignored when `--manifest` is not supplied"
 
 JSON_HELP = "Format output as JSON."
 

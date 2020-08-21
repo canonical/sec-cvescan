@@ -10,7 +10,8 @@ class TargetSysInfo:
 
     def _set_from_manifest_file(self, opt):
         (installed_pkgs, codename) = manifest_parser.parse_manifest_file(
-            opt.manifest_file
+            opt.manifest_file,
+            opt.manifest_codename
         )
 
         self.installed_pkgs = installed_pkgs

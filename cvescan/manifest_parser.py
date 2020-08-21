@@ -3,7 +3,7 @@ import re
 import cvescan.dpkg_parser as dpkg_parser
 
 
-def parse_manifest_file(manifest_file_path):
+def parse_manifest_file(manifest_file_path, codename=None):
     try:
         with open(manifest_file_path) as mfp:
             manifest = mfp.read()
@@ -14,7 +14,10 @@ def parse_manifest_file(manifest_file_path):
             "Failed to parse installed files from manifest the provided file: %s" % e
         )
 
-    return (installed_pkgs, _get_codename(installed_pkgs))
+    if not codename:
+        codename = _get_codename(installed_pkgs)
+
+    return (installed_pkgs, codename)
 
 
 # This function uses a hack to guess the ubuntu release codename based on the

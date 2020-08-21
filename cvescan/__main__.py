@@ -110,6 +110,12 @@ def parse_args():
         default=False,
         help=const.EXPERIMENTAL_HELP,
     )
+    cvescan_ap.add_argument(
+        "--manifest-codename",
+        action="store",
+        default=None,
+        help=const.MANIFEST_CODENAME_HELP,
+    )
 
     return cvescan_ap.parse_args()
 
