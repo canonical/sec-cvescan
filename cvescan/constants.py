@@ -1,7 +1,7 @@
 CVESCAN_DESCRIPTION = "Scan an Ubuntu system for known vulnerabilities"
 
 VERSION_ARG_NAME = "version"
-VERSION_HELP = "Show CVEScan's version number and exit"
+VERSION_HELP = "show CVEScan's version number and exit"
 
 VERBOSE_ARG_NAME = "verbose"
 VERBOSE_HELP = "enable verbose messages"
@@ -12,7 +12,7 @@ PRIORITY_HELP = "filter output by CVE priority"
 
 DB_ARG_NAME = "db"
 DB_FILE_HELP = (
-    "Specify an Ubuntu vulnerability datbase file to use instead of downloading the"
+    "specify an Ubuntu vulnerability datbase file to use instead of downloading the"
     "  latest from people.canonical.com."
 )
 
