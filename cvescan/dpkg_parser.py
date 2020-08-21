@@ -6,10 +6,10 @@ from cvescan.errors import PkgCountError
 INSTALLED_REGEX = re.compile(r"^[uihrp]i")
 
 
-def get_installed_pkgs_from_manifest(manifest):
+def get_installed_pkgs_from_manifest(manifest_fp):
     installed_pkgs = {}
-    for pkg in manifest.splitlines():
-        (pkg, version) = pkg.split("\t")
+    for pkg in manifest_fp:
+        (pkg, version) = pkg.strip().split("\t")
         pkg = _strip_architecture_extension(pkg)
         installed_pkgs[pkg] = version
 

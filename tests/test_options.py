@@ -1,7 +1,9 @@
+import io
 import os
 
 import pytest
 
+import cvescan.constants as const
 from cvescan.errors import ArgumentError
 from cvescan.options import Options
 
@@ -211,6 +213,14 @@ def test_set_manifest_file_abspath(monkeypatch, mock_args):
     opt = Options(mock_args)
 
     assert opt.manifest_file == "/tmp/testmanifest"
+
+
+def test_set_manifest_file_stdin(monkeypatch, mock_args):
+    mock_stdin = io.StringIO()
+    monkeypatch.setattr("sys.stdin", mock_stdin)
+    mock_args.manifest = const.MANIFEST_STDIN_FLAG
+    opt = Options(mock_args)
+    assert opt.manifest_file == mock_stdin
 
 
 def test_set_cve_default(mock_args):

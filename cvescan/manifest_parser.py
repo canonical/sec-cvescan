@@ -1,17 +1,22 @@
+import io
 import re
+from contextlib import nullcontext
 
 import cvescan.dpkg_parser as dpkg_parser
 
 
-def parse_manifest_file(manifest_file_path):
+def parse_manifest_file(manifest_file):
     try:
-        with open(manifest_file_path, "r") as mfp:
-            manifest = mfp.read()
-
-        installed_pkgs = dpkg_parser.get_installed_pkgs_from_manifest(manifest)
+        manifest_file_context = (
+            nullcontext(manifest_file)
+            if isinstance(manifest_file, io.TextIOBase)
+            else open(manifest_file, "r")
+        )
+        with manifest_file_context as manifest:
+            installed_pkgs = dpkg_parser.get_installed_pkgs_from_manifest(manifest)
     except Exception as e:
         raise Exception(
-            "Failed to parse installed files from manifest the provided file: %s" % e
+            "Failed to parse installed files from manifest the provided input: %s" % e
         )
 
     return (installed_pkgs, _get_codename(installed_pkgs))

@@ -17,7 +17,8 @@ DB_FILE_HELP = (
 )
 
 MANIFEST_ARG_NAME = "manifest"
-MANIFEST_HELP = "scan a package manifest file instead of the local system"
+MANIFEST_STDIN_FLAG = "-"
+MANIFEST_HELP = f"scan a package manifest file instead of the local system (use '{MANIFEST_STDIN_FLAG}' to read from stdin)"
 
 CSV_ARG_NAME = "csv"
 CSV_HELP = "format output as CSV"

@@ -1,8 +1,10 @@
 import os
 import re
+import sys
 
 import validators
 
+import cvescan.constants as const
 from cvescan.arg_compatibility_map import arg_compatibility_map
 from cvescan.errors import ArgumentError
 
@@ -45,7 +47,12 @@ class Options:
             self.db_file = "uct.json"
 
     def _set_manifest_file_options(self, args):
-        self.manifest_file = os.path.abspath(args.manifest) if args.manifest else None
+        if args.manifest == const.MANIFEST_STDIN_FLAG:
+            self.manifest_file = sys.stdin
+        elif args.manifest:
+            self.manifest_file = os.path.abspath(args.manifest)
+        else:
+            self.manifest_file = None
 
     def _set_syslog_options(self, args):
         self.syslog = args.syslog is not None
@@ -109,7 +116,8 @@ def raise_on_invalid_cve(args):
 
 
 def raise_on_missing_manifest_file(args):
-    raise_on_missing_file(args.manifest)
+    if args.manifest != const.MANIFEST_STDIN_FLAG:
+        raise_on_missing_file(args.manifest)
 
 
 def raise_on_missing_db_file(args):
