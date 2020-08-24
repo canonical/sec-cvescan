@@ -9,9 +9,9 @@ INSTALLED_REGEX = re.compile(r"^[uihrp]i")
 def get_installed_pkgs_from_manifest(manifest_fp):
     installed_pkgs = {}
     for pkg in manifest_fp:
-        (pkg, version) = pkg.strip().split("\t")
-        pkg = _strip_architecture_extension(pkg)
-        installed_pkgs[pkg] = version
+        (pkg_name, version) = pkg.strip().split("\t")
+        pkg_name = _strip_architecture_extension(pkg_name)
+        installed_pkgs[pkg_name] = version
 
     return installed_pkgs
 
