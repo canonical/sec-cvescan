@@ -89,9 +89,7 @@ def test_installed_pkgs_dpkg_list(monkeypatch, null_logger):
 
 def test_parse_manifest_installed_pkgs():
     with open(TEST_MANIFEST_FILE % "bionic") as f:
-        manifest = f.read()
-
-    installed_pkgs = dpkg_parser.get_installed_pkgs_from_manifest(manifest)
+        installed_pkgs = dpkg_parser.get_installed_pkgs_from_manifest(f)
 
     assert len(installed_pkgs) == 11
     assert installed_pkgs.get("accountsservice", None) == "0.6.45-1ubuntu1"
