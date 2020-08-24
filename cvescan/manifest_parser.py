@@ -7,8 +7,6 @@ import cvescan.dpkg_parser as dpkg_parser
 
 
 def parse_manifest_file(manifest_file):
-    codename = None
-
     try:
         manifest_contents = _get_manifest_contents(manifest_file)
         installed_pkgs = dpkg_parser.get_installed_pkgs_from_manifest(manifest_contents)
