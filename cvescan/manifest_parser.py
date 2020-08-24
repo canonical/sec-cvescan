@@ -17,11 +17,12 @@ def parse_manifest_file(manifest_file):
         )
         with manifest_file_context as manifest:
             first_line = manifest.readline().strip()
-            manifest_pkgs = manifest.read()
+            manifest_pkgs = manifest.read().rstrip("\n").split("\n")
             if first_line in SUPPORTED_RELEASES:
                 codename = first_line
             else:
-                manifest_pkgs = "\n".join([first_line, manifest_pkgs])
+                manifest_pkgs.insert(0, first_line)
+
             installed_pkgs = dpkg_parser.get_installed_pkgs_from_manifest(manifest_pkgs)
     except Exception as e:
         raise Exception(
