@@ -111,7 +111,6 @@ SUPPORTED_RELEASES = [
     "trusty",
     "xenial",
     "bionic",
-    "eoan",
     "focal",
     "groovy",
 ]
