@@ -2,44 +2,58 @@ import io
 import re
 from contextlib import nullcontext
 
+import cvescan.constants as const
 import cvescan.dpkg_parser as dpkg_parser
-from cvescan.constants import SUPPORTED_RELEASES
 
 
 def parse_manifest_file(manifest_file):
     codename = None
 
     try:
-        manifest_file_context = (
-            nullcontext(manifest_file)
-            if isinstance(manifest_file, io.TextIOBase)
-            else open(manifest_file, "r")
-        )
-        with manifest_file_context as manifest:
-            first_line = manifest.readline().strip()
-            manifest_pkgs = manifest.read().rstrip("\n").split("\n")
-            if first_line in SUPPORTED_RELEASES:
-                codename = first_line
-            else:
-                manifest_pkgs.insert(0, first_line)
-
-            installed_pkgs = dpkg_parser.get_installed_pkgs_from_manifest(manifest_pkgs)
+        manifest_contents = _get_manifest_contents(manifest_file)
+        installed_pkgs = dpkg_parser.get_installed_pkgs_from_manifest(manifest_contents)
     except Exception as e:
         raise Exception(
             "Failed to parse installed files from manifest the provided input: %s" % e
         )
 
-    if codename is None:
-        codename = _get_codename_from_package_versions(installed_pkgs)
+    codename = _get_codename(manifest_contents, installed_pkgs)
 
     return (installed_pkgs, codename)
 
 
-# This function uses a hack to guess the ubuntu release codename based on the
-# versions of certain packages. A better solution would be to include the
-# codename in the manifest file and fall back on this version checking approach
-# if the codename is missing.
-def _get_codename_from_package_versions(installed_pkgs):
+def _get_manifest_contents(manifest_file):
+    manifest_file_context = (
+        nullcontext(manifest_file)
+        if isinstance(manifest_file, io.TextIOBase)
+        else open(manifest_file, "r")
+    )
+
+    with manifest_file_context as manifest:
+        manifest_contents = manifest.read().rstrip("\n").split("\n")
+
+    return manifest_contents
+
+
+def _get_codename(manifest_contents, installed_pkgs):
+    codename = _get_codename_from_manifest(manifest_contents)
+
+    if codename is None:
+        # Fall back on this function (which is a hack) only if the codename
+        # wasn't explicitly specified on the first line of the manifest file.
+        codename = _guess_codename_from_package_versions(installed_pkgs)
+
+    return codename
+
+
+def _get_codename_from_manifest(manifest_contents):
+    if manifest_contents[0] in const.SUPPORTED_RELEASES:
+        return manifest_contents[0]
+
+    return None
+
+
+def _guess_codename_from_package_versions(installed_pkgs):
     try:
         trusty_regex = re.compile(r"1:0.196(.\d+)+")
         xenial_regex = re.compile(r"1:16.04(.\d+)+")

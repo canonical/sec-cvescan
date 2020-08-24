@@ -4,11 +4,15 @@ import subprocess
 from cvescan.errors import PkgCountError
 
 INSTALLED_REGEX = re.compile(r"^[uihrp]i")
+MANIFEST_PKG_REGEX = re.compile(r"^(?<!#)\S+\t+\S+$")
 
 
-def get_installed_pkgs_from_manifest(manifest_fp):
+def get_installed_pkgs_from_manifest(manifest_contents):
     installed_pkgs = {}
-    for pkg in manifest_fp:
+    for pkg in manifest_contents:
+        if not MANIFEST_PKG_REGEX.match(pkg):
+            continue
+
         (pkg_name, version) = pkg.strip().split("\t")
         pkg_name = _strip_architecture_extension(pkg_name)
         installed_pkgs[pkg_name] = version
