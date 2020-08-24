@@ -5,9 +5,7 @@ import cvescan.manifest_parser as mp
 TEST_MANIFEST_FILE = "tests/assets/manifests/%s.manifest"
 
 
-def test_parse_manifest_installed_pkgs():
-    (installed_pkgs, _) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "bionic")
-
+def assert_test_bionic_manifest_packages(installed_pkgs):
     assert len(installed_pkgs) == 11
     assert installed_pkgs.get("accountsservice", None) == "0.6.45-1ubuntu1"
     assert installed_pkgs.get("acl", None) == "2.2.52-3build1"
@@ -20,6 +18,17 @@ def test_parse_manifest_installed_pkgs():
     assert installed_pkgs.get("base-files", None) == "10.1ubuntu2.8"
     assert installed_pkgs.get("python3-gdbm", None) == "3.6.9-1~18.04"
     assert installed_pkgs.get("update-manager-core", None) == "1:18.04.11.12"
+
+
+def test_parse_manifest_installed_pkgs():
+    (installed_pkgs, _) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "bionic")
+    assert_test_bionic_manifest_packages(installed_pkgs)
+
+
+def test_parse_manifest_file_handle():
+    with open(TEST_MANIFEST_FILE % "bionic") as f:
+        (installed_pkgs, _) = mp.parse_manifest_file(f)
+    assert_test_bionic_manifest_packages(installed_pkgs)
 
 
 def test_parse_manifest_codename_trusty():
