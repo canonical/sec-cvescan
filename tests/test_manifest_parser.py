@@ -2,7 +2,8 @@ import pytest
 
 import cvescan.manifest_parser as mp
 
-TEST_MANIFEST_FILE = "tests/assets/manifests/%s.manifest"
+TEST_MANIFEST_DIR = "tests/assets/manifests"
+TEST_MANIFEST_FILE = f"{TEST_MANIFEST_DIR}/%s.manifest"
 
 
 def assert_test_bionic_manifest_packages(installed_pkgs):
@@ -31,27 +32,36 @@ def test_parse_manifest_file_handle():
     assert_test_bionic_manifest_packages(installed_pkgs)
 
 
-def test_parse_manifest_codename_trusty():
+def test_parse_manifest_codename_trusty_infer_from_update_manger_core():
     (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "trusty")
     assert codename == "trusty"
 
 
-def test_parse_manifest_codename_xenial():
+def test_parse_manifest_codename_trusty_explicit():
+    # This file has update-manager-core matching bionic, but since the first line
+    # matches ^trusty$, the codename should be reported as "trusty"
+    test_file = f"{TEST_MANIFEST_DIR}/trusty_explicit.manifest"
+
+    (_, codename) = mp.parse_manifest_file(test_file)
+    assert codename == "trusty"
+
+
+def test_parse_manifest_codename_xenial_infer_from_update_manger_core():
     (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "xenial")
     assert codename == "xenial"
 
 
-def test_parse_manifest_codename_bionic():
+def test_parse_manifest_codename_bionic_infer_from_update_manger_core():
     (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "bionic")
     assert codename == "bionic"
 
 
-def test_parse_manifest_codename_focal():
+def test_parse_manifest_codename_focal_infer_from_update_manger_core():
     (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "focal")
     assert codename == "focal"
 
 
-def test_parse_manifest_codename_groovy():
+def test_parse_manifest_codename_groovy_infer_from_update_manger_core():
     (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "groovy")
     assert codename == "groovy"
 
