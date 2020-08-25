@@ -135,7 +135,7 @@ installations).
 #### Preferred Manifest Generation Method
 
 The preferred way to generate manifest files is to run
-`cvescan.dump-dpkg-manifest` if you've installed the snap or download and run
+`cvescan.dump-dpkg-manifest` if you've installed the snap, or download and run
 the
 [dump_dpkg_manifest.sh](https://github.com/canonical/sec-cvescan/blob/master/dump_dpkg_manifest.sh)
 script. This method is preferred for 2 reasons:
@@ -144,8 +144,9 @@ script. This method is preferred for 2 reasons:
    change. While CVEScan will make every effort to remain backwards compatible,
    backwards compatibility is not guaranteed. Furthermore, changes to the
    manifest file format will improve the accuracy and relevancy of CVEScan
-   results.
-2. This method explicitly adds the ubuntu release codename to the top of the
+   results. Running this script insulates administrators from changes to how
+   manifest files are generated.
+2. This method explicitly adds the Ubuntu release codename to the top of the
    manifest file. This is required when generating manifest files on systems
    where `update-manager-core` is not installed.
 
