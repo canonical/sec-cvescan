@@ -47,6 +47,13 @@ apps:
       - network
       - apt-dpkg-db
       - hostfs-var-lib-ubuntu-advantage-status-json
+  dump-dpkg-manifest:
+    command: usr/bin/dump_dpkg_manifest.sh
+    environment:
+      APT_CONFIG: $SNAP/etc/apt.conf
+      DPKG_ADMINDIR: /var/lib/snapd/hostfs/var/lib/dpkg
+    plugs:
+      - apt-dpkg-db
 parts:
   apt-dpkg-setup:
     plugin: dump
@@ -72,3 +79,10 @@ parts:
       snapcraftctl prime
       echo "Compiling pyc files..."
       "$SNAPCRAFT_PART_INSTALL/usr/bin/python3" -m compileall -q .
+  dump-dpkg-manifest:
+      plugin: dump
+      source: .
+      organize:
+        dump_dpkg_manifest.sh : usr/bin/dump_dpkg_manifest.sh
+      stage:
+        - usr/bin/dump_dpkg_manifest.sh
