@@ -10,7 +10,6 @@ class CVEScanner:
 
         self.logger = logger
 
-    # TODO: Add debug logging
     def scan(self, codename, uct_data, installed_pkgs):
         affected_cves = list()
 
