@@ -2,12 +2,21 @@ import json
 from typing import List
 
 import cvescan.constants as const
-from cvescan import TargetSysInfo
-from cvescan.output_formatters import AbstractOutputFormatter
+import cvescan.target_sysinfo as TargetSysInfo
+from cvescan.output_formatters import (
+    AbstractOutputFormatter,
+    AbstractStackableScanResultSorter,
+)
 from cvescan.scan_result import ScanResult
 
 
 class JSONOutputFormatter(AbstractOutputFormatter):
+    def __init__(
+        self, opt, logger, sorter: AbstractStackableScanResultSorter = None, indent=None
+    ):
+        super().__init__(opt, logger, sorter)
+        self.indent = indent
+
     def format_output(
         self, scan_results: List[ScanResult], sysinfo: TargetSysInfo
     ) -> (str, int):
@@ -32,7 +41,7 @@ class JSONOutputFormatter(AbstractOutputFormatter):
             priority_results, fixable_results
         )
 
-        return json.dumps(output, indent=4, sort_keys=False), return_code
+        return json.dumps(output, indent=self.indent, sort_keys=False), return_code
 
     def _get_summary(self, scan_results: List[ScanResult], sysinfo: TargetSysInfo):
         stats = self._get_scan_stats(scan_results, sysinfo)

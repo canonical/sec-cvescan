@@ -1,7 +1,7 @@
 import pytest
 
-from cvescan import TargetSysInfo
 from cvescan import manifest_parser as mp
+from cvescan.target_sysinfo import TargetSysInfo
 
 
 class MockOpt:

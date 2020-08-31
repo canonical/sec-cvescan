@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.5.0] - 2020-08-27
+### Added
+- --syslog option that sends JSON output to a syslog server.
+- --syslog-light option that sends simple log message to a syslog server.
+- Progress indicators (spinners) that show when the vulnerability DB is being
+  downloaded and when the scan is running.
+### Changed
+- The help and usage message to be more concise with cleaner formatting.
+### Deprecated
+- The bash implementation of CVEScan has been deprecated since v2.0.0. This is
+  the last version of CVEScan in which the bash implementation will be available.
+
 ## [2.4.0] - 2020-08-03
 ### Added
 - A --version argument that shows the version of CVEScan.

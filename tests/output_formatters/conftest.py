@@ -3,8 +3,8 @@ import logging
 import pytest
 
 import cvescan.constants as const
-from cvescan import TargetSysInfo
 from cvescan.scan_result import ScanResult
+from cvescan.target_sysinfo import TargetSysInfo
 
 
 def null_logger():
@@ -39,6 +39,8 @@ class MockOpt:
         self.priority = "all"
         self.show_links = None
         self.experimental_mode = True
+        self.syslog = False
+        self.syslog_light = False
 
 
 @pytest.fixture

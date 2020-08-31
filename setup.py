@@ -28,7 +28,12 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
         "Topic :: Security",
     ],
-    install_requires=["tabulate", "ust-download-cache"],
+    install_requires=[
+        "tabulate",
+        "ust-download-cache",
+        "vistir[spinner]",
+        "validators",
+    ],
     extras_require={
         "apt": [
             "python-distutils-extra @ "
