@@ -17,9 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The snap to be based on core20 instead of core18
 - Minimum required python version to >=3.7
 ### Removed
-- The bash implementation of CVEScan
+- The bash implementation of CVEScan (v1.0.10) from repository
+- cvescan.sh command from snap
 
-## [v2.5.0] - 2020-08-27
+## [2.5.0] - 2020-08-27
 ### Added
 - --syslog option that sends JSON output to a syslog server.
 - --syslog-light option that sends simple log message to a syslog server.
