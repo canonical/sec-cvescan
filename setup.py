@@ -29,19 +29,12 @@ setuptools.setup(
         "Topic :: Security",
     ],
     install_requires=[
+        "pydpkg",
         "tabulate",
         "ust-download-cache",
         "vistir[spinner]",
         "validators",
     ],
-    extras_require={
-        "apt": [
-            "python-distutils-extra @ "
-            "git+https://salsa.debian.org/python-team/modules/"
-            "python-distutils-extra.git",
-            "python-apt @ git+https://salsa.debian.org/apt-team/python-apt",
-        ],
-    },
     python_requires=">=3.7",
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-cov"],

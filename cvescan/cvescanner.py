@@ -1,4 +1,4 @@
-import apt_pkg
+from pydpkg import Dpkg
 
 import cvescan.constants as const
 from cvescan.scan_result import ScanResult
@@ -6,8 +6,6 @@ from cvescan.scan_result import ScanResult
 
 class CVEScanner:
     def __init__(self, logger):
-        apt_pkg.init_system()
-
         self.logger = logger
 
     def scan(self, codename, uct_data, installed_pkgs):
@@ -76,6 +74,6 @@ class CVEScanner:
         return binary_statuses
 
     def _installed_pkg_is_patched(self, installed_version, patched_version):
-        version_compare = apt_pkg.version_compare(installed_version, patched_version)
+        version_compare = Dpkg.compare_versions(installed_version, patched_version)
 
         return version_compare >= 0
