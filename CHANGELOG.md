@@ -6,19 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Ability to read a manifest file from stdin
+- Ability to read a manifest file from stdin.
 - Manifests can include an explicit Ubuntu codename if the update-manager-core
   package is not installed.
 - `dump_dpkg_manifest.sh` script as the preferred mechanism for generating
   manifest files.
 - `cvescan.dump-dpkg-manifest` command to the snap. This command invokes the
-  `dump_dpkg_manifest.sh` script
+  `dump_dpkg_manifest.sh` script.
 ### Changed
-- The snap to be based on core20 instead of core18
-- Minimum required python version to >=3.7
+- The snap to be based on core20 instead of core18.
+- Minimum required python version to >=3.7.
+- Replace dependency on python-apt with pydpkg.
 ### Removed
-- The bash implementation of CVEScan (v1.0.10) from repository
-- cvescan.sh command from snap
+- The bash implementation of CVEScan (v1.0.10) from repository.
+- cvescan.sh command from snap.
 
 ## [2.5.0] - 2020-08-27
 ### Added
