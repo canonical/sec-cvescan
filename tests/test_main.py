@@ -21,14 +21,6 @@ def null_logger(name="test.null"):
     return logger
 
 
-# THIS LINE IS A HACK
-# Running null_logger() with name "cvescan.null" is required for the tests to pass.
-# It appears that pytest creates a logger with a LogCaptureHandler, if the cvescan.null
-# logger does not exist yet. In this case, the call to "if not logger.hasHandlers()"
-# fails because pytest has set up a logger named "cvescan" that has a LogCaptureHandler.
-null_logger(const.NULL_LOGGER_NAME)
-
-
 class MockOpt:
     def __init__(self):
         self.download_uct_db_file = False
