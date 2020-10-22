@@ -8,10 +8,6 @@ import cvescan.constants as const
 from cvescan.arg_compatibility_map import arg_compatibility_map
 from cvescan.errors import ArgumentError
 
-MANIFEST_URL_TEMPLATE = (
-    "https://cloud-images.ubuntu.com/%s/current/%s-server-cloudimg-amd64.manifest"
-)
-
 
 class Options:
     def __init__(self, args):
