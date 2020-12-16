@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Corrected spelling issues in `CHANGELOG.md`
 - Ability to read a manifest file from stdin.
 - Manifests can include an explicit Ubuntu codename if the update-manager-core
   package is not installed.
@@ -23,40 +24,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.5.0] - 2020-08-27
 ### Added
-- --syslog option that sends JSON output to a syslog server.
-- --syslog-light option that sends simple log message to a syslog server.
+- `--syslog` option that sends JSON output to a syslog server.
+- `--syslog-light` option that sends simple log message to a syslog server.
 - Progress indicators (spinners) that show when the vulnerability DB is being
   downloaded and when the scan is running.
 ### Changed
 - The help and usage message to be more concise with cleaner formatting.
 ### Deprecated
-- The bash implementation of CVEScan has been deprecated since v2.0.0. This is
+- The bash implementation of CVEScan has been deprecated since `v2.0.0`. This is
   the last version of CVEScan in which the bash implementation will be available.
 
 ## [2.4.0] - 2020-08-03
 ### Added
-- A --version argument that shows the version of CVEScan.
+- A `--version` argument that shows the version of CVEScan.
 ### Changed
 - "UA Apps" and "UA Infra" to "ESM Apps" and "ESM Infra" respectively in all
-  output formats (cli, csv, json, etc.).
+  output formats (CLI, CSV, JSON, etc.).
 
 ## [2.3.1] - 2020-07-21
 ### Changed
-- USTDownloadCache dependency from v1.1.0 to v2.0.0.
+- `USTDownloadCache` dependency from `v1.1.0` to `v2.0.0`.
 
 ## [2.3.0] - 2020-07-06
 ### Added
-- The ability to install in a virtualenv.
+- The ability to install in a python virtual environment.
 ### Changed
 - Download smaller vulnerability databases that are specific to an Ubuntu
-  release. This improves runtime by 2x-5x.
-- USTDownloadCache dependency from v1.0.1 to v1.1.0 and install from PyPI. This
-  removes CVEScan's dependency on pycurl and, consequently,
-  libcurl4-openssl-dev and libssl-dev.
+  release. This improves performance by 2x-5x.
+- `USTDownloadCache` dependency from `v1.0.1` to `v1.1.0` and install from `PyPI`. This
+  removes CVEScan's dependency on `pycurl` and, consequently,
+  `libcurl4-openssl-dev` and `libssl-dev`.
 ### Fixed
 - Improved startup time for snap package.
-- Catch KeyError and JSONDecodeErro when parsing malformed
-  /var/lib/ubuntu-advantage/status.json.
+- Catch `KeyError` and `JSONDecodeError` when parsing malformed
+  `/var/lib/ubuntu-advantage/status.json`.
 
 ## [2.2.1] - 2020-06-24
 ### Changed
@@ -75,9 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.1.0] - 2020-06-23
 ### Added
-- A "--csv" flag to instruct CVEScan to format the output as CSV ([issue #32](https://github.com/canonical/sec-cvescan/issues/32)).
-- A "--json" flag to instruct CVEScan to format the output as JSON ([issue #32](https://github.com/canonical/sec-cvescan/issues/32)).
-- More unit tests for main().
+- A `--csv` flag to instruct CVEScan to format the output as CSV ([issue #32](https://github.com/canonical/sec-cvescan/issues/32)).
+- A `--json` flag to instruct CVEScan to format the output as JSON ([issue #32](https://github.com/canonical/sec-cvescan/issues/32)).
+- More unit tests for `main()`.
 ### Changed
 - The "ARCHIVE" column header to "REPOSITORY" for accuracy and consistency.
 ### Fixed
@@ -91,12 +92,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A total rewrite of CVEScan in python.
 - Unit test suite for python implementation.
 - An ESM status check and report ([issue #8](https://github.com/canonical/sec-cvescan/issues/8)).
-- A --db option to specify a local file containing an Ubuntu vulnerability database.
+- A `--db` option to specify a local file containing an Ubuntu vulnerability database.
 - Additional verbose output that is useful for debugging.
 - Support for running on Focal.
-- The --show-links option.
-- The --db option.
-- The --unresolved option.
+- The `--show-links` option.
+- The `--db` option.
+- The `--unresolved` option.
 - Colors to default output.
 - Continuous integration with Travis-CI.
 - The ability to use pip to install from source.
@@ -114,23 +115,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [issue #30](https://github.com/canonical/sec-cvescan/issues/30).)
 - Use JSON generated from the Ubuntu CVE Tracker instead of OVAL data.
 - Manifest mode checks package versions in the manifest file to determine the Ubuntu
-  codename, so the --manifest option no longer expects an Ubuntu codename.
+  codename, so the `--manifest` option no longer expects an Ubuntu codename.
   Instead, it expects the path to the manifest file.
-- The default behavior is to show only updatable packages. The --updates option
-  is no longer included. The --unresolved option can be used to show CVEs that have
+- The default behavior is to show only updatable packages. The `--updates` option
+  is no longer included. The `--unresolved` option can be used to show CVEs that have
   not been patched.
-- The default behavior is to show CVE IDs, not URLS. The --list option is no longer
-  included. The --show-links option can be used to show links to the Ubuntu CVE Tracker.
+- The default behavior is to show CVE IDs, not URLS. The `--list` option is no longer
+  included. The `--show-links` option can be used to show links to the Ubuntu CVE Tracker.
 ### Deprecated
 - The entire bash implementation of CVEScan
 ### Removed
 - Test mode
 - All file/download caching
-- Dependencies on oscap/xsltproc
-- The --list option
-- The --updates option
-- The --reuse option
-- The --file option
+- Dependencies on OSCAP/XSLTProc
+- The `--list` option
+- The `--updates` option
+- The `--reuse` option
+- The `--file` option
 - Support for running on disco.
 ### Fixed
 - Manifest mode does not check Ubuntu version and can be run on any version of Linux.
@@ -143,7 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.10] - 2020-04-13
 ### Added
 - CVEScan implementation in bash
-- snapcraft.yaml to package CVEScan as a snap
+- `snapcraft.yaml` to package CVEScan as a snap
 - Nagios output mode
 - CVE output mode
 - Priority filtering
