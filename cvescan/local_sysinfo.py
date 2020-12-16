@@ -101,9 +101,9 @@ class LocalSysInfo:
             )
             return self.get_lsb_release_info_from_file()
 
-    # Getting distro ID and codename from file beacuse the lsb_release python module
-    # is not available. The lsb_release module is not installed in the snap package
-    # because it causes the package to triple in size.
+    # Getting distribution ID and codename from file because the lsb_release python
+    # module is not available. The lsb_release module is not installed in the snap
+    # package because it causes the package to triple in size.
     def get_lsb_release_info_from_file(self):
         self.logger.debug(
             "Attempting to read %s to determine DISTRIB_ID and DISTRIB_CODENAME"

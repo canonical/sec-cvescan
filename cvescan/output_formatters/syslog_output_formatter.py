@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import cvescan.target_sysinfo as TargetSysInfo
 from cvescan.output_formatters import AbstractOutputFormatter, JSONOutputFormatter
@@ -12,7 +12,7 @@ class SyslogOutputFormatter(AbstractOutputFormatter):
 
     def format_output(
         self, scan_results: List[ScanResult], sysinfo: TargetSysInfo
-    ) -> (str, int):
+    ) -> Tuple[str, int]:
         scan_results = self._filter_on_experimental(scan_results)
 
         json_output, return_code = self.json_output_formatter.format_output(
@@ -25,6 +25,7 @@ class SyslogOutputFormatter(AbstractOutputFormatter):
         stats = self._get_scan_stats(scan_results, sysinfo)
 
         return (
-            f"{stats.fixable_vulns} vulnerabilites can be fixed by running `sudo apt upgrade`",
+            f"{stats.fixable_vulns} vulnerabilities can be fixed by running "
+            "`sudo apt upgrade`",
             return_code,
         )

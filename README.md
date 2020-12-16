@@ -68,7 +68,7 @@ optional arguments:
   -v, --verbose         enable verbose messages
   -p {critical,high,medium,all}, --priority {critical,high,medium,all}
                         filter output by CVE priority
-  --db UBUNTU_DB_FILE   Specify an Ubuntu vulnerability datbase file to use instead
+  --db UBUNTU_DB_FILE   Specify an Ubuntu vulnerability database file to use instead
                         of downloading the latest from people.canonical.com.
   -m MANIFEST_FILE, --manifest MANIFEST_FILE
                         scan a package manifest file instead of the local system
@@ -213,7 +213,7 @@ You can run the automated test suite by running
 ```
 
 An HTML code coverage report will be generated at `./htmlcov`. You can view
-this with any web browser (e.g. `firefox ./htmlcov/index.html`).
+this with any web browser (e.g. `Firefox ./htmlcov/index.html`).
 
 ### Version numbers
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
