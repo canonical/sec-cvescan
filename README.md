@@ -169,24 +169,24 @@ The recommended way to install CVEScan is with `sudo snap install cvescan`
 #### Install in local environment
 The following commands will install and run CVEScan from source:
 
-```
-$> sudo apt install python3-pip
-$> git clone https://github.com/canonical/sec-cvescan
-$> pip3 install --user sec-cvescan/
-$> ~/.local/bin/cvescan
+```bash
+    $> sudo apt install python3-pip
+    $> git clone https://github.com/canonical/sec-cvescan
+    $> pip3 install --user ./sec-cvescan/
+    $> ~/.local/bin/cvescan
 ```
 
-#### Install in a virtualenv
-The following commands will install and run CVEScan from source in a virtualenv:
+#### Install in a virtual environment
+The following commands will install and run CVEScan from source in a python virtual environment:
 
-```
-$> sudo apt install python3-pip git
-$> pip3 install --user virtualenv
-$> git clone https://github.com/canonical/sec-cvescan
-$> ~/.local/bin/virtualenv -p python3 venv
-$> source venv/bin/activate
-$> pip3 install -e ./sec-cvescan[apt]
-$> venv/bin/cvescan
+```bash
+    $> sudo apt install python3-pip git
+    $> pip3 install --user virtualenv
+    $> git clone https://github.com/canonical/sec-cvescan
+    $> ~/.local/bin/virtualenv -p python3 venv
+    $> source venv/bin/activate
+    $> pip3 install -e ./sec-cvescan[apt]
+    $> venv/bin/cvescan
 ```
 
 ## Development
@@ -195,18 +195,22 @@ $> venv/bin/cvescan
 
 CVEScan can be run from the source code with `python3 -m cvescan`
 
-### Installing precommit hooks
+### Installing pre-commit hooks
 
-To install the precommit hooks, run
+To install the pre-commit hooks, run
 
-    pip3 install --user pre-commit
-    ~/.local/bin/pre-commit install
+```bash
+    $> pip3 install --user pre-commit
+    $> ~/.local/bin/pre-commit install
+```
 
 ### Running the test suite
 
 You can run the automated test suite by running
 
-    python3 setup.py test
+```bash
+    $> python3 setup.py test
+```
 
 An HTML code coverage report will be generated at `./htmlcov`. You can view
 this with any web browser (e.g. `firefox ./htmlcov/index.html`).
@@ -214,6 +218,6 @@ this with any web browser (e.g. `firefox ./htmlcov/index.html`).
 ### Version numbers
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The version number used by the setup.py, snapcraft.yaml, and `cvescan
+The version number used by the `setup.py`, `snapcraft.yaml`, and `cvescan
 --version` argument is stored in [cvescan/version.py](./cvescan/version.py) and
 must be updated manually when a new version of CVEScan is released.

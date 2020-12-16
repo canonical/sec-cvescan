@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Corrected spelling issues in `CHANGELOG.md`
+- Corrected spelling issues in `CHANGELOG.md` and `README.md`
 - Ability to read a manifest file from stdin.
 - Manifests can include an explicit Ubuntu codename if the update-manager-core
   package is not installed.
