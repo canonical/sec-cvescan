@@ -184,3 +184,8 @@ ul
 nagioscore
 pluginapi
 validators
+cron
+ol
+stdin
+syslibs
+pydpkg
