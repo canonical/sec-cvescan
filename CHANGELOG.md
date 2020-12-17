@@ -6,7 +6,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Corrected spelling issues in `CHANGELOG.md` and `README.md`
 - Ability to read a manifest file from stdin.
 - Manifests can include an explicit Ubuntu codename if the update-manager-core
   package is not installed.
@@ -15,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cvescan.dump-dpkg-manifest` command to the snap. This command invokes the
   `dump_dpkg_manifest.sh` script.
 ### Changed
+- Corrected spelling issues in `CHANGELOG.md` and `README.md`
 - The snap to be based on core20 instead of core18.
 - Minimum required python version to >=3.7.
 - Replace dependency on python-apt with pydpkg.
