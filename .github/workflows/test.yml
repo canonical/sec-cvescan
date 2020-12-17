@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        python-version: [3.7, 3.8]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
@@ -32,9 +32,30 @@ jobs:
       run: |
         virtualenv .venv --system-site-packages && \
           source .venv/bin/activate && \
-          pip install coverage pytest-cov -e .[apt] --upgrade --upgrade-strategy=eager && \
-          coverage run --concurrency=thread -m pytest -ra tests/
-        coveralls
+          python -m pip install coverage pytest-cov -e . --upgrade --upgrade-strategy=eager && \
+          python -m coverage run --concurrency=thread -m pytest -ra tests/
+    - name: run coverage
+      env:
+        CI: '1'
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_GIT_COMMIT: ${{ github.sha }}
+        COVERALLS_GIT_BRANCH: ${{ github.ref }}
+        COVERALLS_FLAG_NAME: ubuntu-${{ matrix.python-version }}
+        COVERALLS_SERVICE_NAME: github
+        COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
+        COVERALLS_PARALLEL: true
+      run: |
+        import os
+
+        import coveralls.api
+        cov = coveralls.api.Coveralls(
+            service_name=os.environ["COVERALLS_SERVICE_NAME"],
+            repo_token=os.environ["COVERALLS_REPO_TOKEN"],
+            service_job_id=None,
+        )
+        result = cov.wear()
+        print("coveralls result: {}".format(str(result)))
+      shell: python
 
   coveralls-complete:
     needs: test
@@ -43,6 +64,7 @@ jobs:
         COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COVERALLS_GIT_COMMIT: ${{ github.sha }}
         COVERALLS_GIT_BRANCH: ${{ github.ref }}
+        COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
         COVERALLS_SERVICE_NAME: github
     steps:
     - name: install requests
@@ -62,7 +84,10 @@ jobs:
         payload = {
             "repo_token": os.environ['COVERALLS_REPO_TOKEN'],
             "repo_name": os.environ['GITHUB_REPOSITORY'],
-            "payload": {"build_num": service_number, "status": "done"}
+            "payload": {
+              "build_num": service_number,
+              "status": "done",
+            }
         }
         response = requests.post(url, json=payload)
         response.raise_for_status()
