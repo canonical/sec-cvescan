@@ -102,7 +102,7 @@ def test_returns_json_light():
     formatter = MockSyslogOutputFormatter(opt, null_logger(), MockJSONOutputFormatter())
     (results_msg, return_code) = formatter.format_output([], MockSysInfo())
 
-    assert results_msg == "5 vulnerabilites can be fixed by running `sudo apt upgrade`"
+    assert results_msg == "5 vulnerabilities can be fixed by running `sudo apt upgrade`"
     assert return_code == 0
 
 

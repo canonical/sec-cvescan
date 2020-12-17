@@ -1,0 +1,23 @@
+name: Spellchecker
+
+on:
+  [push, pull_request]
+
+jobs:
+  spelling:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Aspell
+      run: |
+        sudo apt-get install aspell aspell-en
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools
+        python -m pip install pyspelling
+    - name: Spell check
+      run: python -m pyspelling -c .spelling.yml

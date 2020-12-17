@@ -61,7 +61,7 @@ def main():
         error_exit(f"Failed to determine the correct Ubuntu codename -- {err}")
     except DistribIDError as di:
         error_exit(
-            f"Invalid linux distribution detected, CVEScan must be run on Ubuntu -- {di}"
+            f"Invalid Linux distribution detected, CVEScan must be run on Ubuntu -- {di}"
         )
     except PkgCountError as pke:
         error_exit(f"Failed to determine the local package count -- {pke}")
@@ -238,7 +238,7 @@ spin.silent = False
 
 @spin(
     "Downloading Ubuntu vulnerability database...",
-    "Ubuntu vulnerability datbase successfully downloaded!",
+    "Ubuntu vulnerability database successfully downloaded!",
     "Download Failed!",
 )
 def load_uct_data(opt, download_cache, target_sysinfo):

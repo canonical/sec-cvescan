@@ -1,0 +1,27 @@
+spellchecker: aspell
+matrix:
+- name: python
+  sources:
+  - setup.py
+  - cvescan/**/*.py
+  aspell:
+    lang: en
+    d: en_US
+    add-extra-dicts:
+    - ./.supplemental_dict.txt
+  pipeline:
+  - pyspelling.filters.python:
+      strings: true
+      comments: true
+
+- name: markdown
+  sources:
+  - README.md
+  - CHANGELOG.md
+  aspell:
+    lang: en
+    d: en_US
+    add-extra-dicts:
+    - ./.supplemental_dict.txt
+  pipeline:
+  - pyspelling.filters.markdown:
