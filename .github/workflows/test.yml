@@ -1,0 +1,73 @@
+name: CVEScan CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: ubuntu / ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.5, 3.6, 3.7, 3.8]
+    steps:
+    - name: Install Dependencies
+      run: |
+        sudo apt-get build-dep python3-apt
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install latest pip, setuptools, wheel
+      run: |
+        python -m pip install --upgrade coveralls pip setuptools wheel virtualenv --upgrade-strategy=eager
+    - name: Run tests
+      env:
+        CI: '1'
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_GIT_COMMIT: ${{ github.sha }}
+        COVERALLS_GIT_BRANCH: ${{ github.ref }}
+        COVERALLS_FLAG_NAME: ubuntu-${{ matrix.python-version }}
+        COVERALLS_SERVICE_NAME: github
+        COVERALLS_SERVICE_JOB_ID: ${{ github.run_id }}
+        COVERALLS_PARALLEL: true
+      run: |
+        virtualenv .venv && \
+          source .venv/bin/activate && \
+          pip install coverage pytest-cov -e .[apt] --upgrade --upgrade-strategy=eager && \
+          coverage run --concurrency=thread -m pytest -ra tests/
+        coveralls
+
+  coveralls-complete:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_GIT_COMMIT: ${{ github.sha }}
+        COVERALLS_GIT_BRANCH: ${{ github.ref }}
+        COVERALLS_SERVICE_NAME: github
+    steps:
+    - name: install requests
+      run: |
+        pip install --upgrade --upgrade-strategy=eager requests
+    - name: Coveralls Finished
+      run: |
+        import os
+        import requests
+        url = "https://coveralls.io/webhook"
+        pr_number = None
+        service_number = os.environ['COVERALLS_GIT_COMMIT']
+        git_branch = os.environ.get('COVERALLS_GIT_BRANCH', '')
+        if git_branch.startswith('refs/pull/'):
+            pr_number = git_branch.split('/')[2]
+            service_number = '{}-PR-{}'.format(service_number, pr_number)
+        payload = {
+            "repo_token": os.environ['COVERALLS_REPO_TOKEN'],
+            "repo_name": os.environ['GITHUB_REPOSITORY'],
+            "payload": {"build_num": service_number, "status": "done"}
+        }
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        assert response.json() == {"done": True}, response.json()
+      shell: python
