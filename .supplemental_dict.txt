@@ -189,3 +189,5 @@ ol
 stdin
 syslibs
 pydpkg
+MySQL
+AWS
