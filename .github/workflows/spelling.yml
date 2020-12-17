@@ -1,3 +1,8 @@
+name: Spellchecker
+
+on:
+  [push, pull_request]
+
 jobs:
   spelling:
     runs-on: ubuntu-latest
