@@ -3,7 +3,6 @@ matrix:
 - name: python
   sources:
   - setup.py
-  - tests/**/*.py
   - cvescan/**/*.py
   aspell:
     lang: en
