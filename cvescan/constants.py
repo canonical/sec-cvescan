@@ -12,7 +12,7 @@ PRIORITY_HELP = "filter output by CVE priority"
 
 DB_ARG_NAME = "db"
 DB_FILE_HELP = (
-    "Specify an Ubuntu vulnerability datbase file to use instead of downloading the"
+    "Specify an Ubuntu vulnerability database file to use instead of downloading the"
     "  latest from people.canonical.com."
 )
 

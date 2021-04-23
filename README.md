@@ -75,7 +75,7 @@ optional arguments:
   -v, --verbose         enable verbose messages
   -p {critical,high,medium,all}, --priority {critical,high,medium,all}
                         filter output by CVE priority
-  --db UBUNTU_DB_FILE   Specify an Ubuntu vulnerability datbase file to use instead
+  --db UBUNTU_DB_FILE   Specify an Ubuntu vulnerability database file to use instead
                         of downloading the latest from people.canonical.com.
   -m MANIFEST_FILE, --manifest MANIFEST_FILE
                         scan a package manifest file instead of the local system

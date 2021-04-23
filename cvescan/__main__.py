@@ -237,7 +237,7 @@ spin.silent = False
 
 @spin(
     "Downloading Ubuntu vulnerability database...",
-    "Ubuntu vulnerability datbase successfully downloaded!",
+    "Ubuntu vulnerability database successfully downloaded!",
     "Download Failed!",
 )
 def load_uct_data(opt, download_cache, target_sysinfo):
