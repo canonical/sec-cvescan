@@ -25,6 +25,7 @@ class Options:
         self.json = args.json
         self.priority = args.priority if args.priority else "high"
         self.unresolved = args.unresolved
+        self.exclude_cve = args.exclude_cve
 
         self.show_links = args.show_links
 
