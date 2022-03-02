@@ -138,7 +138,7 @@ The recommended way to install CVEScan is with `sudo snap install cvescan`
 The following commands will install and run CVEScan from source:
 
 ```
-$> sudo apt install python3-apt python3-pip
+$> sudo apt install python3-apt python3-pip git
 $> git clone https://github.com/canonical/sec-cvescan
 $> pip3 install --user sec-cvescan/
 $> ~/.local/bin/cvescan
