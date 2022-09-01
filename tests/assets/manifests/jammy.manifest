@@ -1,0 +1,5 @@
+apparmor	3.0.4-2ubuntu2.1
+apt	2.4.7
+base-files	12ubuntu4.2
+netplan.io	0.104-0ubuntu2.1
+update-manager-core	1:22.04.9

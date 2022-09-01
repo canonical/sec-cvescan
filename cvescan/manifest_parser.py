@@ -28,6 +28,7 @@ def _get_codename(installed_pkgs):
         bionic_regex = re.compile(r"1:18.04(.\d+)+")
         focal_regex = re.compile(r"1:20.04(.\d+)+")
         groovy_regex = re.compile(r"1:20.10(.\d+)+")
+        jammy_regex = re.compile(r"1:22.04(.\d+)+")
 
         update_manager_core_ver = installed_pkgs.get("update-manager-core", "")
 
@@ -45,6 +46,9 @@ def _get_codename(installed_pkgs):
 
         if groovy_regex.match(update_manager_core_ver):
             return "groovy"
+
+        if jammy_regex.match(update_manager_core_ver):
+            return "jammy"
 
         raise Exception("Could not match version to a supported release.")
     except Exception as e:
