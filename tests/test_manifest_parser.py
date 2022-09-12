@@ -47,6 +47,16 @@ def test_parse_manifest_codename_groovy():
     assert codename == "groovy"
 
 
+def test_parse_manifest_codename_hirsute():
+    (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "hirsute")
+    assert codename == "hirsute"
+
+
+def test_parse_manifest_codename_impish():
+    (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "impish")
+    assert codename == "impish"
+
+
 def test_parse_manifest_codename_failure():
     with pytest.raises(Exception):
         (_, codename) = mp.parse_manifest_file(TEST_MANIFEST_FILE % "disco")
