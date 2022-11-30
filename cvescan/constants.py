@@ -55,6 +55,8 @@ CVE_HELP = "report whether or not this system is vulnerable to a specific CVE."
 SILENT_ARG_NAME = "silent"
 SILENT_HELP = "do not print any output (only used with --cve)"
 
+EXCLUDE_CVE_ARG_NAME = "exclude-cve"
+EXCLUDE_CVE_HELP = "exclude reports for specific CVEs."
 
 DEBUG_LOG = "debug.log"
 LSB_RELEASE_FILE = "/etc/lsb-release"

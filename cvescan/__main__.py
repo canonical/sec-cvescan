@@ -69,6 +69,12 @@ def main():
     download_cache = USTDownloadCache(logger)
     uct_data = load_uct_data(opt, download_cache, target_sysinfo)
 
+    for cve in opt.exclude_cve:
+        try:
+            uct_data.pop(cve)
+        except KeyError:
+            logger.warning(f"CVE not found in database: {cve}")
+
     scan_results = run_scan(target_sysinfo, uct_data, logger)
 
     output_formatter = load_output_formatter(opt, logger)
@@ -159,6 +165,12 @@ def parse_args():
     )
     cvescan_ap.add_argument(
         "-c", f"--{const.CVE_ARG_NAME}", metavar="CVE-IDENTIFIER", help=const.CVE_HELP
+    )
+    cvescan_ap.add_argument(
+        "-X", f"--{const.EXCLUDE_CVE_ARG_NAME}", metavar="CVE-EXCLUDE", help=const.EXCLUDE_CVE_HELP,
+        action="append",
+        dest="exclude_cve",
+        default=[],
     )
     cvescan_ap.add_argument(
         "-s",

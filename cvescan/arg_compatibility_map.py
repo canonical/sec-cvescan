@@ -13,6 +13,7 @@ UNRESOLVED_FLAGS = "--unresolved"
 EXPERIMENTAL_FLAGS = "-x|--experimental"
 NAGIOS_FLAGS = "-n|--nagios"
 CVE_FLAGS = "-c|--cve"
+EXCLUDE_CVE_FLAGS = "-X|--exclude-cve"
 SILENT_FLAGS = "-s|--silent"
 
 
@@ -136,5 +137,10 @@ arg_compatibility_map = {
             const.NAGIOS_ARG_NAME,
             const.VERBOSE_ARG_NAME,
         },
+    },
+    const.EXCLUDE_CVE_ARG_NAME: {
+        "flags": EXCLUDE_CVE_FLAGS,
+        "required": set(),
+        "incompatible": set(),
     },
 }
