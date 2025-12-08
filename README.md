@@ -18,9 +18,9 @@
 
 ### Deprecated
 
-Note: CVEScan is not supported - instead it is recommended to use [Ubuntu
-OVAL data](https://ubuntu.com/security/oval "Ubuntu OVAL data on
-ubuntu.com").
+Note: CVEScan is not supported - instead it is recommended to use one of the
+available [data formats](https://documentation.ubuntu.com/security/security-updates/#data-feeds)
+available.
 
 CVEScan analyzes an Ubuntu system to check whether all available security
 patches have been installed. CVEScan produces a clear, concise report that
